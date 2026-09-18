@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import sanitizeHtml from "sanitize-html";
 import prisma from "../config/prisma";
 import { rsvpSchema, wishSchema } from "../utils/validations";
+
+function stripHtml(input: string): string {
+  return input.replace(/<[^>]*>/g, "").trim();
+}
 import { KNOWN_DEMO_SLUGS } from "../config/constants";
 import {
   getCachedPublicInvitation,
@@ -101,10 +104,7 @@ export async function submitRsvp(
       return;
     }
 
-    const cleanGuestName = sanitizeHtml(guestName.trim(), {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
+    const cleanGuestName = stripHtml(guestName);
 
     const rsvp = await prisma.rsvp.create({
       data: {
@@ -203,14 +203,8 @@ export async function submitWish(
 
     const { invitationId, senderName, message, reaction } = parsed.data;
 
-    const cleanSenderName = sanitizeHtml(senderName.trim(), {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
-    const cleanMessage = sanitizeHtml(message.trim(), {
-      allowedTags: [],
-      allowedAttributes: {},
-    });
+    const cleanSenderName = stripHtml(senderName);
+    const cleanMessage = stripHtml(message);
 
     if (KNOWN_DEMO_SLUGS.includes(invitationId)) {
       res.status(201).json({
