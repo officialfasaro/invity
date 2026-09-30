@@ -144,10 +144,12 @@ export default function OrderPage() {
   const totalPayment = Math.max(0, basePackageFee + customDomainFee + treeDonationFee - referralDiscount);
 
   // Midtrans Client Key & script loading
-  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+  const clientKey =
+    (typeof process !== "undefined" && process?.env?.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY) ||
+    "";
   const isProduction =
     clientKey.startsWith("Mid-client-") ||
-    process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
+    (typeof process !== "undefined" && process?.env?.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true");
   const isRealKey = Boolean(clientKey) && !clientKey.includes("YOUR_SANDBOX");
 
   useEffect(() => {

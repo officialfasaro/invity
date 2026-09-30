@@ -187,10 +187,11 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
     };
   }, []);
 
-  const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
+  const clientKey =
+    (typeof process !== "undefined" && process?.env?.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY) || "";
   const isProduction =
     clientKey.startsWith("Mid-client-") ||
-    process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true";
+    (typeof process !== "undefined" && process?.env?.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === "true");
   const isRealKey = Boolean(clientKey) && !clientKey.includes("YOUR_SANDBOX");
 
   // Determine active mode
