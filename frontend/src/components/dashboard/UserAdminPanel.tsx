@@ -128,7 +128,7 @@ export default function UserAdminPanel() {
       ]);
 
       if (resInv.status === 403) {
-        router.push("/login?error=no_active_package");
+        router.push("/order");
         return;
       }
 
@@ -137,7 +137,7 @@ export default function UserAdminPanel() {
         const data = json.data;
         if (data) {
           if (!data.isAdmin && !data.isPaid) {
-            router.push("/login?error=no_active_package");
+            router.push("/order");
             return;
           }
           setInvitationId(data.id || "");

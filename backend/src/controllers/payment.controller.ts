@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { Prisma } from "@prisma/client";
 import prisma from "../config/prisma";
 import { createOrderSchema } from "../utils/validations";
 import {
@@ -241,3 +242,185 @@ export async function midtransWebhook(
     next(error);
   }
 }
+
+export async function onboardingSetup(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const {
+      groomName,
+      brideName,
+      phoneNumber,
+      weddingDate,
+      isDateUndecided,
+      location,
+      slug,
+      tier,
+      referralCode,
+    } = req.body;
+
+    if (!tier || !["STARTER", "ELEGANT", "ULTIMATE"].includes(tier)) {
+      res.status(400).json({ error: "Pilihan paket tidak valid" });
+      return;
+    }
+
+    const cleanGroom = (groomName || "").trim().slice(0, 50);
+    const cleanBride = (brideName || "").trim().slice(0, 50);
+
+    let invitation = await prisma.invitation.findFirst({
+      where: { userId: user.userId },
+    });
+
+    let finalSlug = invitation?.slug;
+    if (slug && slug.trim() !== "") {
+      const sanitized = slug
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "")
+        .replace(/-+/g, "-")
+        .slice(0, 30);
+      if (sanitized) {
+        const exists = await prisma.invitation.findFirst({
+          where: { slug: sanitized, userId: { not: user.userId } },
+        });
+        if (!exists) {
+          finalSlug = sanitized;
+        }
+      }
+    }
+
+    if (!finalSlug) {
+      const g = cleanGroom.replace(/[^a-z0-9]/gi, "").toLowerCase() || "pria";
+      const b = cleanBride.replace(/[^a-z0-9]/gi, "").toLowerCase() || "wanita";
+      finalSlug = `${g}-${b}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+
+    const title =
+      cleanGroom && cleanBride
+        ? `Pernikahan ${cleanGroom} & ${cleanBride}`
+        : "Pernikahan Mempelai";
+
+    const coupleInfo: Record<string, unknown> =
+      (invitation?.coupleInfo as Record<string, unknown>) || {};
+    coupleInfo.groomName = cleanGroom || coupleInfo.groomName || "Mempelai Pria";
+    coupleInfo.groomNickname = cleanGroom.split(" ")[0] || cleanGroom;
+    coupleInfo.brideName = cleanBride || coupleInfo.brideName || "Mempelai Wanita";
+    coupleInfo.brideNickname = cleanBride.split(" ")[0] || cleanBride;
+    coupleInfo.phoneNumber = (phoneNumber || "").trim();
+    coupleInfo.location = (location || "").trim();
+    coupleInfo.weddingDate = isDateUndecided ? null : weddingDate || null;
+    coupleInfo.selectedTier = tier;
+    if (referralCode) {
+      coupleInfo.referralCode = referralCode.trim();
+    }
+
+    if (!invitation) {
+      invitation = await prisma.invitation.create({
+        data: {
+          userId: user.userId,
+          slug: finalSlug,
+          title,
+          themeId: "minimalist",
+          coupleInfo: coupleInfo as Prisma.InputJsonValue,
+          isActive: true,
+        },
+      });
+    } else {
+      invitation = await prisma.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          title,
+          slug: finalSlug,
+          coupleInfo: coupleInfo as Prisma.InputJsonValue,
+        },
+      });
+    }
+
+    if (weddingDate && !isDateUndecided) {
+      const d = new Date(weddingDate);
+      if (!isNaN(d.getTime())) {
+        const firstSchedule = await prisma.eventSchedule.findFirst({
+          where: { invitationId: invitation.id },
+        });
+        if (firstSchedule) {
+          await prisma.eventSchedule.update({
+            where: { id: firstSchedule.id },
+            data: {
+              date: d,
+              address: location || firstSchedule.address,
+            },
+          });
+        } else {
+          await prisma.eventSchedule.create({
+            data: {
+              invitationId: invitation.id,
+              eventName: "Akad & Resepsi",
+              date: d,
+              startTime: "09:00",
+              venueName: location || "Lokasi Acara",
+              address: location || "Alamat Acara",
+            },
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Data personal berhasil disimpan",
+      data: {
+        invitationId: invitation.id,
+        slug: invitation.slug,
+        tier,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getOnboardingState(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const invitation = await prisma.invitation.findFirst({
+      where: { userId: user.userId },
+      include: {
+        eventSchedules: {
+          orderBy: { date: "asc" },
+          take: 1,
+        },
+      },
+    });
+
+    if (!invitation) {
+      res.json({ data: null });
+      return;
+    }
+
+    const coupleInfo = (invitation.coupleInfo as Record<string, unknown>) || {};
+    const firstSchedule = invitation.eventSchedules?.[0];
+
+    res.json({
+      data: {
+        invitationId: invitation.id,
+        slug: invitation.slug,
+        selectedTier: coupleInfo.selectedTier || null,
+        groomNickname: coupleInfo.groomNickname || coupleInfo.groomName || "",
+        brideNickname: coupleInfo.brideNickname || coupleInfo.brideName || "",
+        phoneNumber: coupleInfo.phoneNumber || "",
+        weddingDate: firstSchedule?.date || coupleInfo.weddingDate || null,
+        location: firstSchedule?.address || firstSchedule?.venueName || coupleInfo.location || "",
+        referralCode: coupleInfo.referralCode || "",
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+

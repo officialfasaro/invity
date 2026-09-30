@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
+import OrderPage from "@/pages/OrderPage";
 import AdminPage from "@/pages/AdminPage";
 import AdminVerificationPage from "@/pages/AdminVerificationPage";
 import InvitationPage from "@/pages/InvitationPage";
@@ -18,6 +19,16 @@ export default function App() {
 
         {/* Authentication Route */}
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Onboarding & Package Selection Route */}
+        <Route
+          path="/order"
+          element={
+            <ProtectedRoute allowUnpaidOnly>
+              <OrderPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* User Dashboard Protected Route */}
         <Route

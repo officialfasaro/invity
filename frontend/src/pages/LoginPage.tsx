@@ -109,7 +109,13 @@ function LoginForm() {
         throw new Error(data.error || "Gagal masuk");
       }
 
-      router.push(redirectTarget);
+      if (data.user?.role === "ADMIN") {
+        router.push("/admin");
+      } else if (data.user?.hasActivePackage) {
+        router.push(redirectTarget && redirectTarget !== "/login" ? redirectTarget : "/dashboard");
+      } else {
+        router.push("/order");
+      }
       router.refresh();
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Terjadi kesalahan");

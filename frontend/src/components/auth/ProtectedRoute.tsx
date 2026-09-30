@@ -13,9 +13,14 @@ interface AuthUser {
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  allowUnpaidOnly?: boolean;
 }
 
-export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+export default function ProtectedRoute({
+  children,
+  requireAdmin = false,
+  allowUnpaidOnly = false,
+}: ProtectedRouteProps) {
   const location = useLocation();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,9 +70,20 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Non-admin users without an active package cannot access dashboard
+  // If page is only for choosing/buying a package (/order)
+  if (allowUnpaidOnly) {
+    if (user.role === "ADMIN") {
+      return <Navigate to="/admin" replace />;
+    }
+    if (user.hasActivePackage) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // Non-admin users without an active package cannot access dashboard, redirect to /order
   if (!requireAdmin && user.role !== "ADMIN" && !user.hasActivePackage) {
-    return <Navigate to="/login?error=no_active_package" replace />;
+    return <Navigate to="/order" replace />;
   }
 
   if (requireAdmin) {

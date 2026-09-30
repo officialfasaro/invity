@@ -65,17 +65,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    if (user.role !== "ADMIN") {
-      const hasActive = await userHasActivePackage(user.id);
-      if (!hasActive) {
-        res.status(403).json({
-          error:
-            "Akun Anda belum memiliki paket undangan aktif. Silakan lakukan pemesanan paket terlebih dahulu untuk mengakses dashboard.",
-          code: "NO_ACTIVE_PACKAGE",
-        });
-        return;
-      }
-    }
+    const hasActivePackage = user.role === "ADMIN" ? true : await userHasActivePackage(user.id);
 
     const token = signJwtToken({
       userId: user.id,
@@ -98,6 +88,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         name: user.name,
         email: user.email,
         role: user.role,
+        hasActivePackage,
       },
     });
   } catch (error) {
@@ -318,13 +309,7 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
       });
     }
 
-    if (user.role !== "ADMIN") {
-      const hasActive = await userHasActivePackage(user.id);
-      if (!hasActive) {
-        loginRedirect("no_active_package");
-        return;
-      }
-    }
+    const hasActive = user.role === "ADMIN" ? true : await userHasActivePackage(user.id);
 
     const token = signJwtToken({
       userId: user.id,
@@ -342,7 +327,14 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
 
     res.clearCookie(GOOGLE_OAUTH_STATE_COOKIE, { path: "/" });
 
-    const destination = user.role === "ADMIN" && returnTarget === "/dashboard" ? "/admin" : returnTarget;
+    let destination = "/dashboard";
+    if (user.role === "ADMIN") {
+      destination = "/admin";
+    } else if (!hasActive) {
+      destination = "/order";
+    } else if (returnTarget && returnTarget.startsWith("/")) {
+      destination = returnTarget;
+    }
     res.redirect(`${frontendBase}${destination}`);
   } catch (err) {
     loginRedirect("google_auth_failed");
