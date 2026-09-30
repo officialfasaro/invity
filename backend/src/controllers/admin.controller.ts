@@ -6,6 +6,7 @@ import { UserRole, SubscriptionTier, PaymentStatus } from "@prisma/client";
 import { signJwtToken } from "../middleware/auth.middleware";
 import { AUTH_COOKIE_NAME } from "../config/constants";
 import { SYSTEM_SETTING_DEFINITIONS } from "../services/settings.service";
+import { invalidateInvitationCache } from "../services/cache.service";
 import { z } from "zod";
 
 export async function getMetrics(
@@ -378,9 +379,133 @@ export async function deleteTheme(
       return;
     }
 
+    const existingTheme = await prisma.themeCatalog.findUnique({
+      where: { id },
+    });
+
+    if (!existingTheme) {
+      res.status(404).json({ success: false, error: "Tema tidak ditemukan" });
+      return;
+    }
+
+    if (existingTheme.themeKey === "minimalist") {
+      res.status(400).json({
+        success: false,
+        error: "Tema default 'minimalist' adalah fondasi sistem dan tidak boleh dihapus.",
+      });
+      return;
+    }
+
+    // Ekosistem cleanup: Cari seluruh undangan yang masih memakai tema ini
+    const affectedInvitations = await prisma.invitation.findMany({
+      where: { themeId: existingTheme.themeKey },
+      select: { id: true, slug: true },
+    });
+
+    // Reassign ke tema default 'minimalist' secara aman
+    if (affectedInvitations.length > 0) {
+      await prisma.invitation.updateMany({
+        where: { themeId: existingTheme.themeKey },
+        data: { themeId: "minimalist" },
+      });
+
+      // Reset cache untuk seluruh undangan yang terdampak
+      for (const inv of affectedInvitations) {
+        invalidateInvitationCache(inv.slug, inv.id);
+      }
+    }
+
+    // Bersihkan file thumbnail lokal jika ada di direktori /uploads
+    if (existingTheme.thumbnail && existingTheme.thumbnail.startsWith("/uploads/")) {
+      const uploadPath = path.join(process.cwd(), existingTheme.thumbnail);
+      try {
+        await fs.unlink(uploadPath);
+      } catch {
+        // Abaikan jika file fisik sudah tidak ada
+      }
+    }
+
+    // Hapus dari database
     await prisma.themeCatalog.delete({ where: { id } });
 
-    res.json({ success: true, message: "Tema berhasil dihapus" });
+    res.json({
+      success: true,
+      message:
+        affectedInvitations.length > 0
+          ? `Tema "${existingTheme.name}" berhasil dihapus. ${affectedInvitations.length} undangan aktif telah dialihkan ke tema Minimalist.`
+          : `Tema "${existingTheme.name}" berhasil dihapus dari katalog.`,
+      affectedInvitationsCount: affectedInvitations.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function adminScanGuestCheckin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { invitationId, qrData, slugCode, guestId } = req.body;
+
+    let targetGuest: any = null;
+    if (guestId) {
+      targetGuest = await prisma.guest.findUnique({
+        where: { id: guestId },
+        include: { invitation: { select: { title: true, slug: true } } },
+      });
+    } else if (slugCode && invitationId) {
+      targetGuest = await prisma.guest.findFirst({
+        where: { slugCode, invitationId },
+        include: { invitation: { select: { title: true, slug: true } } },
+      });
+    } else if (qrData) {
+      const trimmed = String(qrData).trim();
+      let extracted = trimmed;
+      try {
+        const p = JSON.parse(trimmed);
+        if (p.guestId) extracted = p.guestId;
+        else if (p.slugCode) extracted = p.slugCode;
+      } catch {
+        // Fallback string
+      }
+
+      targetGuest = await prisma.guest.findFirst({
+        where: {
+          OR: [{ id: extracted }, { slugCode: extracted }],
+          ...(invitationId ? { invitationId } : {}),
+        },
+        include: { invitation: { select: { title: true, slug: true } } },
+      });
+    }
+
+    if (!targetGuest) {
+      res.status(404).json({ success: false, error: "Tamu tidak ditemukan" });
+      return;
+    }
+
+    const isAlreadyCheckedIn = Boolean(targetGuest.checkedInAt);
+    let updated = targetGuest;
+
+    if (!isAlreadyCheckedIn) {
+      updated = await prisma.guest.update({
+        where: { id: targetGuest.id },
+        data: { checkedInAt: new Date() },
+        include: { invitation: { select: { title: true, slug: true } } },
+      });
+    }
+
+    res.json({
+      success: true,
+      status: isAlreadyCheckedIn ? "ALREADY_CHECKED_IN" : "CHECKIN_SUCCESS",
+      message: isAlreadyCheckedIn
+        ? `Tamu "${targetGuest.name}" SUDAH check-in sebelumnya pada ${new Date(
+            targetGuest.checkedInAt
+          ).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB.`
+        : `Tamu "${targetGuest.name}" (${targetGuest.quota} Pax - ${targetGuest.invitation?.title || ""}) berhasil check-in!`,
+      data: updated,
+    });
   } catch (error) {
     next(error);
   }

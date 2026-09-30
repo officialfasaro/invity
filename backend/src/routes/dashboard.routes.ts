@@ -7,6 +7,9 @@ import {
   addGuest,
   updateGuest,
   deleteGuest,
+  toggleGuestCheckin,
+  scanGuestQr,
+  getGuestCheckinStats,
   getRsvpRecap,
   getDashboardPayments,
 } from "../controllers/dashboard.controller";
@@ -24,6 +27,9 @@ router.get("/guests", getGuests);
 router.post("/guests", addGuest);
 router.put("/guests", updateGuest);
 router.delete("/guests", deleteGuest);
+router.post("/guests/checkin", toggleGuestCheckin);
+router.post("/guests/scan", scanGuestQr);
+router.get("/guests/checkin-stats", getGuestCheckinStats);
 
 router.get("/rsvp-recap", getRsvpRecap);
 router.get("/payments", getDashboardPayments);

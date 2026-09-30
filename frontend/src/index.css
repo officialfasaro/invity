@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F3F6FB;
+  --foreground: #0F172A;
+  --primary: #F97316;
+  --primary-hover: #EA580C;
+  --primary-light: #FFF7ED;
+  --border-subtle: #E2E8F0;
+
+  --font-geist-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-geist-mono: "JetBrains Mono", monospace;
+  --font-great-vibes: "Great Vibes", cursive;
+  --font-playfair: "Playfair Display", Georgia, serif;
+  --font-plus-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-cormorant: "Cormorant Garamond", Georgia, serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+::selection {
+  background-color: #F97316;
+  color: #ffffff;
+}
+
+.font-script {
+  font-family: var(--font-great-vibes), cursive;
+}
+
+.font-serif-playfair {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.font-serif-cormorant {
+  font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+}
+
+.font-sans-jakarta {
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Velvet & Wax Seal Theme Styles */
+.velvet-bg {
+  background: radial-gradient(circle at center, #580F1E 0%, #30060E 65%, #1A0307 100%);
+  position: relative;
+}
+.velvet-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  background-size: 24px 24px;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@keyframes wax-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(197, 168, 128, 0.4);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 14px rgba(197, 168, 128, 0);
+  }
+}
+
+.wax-pulse {
+  animation: wax-glow 3s infinite ease-in-out;
+}
+
+.shadow-wax {
+  box-shadow: 0 10px 25px -5px rgba(88, 15, 30, 0.4), 0 8px 10px -6px rgba(88, 15, 30, 0.3);
+}
+
+/* Hide scrollbar UI completely while preserving smooth scroll interaction */
+.no-scrollbar {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Romantic floating petals animation */
+@keyframes petalFall {
+  0% {
+    transform: translate3d(0, -10px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(120px, 105vh, 0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-petal {
+  animation: petalFall linear infinite;
+}
+
+/* ========================================================= */
+/* GOOGLE TRANSLATE - BACKGROUND ENGINE & CLEAN UI          */
+/* Sembunyikan top banner frame, balloon, & popup tanpa      */
+/* menghapus elemen agar proses penerjemahan tetap berjalan. */
+/* ========================================================= */
+
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.goog-te-banner,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  border: none !important;
+}
+
+body {
+  top: 0px !important;
+  position: static !important;
+}
+
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.skiptranslate > iframe.skiptranslate {
+  display: none !important;
+}
+
+.goog-te-gadget,
+.goog-te-gadget-simple {
+  font-family: inherit !important;
+  font-size: 0px !important;
+  color: transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  line-height: 0 !important;
+}
+
+.goog-te-gadget .goog-te-combo {
+  margin: 0 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #E2E8F0 !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: normal !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.goog-te-gadget .goog-te-combo:hover {
+  border-color: #F97316 !important;
+}
+
+.goog-te-gadget .goog-te-combo:focus {
+  border-color: #F97316 !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) !important;
+}
+
+.goog-te-gadget > span,
+.goog-te-gadget span,
+.goog-te-gadget a,
+.goog-logo-link {
+  display: none !important;
+  font-size: 0 !important;
+  visibility: hidden !important;
+}

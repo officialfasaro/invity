@@ -18,6 +18,7 @@ import {
   getMaintenance,
   actionMaintenance,
   adminUpload,
+  adminScanGuestCheckin,
 } from "../controllers/admin.controller";
 import { adminMiddleware } from "../middleware/auth.middleware";
 import { uploadMemory } from "../controllers/upload.controller";
@@ -50,5 +51,6 @@ router.get("/maintenance", getMaintenance);
 router.post("/maintenance", actionMaintenance);
 
 router.post("/upload", uploadMemory.single("file"), adminUpload);
+router.post("/guests/scan", adminScanGuestCheckin);
 
 export default router;

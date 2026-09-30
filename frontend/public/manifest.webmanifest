@@ -1,0 +1,39 @@
+{
+  "name": "Fasaro - Undangan Pernikahan Digital",
+  "short_name": "Fasaro",
+  "description": "Platform Undangan Pernikahan Digital & Manajemen Tamu Modern",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F3F6FB",
+  "theme_color": "#F97316",
+  "orientation": "portrait",
+  "categories": ["lifestyle", "events", "productivity"],
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

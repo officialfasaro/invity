@@ -762,3 +762,236 @@ export async function getDashboardPayments(
     next(error);
   }
 }
+
+export async function toggleGuestCheckin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const { id, action } = req.body;
+
+    if (!id || typeof id !== "string") {
+      res.status(400).json({ success: false, error: "ID tamu wajib disertakan" });
+      return;
+    }
+
+    const guest = await prisma.guest.findUnique({
+      where: { id },
+      include: { invitation: { select: { userId: true, id: true } } },
+    });
+
+    if (!guest || guest.invitation.userId !== user.userId) {
+      res.status(404).json({ success: false, error: "Tamu tidak ditemukan" });
+      return;
+    }
+
+    let newCheckedInAt: Date | null = null;
+    if (action === "undo") {
+      newCheckedInAt = null;
+    } else if (action === "checkin") {
+      newCheckedInAt = new Date();
+    } else {
+      newCheckedInAt = guest.checkedInAt ? null : new Date();
+    }
+
+    const updated = await prisma.guest.update({
+      where: { id },
+      data: { checkedInAt: newCheckedInAt },
+    });
+
+    res.json({
+      success: true,
+      message: updated.checkedInAt
+        ? `Tamu "${updated.name}" (${updated.quota} Pax) berhasil check-in.`
+        : `Check-in tamu "${updated.name}" berhasil dibatalkan.`,
+      data: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function scanGuestQr(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const { qrData, guestId, slugCode } = req.body;
+
+    const userInv = await prisma.invitation.findFirst({
+      where: { userId: user.userId },
+      select: { id: true, title: true, slug: true },
+    });
+
+    if (!userInv) {
+      res.status(404).json({ success: false, error: "Undangan tidak ditemukan" });
+      return;
+    }
+
+    let targetGuest = null;
+
+    if (guestId) {
+      targetGuest = await prisma.guest.findFirst({
+        where: { id: guestId, invitationId: userInv.id },
+      });
+    } else if (slugCode) {
+      targetGuest = await prisma.guest.findFirst({
+        where: { slugCode, invitationId: userInv.id },
+      });
+    } else if (qrData && typeof qrData === "string") {
+      const trimmed = qrData.trim();
+
+      // 1. Coba parse JSON payload jika ada
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed.guestId) {
+          targetGuest = await prisma.guest.findFirst({
+            where: { id: parsed.guestId, invitationId: userInv.id },
+          });
+        } else if (parsed.slugCode) {
+          targetGuest = await prisma.guest.findFirst({
+            where: { slugCode: parsed.slugCode, invitationId: userInv.id },
+          });
+        }
+      } catch {
+        // Bukan JSON, lanjutkan
+      }
+
+      // 2. Jika formatnya URL seperti ?to=... atau ?code=...
+      if (!targetGuest) {
+        let extractedCodeOrName = trimmed;
+        if (trimmed.includes("?")) {
+          try {
+            const urlObj = new URL(trimmed.startsWith("http") ? trimmed : `http://dummy.com/${trimmed}`);
+            const codeParam = urlObj.searchParams.get("code") || urlObj.searchParams.get("slugCode");
+            const toParam = urlObj.searchParams.get("to");
+            if (codeParam) extractedCodeOrName = codeParam;
+            else if (toParam) extractedCodeOrName = toParam;
+          } catch {
+            // URL parse fallback
+          }
+        }
+
+        targetGuest = await prisma.guest.findFirst({
+          where: {
+            invitationId: userInv.id,
+            OR: [
+              { id: extractedCodeOrName },
+              { slugCode: extractedCodeOrName },
+              { name: { equals: extractedCodeOrName, mode: "insensitive" } },
+            ],
+          },
+        });
+      }
+    }
+
+    if (!targetGuest) {
+      res.status(404).json({
+        success: false,
+        error: "Data tamu tidak ditemukan dalam daftar buku tamu acara ini.",
+      });
+      return;
+    }
+
+    const isAlreadyCheckedIn = Boolean(targetGuest.checkedInAt);
+    let updatedGuest = targetGuest;
+
+    if (!isAlreadyCheckedIn) {
+      updatedGuest = await prisma.guest.update({
+        where: { id: targetGuest.id },
+        data: { checkedInAt: new Date() },
+      });
+    }
+
+    // Statistik kehadiran terkini
+    const allGuests = await prisma.guest.findMany({
+      where: { invitationId: userInv.id },
+      select: { quota: true, checkedInAt: true },
+    });
+
+    const totalGuests = allGuests.length;
+    const checkedInGuests = allGuests.filter((g) => g.checkedInAt).length;
+    const totalPax = allGuests.reduce((acc, g) => acc + (g.quota || 1), 0);
+    const checkedInPax = allGuests
+      .filter((g) => g.checkedInAt)
+      .reduce((acc, g) => acc + (g.quota || 1), 0);
+
+    res.json({
+      success: true,
+      status: isAlreadyCheckedIn ? "ALREADY_CHECKED_IN" : "CHECKIN_SUCCESS",
+      message: isAlreadyCheckedIn
+        ? `Tamu "${targetGuest.name}" SUDAH check-in sebelumnya pada ${new Date(
+            targetGuest.checkedInAt!
+          ).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB.`
+        : `Tamu "${targetGuest.name}" (${targetGuest.quota} Pax) berhasil check-in!`,
+      data: {
+        guest: updatedGuest,
+        stats: {
+          totalGuests,
+          checkedInGuests,
+          totalPax,
+          checkedInPax,
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getGuestCheckinStats(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const invitation = await prisma.invitation.findFirst({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+
+    if (!invitation) {
+      res.json({
+        success: true,
+        data: {
+          totalGuests: 0,
+          checkedInGuests: 0,
+          totalPax: 0,
+          checkedInPax: 0,
+          recentCheckins: [],
+        },
+      });
+      return;
+    }
+
+    const guests = await prisma.guest.findMany({
+      where: { invitationId: invitation.id },
+      orderBy: { checkedInAt: "desc" },
+    });
+
+    const totalGuests = guests.length;
+    const checkedInList = guests.filter((g) => g.checkedInAt);
+    const checkedInGuests = checkedInList.length;
+    const totalPax = guests.reduce((acc, g) => acc + (g.quota || 1), 0);
+    const checkedInPax = checkedInList.reduce((acc, g) => acc + (g.quota || 1), 0);
+    const recentCheckins = checkedInList.slice(0, 10);
+
+    res.json({
+      success: true,
+      data: {
+        totalGuests,
+        checkedInGuests,
+        totalPax,
+        checkedInPax,
+        recentCheckins,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
