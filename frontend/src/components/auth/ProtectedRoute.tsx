@@ -7,6 +7,7 @@ interface AuthUser {
   name?: string | null;
   email: string;
   role: "USER" | "ADMIN";
+  hasActivePackage?: boolean;
 }
 
 interface ProtectedRouteProps {
@@ -62,6 +63,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
 
   if (requireAdmin && user.role !== "ADMIN") {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Non-admin users without an active package cannot access dashboard
+  if (!requireAdmin && user.role !== "ADMIN" && !user.hasActivePackage) {
+    return <Navigate to="/login?error=no_active_package" replace />;
   }
 
   if (requireAdmin) {

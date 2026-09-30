@@ -6,7 +6,6 @@ import {
   Check,
   Copy,
   ExternalLink,
-  Eye,
   Heart,
   LogOut,
   MoreVertical,
@@ -24,10 +23,8 @@ interface MobileTopBarProps {
   userEmail?: string;
   activeUntil?: string | null;
   isLoading: boolean;
-  onOpenPreview: () => void;
   onLogout: () => void;
   onUpgradeClick?: () => void;
-  onSelectPlanClick?: () => void;
 }
 
 export const MobileTopBar: React.FC<MobileTopBarProps> = ({
@@ -39,10 +36,8 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   userEmail,
   activeUntil,
   isLoading,
-  onOpenPreview,
   onLogout,
   onUpgradeClick,
-  onSelectPlanClick,
 }) => {
   const [copied, setCopied] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -103,7 +98,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
               {!tier || tier === "UNSELECTED" ? (
                 <button
                   type="button"
-                  onClick={onSelectPlanClick || onUpgradeClick}
+                  onClick={onUpgradeClick}
                   className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[10px] border bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer"
                 >
                   Belum Pilih Paket
@@ -150,16 +145,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
           )}
 
           {/* Upgrade / Bayar Button */}
-          {!tier ? (
-            <button
-              type="button"
-              onClick={onSelectPlanClick || onUpgradeClick}
-              className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-semibold min-h-[38px] transition-all shadow-xs cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-white" />
-              <span>Pilih Paket</span>
-            </button>
-          ) : !isPaid ? (
+          {!isPaid ? (
             <button
               type="button"
               onClick={onUpgradeClick}
@@ -179,17 +165,6 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
               <span>Upgrade Paket</span>
             </button>
           ) : null}
-
-          {/* Quick Preview Button */}
-          <button
-            type="button"
-            onClick={onOpenPreview}
-            className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] hover:bg-slate-100 text-slate-700 text-xs font-semibold min-h-[38px] transition-colors"
-            title="Lihat simulasi undangan ponsel"
-          >
-            <Eye className="w-4 h-4 text-[#F97316]" />
-            <span>Preview HP</span>
-          </button>
 
           {/* Salin Link Button */}
           <button
@@ -217,10 +192,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold min-h-[38px] transition-colors shadow-xs"
-            title="Buka website undangan langsung"
+            title="Buka undangan pernikahan"
           >
             <ExternalLink className="w-4 h-4" />
-            <span>Buka Web</span>
+            <span>Buka Undangan</span>
           </a>
 
           {/* Logout */}
@@ -242,10 +217,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold min-h-[36px] transition-colors shadow-xs"
-            title="Buka website undangan"
+            title="Buka undangan pernikahan"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>Buka Web</span>
+            <span>Buka Undangan</span>
           </a>
 
           {/* 2. Sleek Overflow Dropdown Trigger */}
@@ -296,19 +271,6 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
                   )}
                 </button>
 
-                {/* Preview HP */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onOpenPreview();
-                  }}
-                  className="w-full px-3.5 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                >
-                  <Eye className="w-4 h-4 text-[#F97316] shrink-0" />
-                  <span>Preview Simulasi HP</span>
-                </button>
-
                 {/* Master Admin Link (if admin) */}
                 {isAdmin && (
                   <Link
@@ -322,20 +284,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
                 )}
 
                 {/* Upgrade or Pay button */}
-                {!tier ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      if (onSelectPlanClick) onSelectPlanClick();
-                      else if (onUpgradeClick) onUpgradeClick();
-                    }}
-                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center gap-2.5 transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
-                    <span>Pilih Paket Undangan</span>
-                  </button>
-                ) : !isPaid ? (
+                {!isPaid ? (
                   <button
                     type="button"
                     onClick={() => {

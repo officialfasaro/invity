@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   Check,
   ExternalLink,
-  Eye,
   Lock,
   Sparkles,
 } from "lucide-react";
@@ -16,7 +15,6 @@ interface ThemeSelectorTabProps {
   slug?: string;
   tier?: string | null;
   onSelectTheme: (id: ThemeId) => void;
-  onOpenPreview: () => void;
   onUpgradeClick?: () => void;
 }
 
@@ -25,7 +23,6 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
   slug,
   tier,
   onSelectTheme,
-  onOpenPreview,
   onUpgradeClick,
 }) => {
   return (
@@ -40,15 +37,6 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
             Ganti tema kapan saja secara instan. Seluruh data mempelai yang sudah Anda isi otomatis diterapkan ke tema yang dipilih.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={onOpenPreview}
-          className="self-start sm:self-auto inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors"
-        >
-          <Eye className="w-3.5 h-3.5 text-[#F97316]" />
-          <span>Lihat di Layar Ponsel</span>
-        </button>
       </div>
 
       {/* Starter Tier Info Banner */}
@@ -155,7 +143,7 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
                     }
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{isSelected ? "Buka Web" : "Pratinjau"}</span>
+                    <span>{isSelected ? "Buka Undangan" : "Pratinjau"}</span>
                   </a>
 
                   {isLockedForTier ? (

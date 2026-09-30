@@ -23,9 +23,7 @@ import ThemeSelectorTab from "./tabs/ThemeSelectorTab";
 import GuestBookTab, { GuestItem } from "./tabs/GuestBookTab";
 import RsvpRecapTab, { RsvpRecapData, WishItem } from "./tabs/RsvpRecapTab";
 import BillingUpgradeTab from "./tabs/BillingUpgradeTab";
-import ThemeRenderer from "@/components/templates/ThemeRenderer";
-import DeviceFrame from "@/components/templates/device/DeviceFrame";
-import { ThemeId, WeddingInvitationData } from "@/types/wedding";
+import { ThemeId } from "@/types/wedding";
 
 export default function UserAdminPanel() {
   const router = useRouter();
@@ -36,7 +34,6 @@ export default function UserAdminPanel() {
   // Loading & Saving States
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [showMobilePreview, setShowMobilePreview] = useState(false);
 
   // Notification Toast
   const [notification, setNotification] = useState<{
@@ -130,10 +127,19 @@ export default function UserAdminPanel() {
         fetch("/api/dashboard/rsvp-recap"),
       ]);
 
+      if (resInv.status === 403) {
+        router.push("/login?error=no_active_package");
+        return;
+      }
+
       if (resInv.ok) {
         const json = await resInv.json();
         const data = json.data;
         if (data) {
+          if (!data.isAdmin && !data.isPaid) {
+            router.push("/login?error=no_active_package");
+            return;
+          }
           setInvitationId(data.id || "");
           setTitle(data.title || "Pernikahan Mempelai");
           setSlug(data.slug || "mempelai");
@@ -561,59 +567,6 @@ export default function UserAdminPanel() {
     }
   };
 
-  // Data for Live Simulation
-  const previewData: WeddingInvitationData = {
-    id: invitationId || "preview",
-    slug,
-    title,
-    themeId,
-    coupleInfo: {
-      groomName: groomName || "Mempelai Pria",
-      groomNickname: groomNickname || groomName || "Pria",
-      groomFather: groomFather || undefined,
-      groomMother: groomMother || undefined,
-      groomInstagram: groomInstagram || undefined,
-      groomPhoto: groomPhoto || undefined,
-      brideName: brideName || "Mempelai Wanita",
-      brideNickname: brideNickname || brideName || "Wanita",
-      brideFather: brideFather || undefined,
-      brideMother: brideMother || undefined,
-      brideInstagram: brideInstagram || undefined,
-      bridePhoto: bridePhoto || undefined,
-      greetingMessage,
-      desktopCoverImage: desktopCoverImage || undefined,
-      useVideoAsDesktopCover: Boolean(useVideoAsDesktopCover),
-      stories,
-    },
-    isActive,
-    eventSchedules: schedules.length > 0 ? schedules : [
-      {
-        eventName: "Akad Nikah",
-        date: "2026-10-24T08:00:00.000Z",
-        startTime: "08:00",
-        endTime: "10:00",
-        venueName: "Masjid Agung Al-Falah",
-        address: "Jl. Diponegoro No. 12, Surabaya",
-        mapsUrl: "https://maps.google.com",
-      },
-    ],
-    galleries: galleries.length > 0 ? galleries : [
-      {
-        imageUrl: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80",
-        caption: "Prewedding 1",
-        sortOrder: 0,
-      },
-    ],
-    bankAccounts: bankAccounts.length > 0 ? bankAccounts : [
-      {
-        bankName: "BCA",
-        accountNumber: "8291039481",
-        accountHolder: "Rian Pratama",
-      },
-    ],
-    musicUrl,
-  };
-
   const desktopTabs = [
     { id: "editor" as const, label: "Konten Undangan", icon: Edit3 },
     { id: "theme" as const, label: "Pilihan Tema", icon: Palette },
@@ -634,10 +587,8 @@ export default function UserAdminPanel() {
         userEmail={userEmail}
         activeUntil={activeUntil}
         isLoading={isLoading}
-        onOpenPreview={() => setShowMobilePreview(true)}
         onLogout={handleLogout}
         onUpgradeClick={() => setActiveTab("billing")}
-        onSelectPlanClick={() => setActiveTab("billing")}
       />
 
       {/* 2. Main Content Area */}
@@ -657,25 +608,6 @@ export default function UserAdminPanel() {
               className="px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
             >
               Bayar Sekarang
-            </button>
-          </div>
-        )}
-
-        {/* Unselected Plan Alert Banner */}
-        {!tier && (
-          <div className="p-3.5 rounded-xl bg-orange-50 border border-orange-200 text-slate-800 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
-              <span>
-                Anda belum memilih paket undangan pernikahan. Silakan pilih paket untuk mulai mengaktifkan seluruh fitur.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveTab("billing")}
-              className="px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
-            >
-              Pilih Paket Sekarang
             </button>
           </div>
         )}
@@ -890,7 +822,6 @@ export default function UserAdminPanel() {
                 });
               }
             }}
-            onOpenPreview={() => setShowMobilePreview(true)}
           />
         )}
 
@@ -981,62 +912,6 @@ export default function UserAdminPanel() {
         guestCount={guests.length}
         rsvpCount={rsvpRecap?.totalResponses || 0}
       />
-
-      {/* 5. Modal: Live Smartphone Simulation Preview with Template Device */}
-      {showMobilePreview && (
-        <div
-          onClick={() => setShowMobilePreview(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative flex flex-col items-center max-h-[96vh]"
-          >
-            {/* Top Close Button & Bar */}
-            <div className="w-full max-w-[340px] sm:max-w-[360px] flex items-center justify-between px-3.5 py-2 mb-2.5 bg-slate-900/90 border border-slate-800 rounded-xl backdrop-blur-md shadow-lg shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-300 font-medium">Simulasi HP</span>
-                <a
-                  href={`/invitation/${slug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] text-[#F97316] hover:underline font-medium"
-                  title="Buka website undangan di tab baru"
-                >
-                  <span>Buka Web</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <button
-                onClick={() => setShowMobilePreview(false)}
-                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                aria-label="Tutup Preview"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Template Device Frame using /templates/device/mobile.png */}
-            <DeviceFrame className="w-[320px] sm:w-[350px]">
-              <ThemeRenderer
-                data={previewData}
-                forcedThemeId={themeId}
-                guestName="Bapak Budi & Rekan"
-                showCover={false}
-                isEmbedded={true}
-              />
-            </DeviceFrame>
-
-            {/* Bottom info */}
-            <div className="pt-2 shrink-0 text-center">
-              <p className="text-[10px] text-slate-300">
-                Tema Aktif: <span className="text-[#F97316] font-bold uppercase">{themeId}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

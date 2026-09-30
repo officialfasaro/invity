@@ -89,6 +89,18 @@ export async function getDashboardInvitation(
     const coupleInfo = (invitation.coupleInfo as Record<string, unknown>) || {};
     const selectedTier = (coupleInfo.selectedTier as string) || null;
 
+    const hasActiveSubscription =
+      Boolean(settlementTx) ||
+      (Boolean(invitation.activeUntil) && new Date(invitation.activeUntil!) > new Date());
+
+    if (user.role !== "ADMIN" && !hasActiveSubscription) {
+      res.status(403).json({
+        error: "NO_ACTIVE_PACKAGE",
+        message: "Akun Anda belum memiliki paket undangan aktif. Silakan beli paket terlebih dahulu.",
+      });
+      return;
+    }
+
     let currentTier: string | null = null;
     let isPaid = false;
     let paymentStatus: "SETTLEMENT" | "WAITING_VERIFICATION" | "PENDING" | "UNPAID" | "UNSELECTED" =
@@ -96,6 +108,10 @@ export async function getDashboardInvitation(
 
     if (settlementTx) {
       currentTier = settlementTx.tier;
+      isPaid = true;
+      paymentStatus = "SETTLEMENT";
+    } else if (invitation.activeUntil && new Date(invitation.activeUntil) > new Date()) {
+      currentTier = waitingTx?.tier || selectedTier || "ELEGANT";
       isPaid = true;
       paymentStatus = "SETTLEMENT";
     } else if (waitingTx) {

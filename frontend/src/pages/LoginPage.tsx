@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   Eye,
   EyeOff,
   Heart,
@@ -47,6 +48,8 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
   invalid_oauth_response: "Respons autentikasi dari Google tidak valid.",
   csrf_state_mismatch: "Validasi keamanan sesi gagal. Silakan coba kembali.",
   google_email_missing: "Akun Google tidak menyediakan informasi email.",
+  no_active_package:
+    "Akun Anda belum memiliki paket undangan aktif. Silakan pilih dan selesaikan pembayaran paket terlebih dahulu untuk mengakses dashboard.",
 };
 
 function LoginForm() {
@@ -155,9 +158,24 @@ function LoginForm() {
         </div>
 
         {activeErrorMessage && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-xs border border-rose-200 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div className="flex-1 leading-relaxed">{activeErrorMessage}</div>
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-50 text-rose-700 text-xs border border-rose-200 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex-1 leading-relaxed">{activeErrorMessage}</div>
+            </div>
+            {(errorParam === "no_active_package" ||
+              activeErrorMessage.includes("belum memiliki paket")) && (
+              <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between">
+                <span className="text-[11px] text-rose-600">Ingin melihat paket pernikahan?</span>
+                <Link
+                  href="/#pricing"
+                  className="inline-flex items-center gap-1 font-bold text-[#F97316] hover:underline text-[11px]"
+                >
+                  <span>Lihat Pilihan Paket</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
           </div>
         )}
 

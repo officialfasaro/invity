@@ -405,13 +405,13 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
               )}
             </button>
 
-            {/* Buka Web */}
+            {/* Buka Undangan */}
             <a
               href={`/invitation/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 min-h-[40px] min-w-[40px] flex items-center justify-center transition-colors shadow-xs"
-              title="Buka website undangan langsung"
+              title="Buka undangan pernikahan"
             >
               <ExternalLink className="w-4 h-4" />
             </a>

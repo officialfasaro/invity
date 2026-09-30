@@ -14,6 +14,29 @@ import {
   getBaseUrl,
 } from "../services/google-auth.service";
 
+async function userHasActivePackage(userId: string): Promise<boolean> {
+  const invitation = await prisma.invitation.findFirst({
+    where: { userId },
+    include: {
+      paymentTransactions: {
+        where: { paymentStatus: "SETTLEMENT" },
+      },
+    },
+  });
+
+  if (!invitation) return false;
+
+  if (invitation.paymentTransactions && invitation.paymentTransactions.length > 0) {
+    return true;
+  }
+
+  if (invitation.activeUntil && new Date(invitation.activeUntil) > new Date()) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const parsed = loginSchema.safeParse(req.body);
@@ -40,6 +63,18 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     if (!isMatch) {
       res.status(401).json({ error: "Email atau kata sandi tidak valid" });
       return;
+    }
+
+    if (user.role !== "ADMIN") {
+      const hasActive = await userHasActivePackage(user.id);
+      if (!hasActive) {
+        res.status(403).json({
+          error:
+            "Akun Anda belum memiliki paket undangan aktif. Silakan lakukan pemesanan paket terlebih dahulu untuk mengakses dashboard.",
+          code: "NO_ACTIVE_PACKAGE",
+        });
+        return;
+      }
     }
 
     const token = signJwtToken({
@@ -283,6 +318,14 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
       });
     }
 
+    if (user.role !== "ADMIN") {
+      const hasActive = await userHasActivePackage(user.id);
+      if (!hasActive) {
+        loginRedirect("no_active_package");
+        return;
+      }
+    }
+
     const token = signJwtToken({
       userId: user.id,
       email: user.email,
@@ -324,7 +367,19 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
       },
     });
 
-    res.json({ user });
+    if (!user) {
+      res.status(401).json({ user: null });
+      return;
+    }
+
+    const hasActivePackage = user.role === "ADMIN" ? true : await userHasActivePackage(user.id);
+
+    res.json({
+      user: {
+        ...user,
+        hasActivePackage,
+      },
+    });
   } catch (error) {
     next(error);
   }
