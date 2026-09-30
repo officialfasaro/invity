@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertCircle,
-  Check,
   CheckCircle2,
   CreditCard,
   Edit3,
@@ -58,7 +57,6 @@ export default function UserAdminPanel() {
   const [isActive, setIsActive] = useState(true);
   const [tier, setTier] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState<boolean>(false);
-  const [showPlanModal, setShowPlanModal] = useState<boolean>(false);
 
   // Couple Info
   const [groomName, setGroomName] = useState("");
@@ -148,11 +146,6 @@ export default function UserAdminPanel() {
           setUserEmail(data.userEmail || "");
           setIsAdmin(Boolean(data.isAdmin || data.userEmail === "admin@admin.com"));
           setActiveUntil(data.activeUntil || null);
-
-          // If user has not chosen a plan yet, show plan selection modal
-          if (!incomingTier || incomingTier === "UNSELECTED" || incomingTier === "FREE") {
-            setShowPlanModal(true);
-          }
 
           const c = data.coupleInfo || {};
           setGroomName(c.groomName || "");
@@ -252,28 +245,6 @@ export default function UserAdminPanel() {
       setIsLoading(false);
     }
   }, []);
-
-  const handleSelectPlan = async (chosenTier: "STARTER" | "ELEGANT" | "ULTIMATE") => {
-    setTier(chosenTier);
-    setShowPlanModal(false);
-    try {
-      await fetch("/api/dashboard/invitation", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selectedTier: chosenTier }),
-      });
-      setNotification({
-        type: "success",
-        message: `Paket ${chosenTier} berhasil dipilih! Selesaikan pembayaran untuk mengaktifkan seluruh fitur.`,
-      });
-      setActiveTab("billing");
-    } catch {
-      setNotification({
-        type: "error",
-        message: "Gagal memilih paket. Silakan coba kembali.",
-      });
-    }
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -666,7 +637,7 @@ export default function UserAdminPanel() {
         onOpenPreview={() => setShowMobilePreview(true)}
         onLogout={handleLogout}
         onUpgradeClick={() => setActiveTab("billing")}
-        onSelectPlanClick={() => setShowPlanModal(true)}
+        onSelectPlanClick={() => setActiveTab("billing")}
       />
 
       {/* 2. Main Content Area */}
@@ -701,7 +672,7 @@ export default function UserAdminPanel() {
             </div>
             <button
               type="button"
-              onClick={() => setShowPlanModal(true)}
+              onClick={() => setActiveTab("billing")}
               className="px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
             >
               Pilih Paket Sekarang
@@ -1062,132 +1033,6 @@ export default function UserAdminPanel() {
               <p className="text-[10px] text-slate-300">
                 Tema Aktif: <span className="text-[#F97316] font-bold uppercase">{themeId}</span>
               </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 6. Plan Selection Onboarding Modal */}
-      {showPlanModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-6 border border-[#E2E8F0] shadow-xl animate-in zoom-in-95 my-8">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-orange-50 border border-orange-100 text-[#F97316]">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900">
-                    Pilih Paket Undangan Anda
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Silakan pilih paket yang sesuai dengan kebutuhan pernikahan Anda sebelum memulai:
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPlanModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                aria-label="Tutup Pilihan Paket"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-              {/* Card 1: Starter */}
-              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all">
-                <div className="space-y-2.5">
-                  <div>
-                    <h4 className="font-bold text-base text-slate-900">Paket Starter</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Untuk akad intim &amp; syukuran keluarga.</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 line-through">
-                      Rp 89.000
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">Rp 39.000</div>
-                    <div className="text-[11px] font-semibold text-[#F97316]">Masa Aktif 90 Hari</div>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> 1 Tema Minimalist</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Galeri hingga 10 Foto</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Amplop Digital 2 Rekening</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Buku Ucapan &amp; Google Maps</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan("STARTER")}
-                  className="w-full py-2.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs text-center transition-colors shadow-xs cursor-pointer"
-                >
-                  Pilih Paket Starter
-                </button>
-              </div>
-
-              {/* Card 2: Elegant (Populer) */}
-              <div className="p-4 rounded-xl border-2 border-[#F97316] bg-white flex flex-col justify-between space-y-4 shadow-sm relative ring-1 ring-orange-100">
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
-                  Paling Populer
-                </span>
-                <div className="space-y-2.5">
-                  <div>
-                    <h4 className="font-bold text-base text-slate-900">Paket Elegant</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Lengkap untuk resepsi modern.</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 line-through">
-                      Rp 249.000
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">Rp 149.000</div>
-                    <div className="text-[11px] font-semibold text-[#F97316]">Masa Aktif 365 Hari (1 Tahun)</div>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Bebas Akses Semua Tema Desain</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Galeri Foto HD Tanpa Batas</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Amplop Bebas Rekening + QRIS</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> RSVP Realtime &amp; Musik Autoplay</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan("ELEGANT")}
-                  className="w-full py-2.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs text-center transition-colors shadow-xs cursor-pointer"
-                >
-                  Pilih Paket Elegant
-                </button>
-              </div>
-
-              {/* Card 3: Ultimate */}
-              <div className="p-4 rounded-xl border border-[#E2E8F0] bg-white flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all">
-                <div className="space-y-2.5">
-                  <div>
-                    <h4 className="font-bold text-base text-slate-900">Paket Ultimate</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Solusi VIP hari-H resepsi.</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 line-through">
-                      Rp 499.000
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">Rp 279.000</div>
-                    <div className="text-[11px] font-semibold text-[#F97316]">Masa Aktif Lifetime (Selamanya)</div>
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Seluruh Fitur Paket Elegant</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> QR Check-in Meja Tamu Resepsi</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> WhatsApp Blast Gateway</li>
-                    <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-[#F97316] shrink-0" /> Prioritas Verifikasi Kilat 10 Menit</li>
-                  </ul>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan("ULTIMATE")}
-                  className="w-full py-2.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs text-center transition-colors shadow-xs cursor-pointer"
-                >
-                  Pilih Paket Ultimate
-                </button>
-              </div>
             </div>
           </div>
         </div>
