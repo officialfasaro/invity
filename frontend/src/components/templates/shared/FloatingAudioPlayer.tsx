@@ -16,9 +16,7 @@ export const FloatingAudioPlayer: React.FC<FloatingAudioPlayerProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Default pleasant instrumental audio if none provided
-  const sourceUrl =
-    audioUrl ||
-    "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+  const sourceUrl = audioUrl || "/music/wedding-romance.mp3";
 
   const togglePlay = useCallback(() => {
     if (!audioRef.current) return;

@@ -2,27 +2,30 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import QRCode from "qrcode";
 import { WeddingInvitationData } from "@/types/wedding";
+import { downloadWeddingQrisCard } from "@/utils/downloadHelper";
 import {
   Calendar,
-  CalendarPlus,
+  Camera,
   CheckCircle2,
+  Clock,
   Copy,
-  Disc3,
+  Download,
   Heart,
-  HelpCircle,
-  MailCheck,
+  Home,
   MapPin,
-  Music,
-  Navigation,
   Package,
+  Palette,
+  Pause,
   Play,
-  Send,
+  QrCode,
   Share2,
-  Sparkles,
   X,
 } from "lucide-react";
 import InstagramIcon from "../shared/InstagramIcon";
+import GoogleMapEmbed from "../shared/GoogleMapEmbed";
+import { isFeatureAvailable } from "@/utils/featureFlags";
 
 interface ThemeProps {
   data: WeddingInvitationData;
@@ -35,7 +38,7 @@ interface LocalWish {
   id: string;
   senderName: string;
   timeAgo: string;
-  attendance: string;
+  attendance: "Hadir" | "Masih Ragu" | "Tidak Hadir";
   guestCount: string;
   message: string;
 }
@@ -43,49 +46,468 @@ interface LocalWish {
 const DEFAULT_WISHES: LocalWish[] = [
   {
     id: "w-1",
-    senderName: "Dian Sastrowardoyo",
-    timeAgo: "10 menit yang lalu",
+    senderName: "Dimas & Anindya",
+    timeAgo: "10 menit lalu",
     attendance: "Hadir",
-    guestCount: "2 Tamu",
+    guestCount: "2 Orang",
     message:
-      "Barakallahu lakum wa baraka alaikum! Selamat menempuh hidup baru Versa & Mekar, semoga rukun senantiasa dan langgeng hingga kakek nenek.",
+      "Selamat menempuh hidup baru Mekar & Versa! Semoga cinta kasih selalu membimbing langkah rumah tangga kalian berdua selamanya.",
   },
   {
     id: "w-2",
-    senderName: "Ir. Fachri Alamsyah",
-    timeAgo: "1 jam yang lalu",
+    senderName: "Rafi Aditya, S.T.",
+    timeAgo: "1 jam lalu",
     attendance: "Hadir",
-    guestCount: "2 Tamu",
+    guestCount: "1 Orang",
     message:
-      "Selamat untuk ananda Versa & Mekar beserta seluruh keluarga besar. InsyaAllah kami hadir mendoakan langsung di Masjid Raya Bogor.",
+      "Barakallahu lakuma! Sahabat seperjuangan arsitektur akhirnya berlabuh di pelaminan. Sangat berbahagia untuk kalian berdua!",
   },
   {
     id: "w-3",
-    senderName: "Nabila & Kevin",
-    timeAgo: "3 jam yang lalu",
-    attendance: "Masih Ragu",
-    guestCount: "1 Orang",
+    senderName: "dr. Clara & Keluarga",
+    timeAgo: "3 jam lalu",
+    attendance: "Hadir",
+    guestCount: "2 Orang",
     message:
-      "Happy wedding Mekar cantikk! Semoga acaranya lancar tanpa hambatan apapun. Doa terbaik untuk kalian berdua yaa!",
+      "Doa terbaik kami haturkan untuk Mekar & Versa. Semoga menjadi keluarga sakinah mawaddah warahmah, berlimpah berkah dan sukacita.",
   },
   {
     id: "w-4",
-    senderName: "Rian Hidayat & Rekan",
-    timeAgo: "5 jam yang lalu",
-    attendance: "Hadir",
-    guestCount: "3 Tamu",
+    senderName: "Nabila & Kevin",
+    timeAgo: "5 jam lalu",
+    attendance: "Masih Ragu",
+    guestCount: "1 Orang",
     message:
-      "Selamat brother Versa! Semoga ikatan suci ini senantiasa dipenuhi keberkahan, sakinah, mawaddah, dan warahmah. Aamiin ya rabbal alamin.",
+      "Happy wedding Mekar cantik! Semoga acaranya berjalan lancar tanpa hambatan. Doa terbaik untuk kalian berdua yaa!",
   },
 ];
 
 const DEFAULT_GALLERY_IMAGES = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCIHh4QwGgY-xnXwLxYNkGrqcka5VqBlEuCzCrfVgaDlQO2lNivcX16waZHKtnwGr-9AJEZ4NKbI-TnajAzWccVeYvXd3f77H6DLUNncZye9sJ9YLTc4tV63t1POI0R1uEH0VBA7gVeNWcmvYC_ZoCfj_K8QHi74SQTAmXmv5uKVArnpwcWwIB_aQcsqDJ4pCL4wKR1KN3LU7J32fVBQlwJ9E0Py9Lt3SF3kWB2AsklDsDq1D1qvpKO",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCHi8JxVI80b6ElxWZf3hltztJcI680yiq7e6q5R2SdslMIprB5rnE9usXV4mqtx2kDLorkUMlkNh5pFMjvvxQinXd2s7Y6QaoIFVh6ZKUyyzRlPsBnXh-4P7fodCs-lOgE5dRJui2d8q8D0zc27RXKyDS3tDetY4kF_BtxXjqauU0Drc3F0GcWM0ZnQKvFbdBwHSHMyYVSyIMtJQeWJK59O2ZZfe9qJ6qdmqZds8JksxAbjeGRttQA",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuB9IGXS3n8IqLCU93ZNfOW8ggR3ZSgwyxt4gbPfuspErQCbELJQqrB5KKB4uEKExqEToFS6OzRkcYF9syxKCItGN8HM9fJ7Oz6HS19-JSOo9q0StoRROYtCa0gP4m2kwVtNrWHS7ZJ06BjPoCe587MEhkUaVLckkKE45KPHB9RrTX7sD-SyJLswhPRKf3MSX2iYjWuMoc6fv9qL4OQtElI8QRhzc5i8hinr2UQnoiMKKhd1n6WBfidh",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuArtK0bJI6KP7cDOnPEOIHK1NSn-PKYyZLY89LMxvS-Fria13shKSFip_Bk14HLanpKTqkwIf0Nbh5SxkPS4TMcDKj6XLgeeX_gALkmR_4qgybL5VmjbO4hvahoqBdruZuBlIeKrzGSgKO0KSFFlAoD0el3_1wEb2D1GothxKiYFhU36mxxJ4Y3L3zDvQrDsbj_FgPhEghLeXvI4tzNGh8ryW8SyNHqkzAUrhIXB6SslpZvAgFkkEC",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCDNzdwFr5GHtY1cXCWBlLIkh_euFkW6UaSzClpjJgzwHjhy2Gjbb-guGZqCRLtZqiaoszwYiZLNDQIer5_XU3PN2bcEk7v9u90xnwjPWb_giBXDmLlbdOF13VrzWV55laqMtn0m8YM8LM6z6ENRkTOtcZXAr3CjtHbr_C7Cl1vnz9aaZXmDvAeqaU8pDhoPgvZAV6ttVG3WAcwa-440iqGOBeKFMLvNJmkMbCIjZ9W96Xs_5iqJH78",
+  {
+    url: "/templates/botanical/gallery/gallery-1.jpg",
+    title: "Ruang Temu & Secangkir Kopi",
+    category: "Bandung, Jawa Barat",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-2.jpg",
+    title: "Simbol Ikrar Abadi",
+    category: "Cincin Suci",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-3.jpg",
+    title: "Tawa & Bahagia",
+    category: "Momen Manis",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-4.jpg",
+    title: "Hutan Pinus Cikole",
+    category: "Lembang, Bandung",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-5.jpg",
+    title: "Merajut Asa & Bertumbuh",
+    category: "Perjalanan Kasih",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-6.jpg",
+    title: "Satu Janji Selamanya",
+    category: "Ikrar Hati",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-7.jpg",
+    title: "Keanggunan Suasana",
+    category: "Potret Pengantin",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-8.jpg",
+    title: "Harmoni Langkah Bersama",
+    category: "Potret Pengantin",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-9.jpg",
+    title: "Harmoni Alam & Asmara",
+    category: "Lanskap Cinta",
+  },
+  {
+    url: "/templates/botanical/gallery/gallery-10.jpg",
+    title: "Menatap Hari Bahagia",
+    category: "Menuju Pelaminan",
+  },
 ];
+
+interface BotanicalStory {
+  date: string;
+  title: string;
+  story: string;
+  imageUrl: string;
+  quote: string;
+  location: string;
+}
+
+const DEFAULT_STORIES: BotanicalStory[] = [
+  {
+    date: "Bab I • 2020",
+    title: "Ruang Temu & Secangkir Kopi",
+    story:
+      "Bermula dari sebuah proyek kolaborasi desain dan teknik arsitektur di Bandung. Di sela lembar sketsa dan diskusi gagasan, sebuah percakapan hangat membuka ruang bagi dua jiwa yang saling melengkapi.",
+    imageUrl: "/templates/botanical/gallery/gallery-1.jpg",
+    quote: "“Dari sekadar saling menyapa, hingga menyadari dunia terasa jauh lebih teduh bersama.”",
+    location: "Bandung, Jawa Barat",
+  },
+  {
+    date: "Bab II • 2021",
+    title: "Menapaki Jejak & Tawa",
+    story:
+      "Berbagi cerita di bawah rindangnya pepohonan Pinus Cikole. Kami menyadari bahwa kebahagiaan sejati hadir bukan dari kemewahan, melainkan dari tulusnya tawa di setiap langkah kebersamaan.",
+    imageUrl: "/templates/botanical/gallery/gallery-4.jpg",
+    quote: "“Bersamamu, setiap jalan berkelok terasa seperti petualangan yang penuh rasa syukur.”",
+    location: "Cikole, Lembang",
+  },
+  {
+    date: "Bab III • 2022",
+    title: "Ujian Jarak & Keteguhan",
+    story:
+      "Tuntutan pekerjaan sempat memisahkan kami dalam hitungan kilometer. Namun jarak justru menjadi guru terbaik yang mengajarkan arti saling percaya, menjaga doa di setiap sujud, dan merawat rindu.",
+    imageUrl: "/templates/botanical/gallery/gallery-3.jpg",
+    quote: "“Jarak hanya menguji seberapa jauh kita terpisah, namun doa mendekatkan dua hati yang berpasrah.”",
+    location: "Antara Dua Kota",
+  },
+  {
+    date: "Bab IV • 2023",
+    title: "Merajut Asa & Bertumbuh",
+    story:
+      "Melalui dinamika cita-cita dan kedewasaan pikiran. Belajar mendengarkan serta meneguhkan hati dalam setiap langkah karier dan pendewasaan diri bersama untuk masa depan yang berkah.",
+    imageUrl: "/templates/botanical/gallery/gallery-5.jpg",
+    quote: "“Dua langkah yang menyelaraskan ritme detak, berjalan beriringan menuju satu tujuan abadi.”",
+    location: "Perjalanan Kasih",
+  },
+  {
+    date: "Bab V • 2024",
+    title: "Pertemuan Dua Keluarga",
+    story:
+      "Momen sakral ketika kedua keluarga besar duduk melingkar dalam kehangatan silaturahmi. Senyuman restu dari ayah dan ibu menjadi gerbang restu semesta yang paling menenteramkan sanubari kami.",
+    imageUrl: "/templates/botanical/gallery/gallery-2.jpg",
+    quote: "“Cinta kami tidak hanya menyatukan dua insan, melainkan merajut dua keluarga dalam ikatan suci.”",
+    location: "Silaturahmi Keluarga",
+  },
+  {
+    date: "Bab VI • 2025",
+    title: "Satu Janji Selamanya",
+    story:
+      "Di bawah semburat hangat lembayung senja, sebuah cincin tersemat sebagai ikrar tulus untuk melangkah memasuki gerbang pernikahan suci, berpayung doa restu kedua orang tua tercinta.",
+    imageUrl: "/templates/botanical/gallery/gallery-6.jpg",
+    quote: "“Bismillah, dengan penuh kerendahan hati kami memilih satu sama lain untuk selamanya.”",
+    location: "Lamaran & Janji Suci",
+  },
+  {
+    date: "Bab VII • 2026",
+    title: "Menuju Gerbang Ijab Suci",
+    story:
+      "Hari demi hari kami lalui dengan penuh rasa syukur dan doa yang tak putus. Menyiapkan hari bahagia di mana dua janji terucap di hadapan Sang Maha Kuasa, memulai lembaran ibadah terpanjang dalam hidup kami.",
+    imageUrl: "/templates/botanical/gallery/gallery-10.jpg",
+    quote: "“Menghitung hari menuju detik terindah, di mana ‘aku’ dan ‘kamu’ bermutasi menjadi ‘kita’.”",
+    location: "Ijab Qabul & Walimah",
+  },
+  {
+    date: "Bab VIII • Masa Depan",
+    title: "Menua Bersama dalam Ridho-Nya",
+    story:
+      "Perjalanan ini adalah awal dari kisah abadi kami. Lembaran masa depan telah menanti untuk kita rangkai bersama dalam keteduhan cinta, kesabaran, dan keberkahan hingga ke jannah.",
+    imageUrl: "/templates/botanical/gallery/gallery-7.jpg",
+    quote: "“Menua bersamamu adalah doa yang kupanjatkan di setiap sujud panjangku.”",
+    location: "Selamanya Bersama",
+  },
+];
+
+interface FloralCornerProps {
+  color: string;
+  position: "top-left" | "top-right" | "bottom-left" | "bottom-right";
+  className?: string;
+}
+
+const BotanicalFloralCorner: React.FC<FloralCornerProps> = ({
+  color,
+  position,
+  className = "",
+}) => {
+  if (!color || color === "transparent") return null;
+
+  const transform =
+    position === "top-right"
+      ? "scale(-1, 1)"
+      : position === "bottom-left"
+      ? "scale(1, -1)"
+      : position === "bottom-right"
+      ? "scale(-1, -1)"
+      : undefined;
+
+  const positionClasses =
+    position === "top-left"
+      ? "top-0 left-0"
+      : position === "top-right"
+      ? "top-0 right-0"
+      : position === "bottom-left"
+      ? "bottom-0 left-0"
+      : "bottom-0 right-0";
+
+  return (
+    <svg
+      className={`absolute ${positionClasses} pointer-events-none z-0 select-none ${className}`}
+      viewBox="0 0 300 300"
+      fill="none"
+      stroke={color}
+      style={{ transform }}
+    >
+      {/* Primary Vine / Botanical Branch */}
+      <path
+        d="M 5 5 C 45 40 100 70 170 85 C 220 95 265 85 295 65"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 5 5 C 40 45 70 100 85 170 C 95 220 85 265 65 295"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 85 85 C 130 130 185 160 240 170"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeDasharray="2 2"
+      />
+
+      {/* Leaves along Top Branch */}
+      <path
+        d="M 60 48 C 50 25 75 15 95 25 C 90 45 75 52 60 48 Z"
+        fill={color}
+        fillOpacity="0.32"
+        strokeWidth="1"
+      />
+      <path d="M 60 48 Q 78 30 95 25" strokeWidth="0.8" opacity="0.6" />
+
+      <path
+        d="M 120 72 C 125 45 155 42 165 58 C 152 75 132 80 120 72 Z"
+        fill={color}
+        fillOpacity="0.28"
+        strokeWidth="1"
+      />
+      <path d="M 120 72 Q 142 56 165 58" strokeWidth="0.8" opacity="0.6" />
+
+      <path
+        d="M 195 88 C 215 70 242 75 245 92 C 228 102 208 98 195 88 Z"
+        fill={color}
+        fillOpacity="0.26"
+        strokeWidth="1"
+      />
+
+      <path
+        d="M 260 76 C 278 60 295 70 292 85 C 278 90 268 85 260 76 Z"
+        fill={color}
+        fillOpacity="0.24"
+        strokeWidth="0.8"
+      />
+
+      {/* Leaves along Left Branch */}
+      <path
+        d="M 48 60 C 25 50 15 75 25 95 C 45 90 52 75 48 60 Z"
+        fill={color}
+        fillOpacity="0.32"
+        strokeWidth="1"
+      />
+      <path d="M 48 60 Q 30 78 25 95" strokeWidth="0.8" opacity="0.6" />
+
+      <path
+        d="M 72 120 C 45 125 42 155 58 165 C 75 152 80 132 72 120 Z"
+        fill={color}
+        fillOpacity="0.28"
+        strokeWidth="1"
+      />
+      <path d="M 72 120 Q 56 142 58 165" strokeWidth="0.8" opacity="0.6" />
+
+      <path
+        d="M 88 195 C 70 215 75 242 92 245 C 102 228 98 208 88 195 Z"
+        fill={color}
+        fillOpacity="0.26"
+        strokeWidth="1"
+      />
+
+      <path
+        d="M 76 260 C 60 278 70 295 85 292 C 90 278 85 268 76 260 Z"
+        fill={color}
+        fillOpacity="0.24"
+        strokeWidth="0.8"
+      />
+
+      {/* Center Garden Rose Blossom (Detailed blooming petals) */}
+      <g transform="translate(105, 105)">
+        {/* Calyx & Base */}
+        <circle cx="0" cy="0" r="14" fill={color} fillOpacity="0.45" strokeWidth="1.2" />
+        <circle cx="0" cy="0" r="24" fill={color} fillOpacity="0.18" strokeWidth="1" />
+        
+        {/* Layer 1: Outer Petals */}
+        <path d="M 0 -26 C -18 -48 18 -48 0 -26 Z" fill={color} fillOpacity="0.32" strokeWidth="1" />
+        <path d="M 26 0 C 48 -18 48 18 26 0 Z" fill={color} fillOpacity="0.32" strokeWidth="1" />
+        <path d="M 0 26 C 18 48 -18 48 0 26 Z" fill={color} fillOpacity="0.32" strokeWidth="1" />
+        <path d="M -26 0 C -48 18 -48 -18 -26 0 Z" fill={color} fillOpacity="0.32" strokeWidth="1" />
+
+        {/* Diagonal Petals */}
+        <path d="M 18 -18 C 42 -35 48 -8 18 -18 Z" fill={color} fillOpacity="0.28" strokeWidth="0.9" />
+        <path d="M 18 18 C 48 8 35 42 18 18 Z" fill={color} fillOpacity="0.28" strokeWidth="0.9" />
+        <path d="M -18 18 C -42 35 -48 8 -18 18 Z" fill={color} fillOpacity="0.28" strokeWidth="0.9" />
+        <path d="M -18 -18 C -48 -8 -35 -42 -18 -18 Z" fill={color} fillOpacity="0.28" strokeWidth="0.9" />
+
+        {/* Layer 2: Mid Petals */}
+        <path d="M -8 -12 C -4 -22 14 -20 12 -10 C 20 -4 18 12 8 12 C -2 18 -16 10 -14 0 C -20 -4 -16 -12 -8 -12 Z" fill={color} fillOpacity="0.36" strokeWidth="1" />
+        
+        {/* Center Rose Core Swirl */}
+        <path d="M -4 -4 C 0 -8 8 -4 6 2 C 4 8 -4 6 -5 1 C -6 -2 -2 -5 1 -4" strokeWidth="1.2" strokeLinecap="round" />
+        <circle cx="0" cy="0" r="3.5" fill={color} fillOpacity="0.6" />
+      </g>
+
+      {/* Secondary Flower: Peony Blossom on Top Right */}
+      <g transform="translate(205, 55)">
+        <circle cx="0" cy="0" r="9" fill={color} fillOpacity="0.45" strokeWidth="1" />
+        <circle cx="0" cy="0" r="16" fill={color} fillOpacity="0.2" strokeWidth="0.8" />
+        <path d="M 0 -16 C -12 -30 12 -30 0 -16 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M 16 0 C 30 -12 30 12 16 0 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M 0 16 C 12 30 -12 30 0 16 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M -16 0 C -30 12 -30 -12 -16 0 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <circle cx="0" cy="0" r="2.5" fill={color} fillOpacity="0.65" />
+      </g>
+
+      {/* Tertiary Flower: Rosebud on Bottom Left */}
+      <g transform="translate(55, 205)">
+        <circle cx="0" cy="0" r="9" fill={color} fillOpacity="0.45" strokeWidth="1" />
+        <circle cx="0" cy="0" r="16" fill={color} fillOpacity="0.2" strokeWidth="0.8" />
+        <path d="M 0 -16 C -12 -30 12 -30 0 -16 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M 16 0 C 30 -12 30 12 16 0 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M 0 16 C 12 30 -12 30 0 16 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <path d="M -16 0 C -30 12 -30 -12 -16 0 Z" fill={color} fillOpacity="0.3" strokeWidth="0.8" />
+        <circle cx="0" cy="0" r="2.5" fill={color} fillOpacity="0.65" />
+      </g>
+
+      {/* Delicate Tendrils & Starlight Flakes */}
+      <path d="M 15 15 Q 40 5 65 15 T 85 40" strokeWidth="0.8" strokeLinecap="round" opacity="0.6" />
+      <path d="M 15 15 Q 5 40 15 65 T 40 85" strokeWidth="0.8" strokeLinecap="round" opacity="0.6" />
+      <circle cx="45" cy="45" r="2" fill={color} opacity="0.6" />
+      <circle cx="160" cy="30" r="2.5" fill={color} opacity="0.5" />
+      <circle cx="30" cy="160" r="2.5" fill={color} opacity="0.5" />
+      <circle cx="270" cy="115" r="2" fill={color} opacity="0.4" />
+      <circle cx="115" cy="270" r="2" fill={color} opacity="0.4" />
+    </svg>
+  );
+};
+
+interface DressCodePaletteColor {
+  name: string;
+  hex: string;
+}
+
+interface DressCodeInfo {
+  theme: string;
+  colors: DressCodePaletteColor[];
+}
+
+const getDressCodePalette = (eventName: string, _idx?: number): DressCodeInfo => {
+  const lower = (eventName || "").toLowerCase();
+  if (lower.includes("akad") || lower.includes("pemberkatan")) {
+    return {
+      theme: "Formal / Sopan Bernuansa Netral & Earthy Pastel",
+      colors: [
+        { name: "Sage Green", hex: "#7E8E76" },
+        { name: "Champagne Gold", hex: "#C5A880" },
+        { name: "Ivory White", hex: "#F5F2EB" },
+        { name: "Warm Taupe", hex: "#A89F91" },
+      ],
+    };
+  }
+  if (lower.includes("sesi 2") || lower.includes("malam")) {
+    return {
+      theme: "Evening Glamour / Gaun & Setelan Elegan",
+      colors: [
+        { name: "Midnight Navy", hex: "#1C2A39" },
+        { name: "Deep Maroon", hex: "#6C1D28" },
+        { name: "Warm Gold", hex: "#C5A880" },
+        { name: "Soft Ivory", hex: "#F5F2EB" },
+      ],
+    };
+  }
+  if (lower.includes("ngunduh") || lower.includes("mantu")) {
+    return {
+      theme: "Tradisional Adat / Batik Mewah & Earth Tone",
+      colors: [
+        { name: "Batik Sogan", hex: "#5C3A21" },
+        { name: "Terracotta", hex: "#B85D38" },
+        { name: "Classic Gold", hex: "#C5A880" },
+        { name: "Soft Cream", hex: "#F4ECE0" },
+      ],
+    };
+  }
+  return {
+    theme: "Batik Mewah / Busana Pesta Elegan Botanical",
+    colors: [
+      { name: "Emerald Sage", hex: "#5A7360" },
+      { name: "Dusty Rose", hex: "#C28876" },
+      { name: "Warm Gold", hex: "#C5A880" },
+      { name: "Ivory Cream", hex: "#F4ECE0" },
+    ],
+  };
+};
+
+const getYouTubeVideoId = (url?: string | null): string | null => {
+  if (!url) return null;
+  const regExp = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/;
+  const match = url.match(regExp);
+  return match ? match[1] : null;
+};
+
+const LuxuryBotanicalDivider: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <div className={`flex items-center justify-center my-8 py-1 ${className}`}>
+    <div className="w-20 sm:w-28 h-[1px] bg-gradient-to-r from-transparent via-[#c5a880]/70 to-transparent" />
+    <div className="mx-3.5 flex items-center gap-2 text-[#c5a880]">
+      <svg className="w-5 h-5 text-[#c5a880]" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2L14.8 9.2L22 12L14.8 14.8L12 22L9.2 14.8L2 12L9.2 9.2L12 2Z" fillOpacity="0.8" />
+      </svg>
+    </div>
+    <div className="w-20 sm:w-28 h-[1px] bg-gradient-to-l from-transparent via-[#c5a880]/70 to-transparent" />
+  </div>
+);
+
+const DressCodeGuide: React.FC<{
+  info: DressCodeInfo;
+}> = ({ info }) => {
+  return (
+    <div className="bg-[#fcfaf7] border border-[#c5a880]/30 p-3 sm:p-3.5 rounded-none flex flex-col gap-2.5">
+      <div className="flex items-center gap-1.5 text-[10.5px] uppercase tracking-wider font-bold text-[#6c1d28]">
+        <Palette className="w-3.5 h-3.5 text-[#c5a880] shrink-0" />
+        <span>Panduan Warna Dress Code</span>
+      </div>
+      <p className="text-[11px] text-[#6b615b] italic leading-snug">
+        {info.theme}
+      </p>
+      <div className="flex items-center gap-2 pt-1 border-t border-[#c5a880]/15 flex-wrap">
+        <span className="text-[10px] font-semibold text-[#8c6b3f] uppercase tracking-wider shrink-0 mr-0.5">
+          Palet Pilihan:
+        </span>
+        {info.colors.map((c) => (
+          <div
+            key={c.name}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#c5a880]/35 shadow-2xs"
+          >
+            <span
+              className="w-3 h-3 rounded-full border border-black/15 shadow-2xs shrink-0"
+              style={{ backgroundColor: c.hex }}
+              aria-hidden="true"
+            />
+            <span className="text-[10.5px] text-[#2a2421] font-medium">
+              {c.name}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const BotanicalTheme: React.FC<ThemeProps> = ({
   data,
@@ -93,19 +515,29 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
   showCover = true,
   isEmbedded = false,
 }) => {
+  // State
   const [isOpen, setIsOpen] = useState(!showCover);
+  const [isCoverSliding, setIsCoverSliding] = useState(false);
+  const [isCoverDismissed, setIsCoverDismissed] = useState(!showCover);
   const [isPlaying, setIsPlaying] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showQrTicketModal, setShowQrTicketModal] = useState(false);
+  const [qrTicketDataUrl, setQrTicketDataUrl] = useState<string>("");
+
+  // Doa & Ucapan Pagination State (Newest first, per-page view)
+  const [mobileWishPage, setMobileWishPage] = useState(1);
 
   // Form State
   const [rsvpName, setRsvpName] = useState(guestName || "");
   const [rsvpAttendance, setRsvpAttendance] = useState<"Hadir" | "Masih Ragu" | "Tidak Hadir">("Hadir");
-  const [rsvpCount, setRsvpCount] = useState("1 Orang");
+  const [rsvpCount, setRsvpCount] = useState("2");
+  const [rsvpSession, setRsvpSession] = useState("Semua Sesi Acara");
   const [rsvpWishes, setRsvpWishes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rsvpSuccess, setRsvpSuccess] = useState(false);
 
-  // Live Wishes State
+  // Wishes List
   const [wishesList, setWishesList] = useState<LocalWish[]>(() => {
     if (data.wishes && data.wishes.length > 0) {
       return data.wishes.map((w, idx) => ({
@@ -113,7 +545,7 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
         senderName: w.senderName,
         timeAgo: "Baru saja",
         attendance: "Hadir",
-        guestCount: "1 Tamu",
+        guestCount: "1 Orang",
         message: w.message,
       }));
     }
@@ -122,39 +554,201 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
 
   // Countdown State
   const [timeLeft, setTimeLeft] = useState({
-    days: "00",
-    hours: "00",
-    minutes: "00",
-    seconds: "00",
+    days: "240",
+    hours: "14",
+    minutes: "35",
+    seconds: "50",
   });
 
   // Audio Reference
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const primaryEvent = data.eventSchedules?.[0];
-  const secondaryEvent = data.eventSchedules?.[1];
 
-  const coupleDisplayName = useMemo(() => {
-    const groom = data.coupleInfo.groomNickname || data.coupleInfo.groomName?.split(" ")[0] || "Versa";
-    const bride = data.coupleInfo.brideNickname || data.coupleInfo.brideName?.split(" ")[0] || "Mekar";
-    return `${groom} & ${bride}`;
-  }, [data.coupleInfo]);
+  // Full list of Event Schedules with graceful fallbacks (supports 1, 2, 3, 4+ events)
+  const schedules = useMemo(() => {
+    if (data.eventSchedules && data.eventSchedules.length > 0) {
+      return data.eventSchedules;
+    }
+    return [
+      {
+        eventName: "Akad Nikah",
+        date: "2026-10-24",
+        startTime: "08:00",
+        endTime: "10:00 WIB",
+        venueName: "Masjid Agung Al-Azhar, Jakarta",
+        address: "Jl. Sisingamangaraja No.1, Selong, Kebayoran Baru, Jakarta Selatan",
+        mapsUrl: "",
+      },
+      {
+        eventName: "Resepsi Pernikahan",
+        date: "2026-10-24",
+        startTime: "11:00",
+        endTime: "14:00 WIB",
+        venueName: "Grand Ballroom Hotel Santika Bogor",
+        address: "Jl. Raya Padjadjaran, Tegallega, Kota Bogor, Jawa Barat",
+        mapsUrl: "",
+      },
+    ];
+  }, [data.eventSchedules]);
 
+  // Primary & Secondary Event pointers
+  const primaryEvent = schedules[0];
+  const secondaryEvent = schedules[1] || schedules[0];
+
+  const getSessionSubheading = useCallback((eventName: string, idx: number) => {
+    const lower = (eventName || "").toLowerCase();
+    if (lower.includes("akad") || lower.includes("pemberkatan")) return "Ijab Qabul • Sacred Union";
+    if (lower.includes("sesi 1") || lower.includes("siang")) return "Jamuan Kasih Sesi Siang";
+    if (lower.includes("sesi 2") || lower.includes("malam")) return "Jamuan Kasih Sesi Malam";
+    if (lower.includes("ngunduh") || lower.includes("mantu")) return "Prosesi Ngunduh Mantu";
+    if (lower.includes("resepsi")) return `Jamuan Resepsi ${idx > 0 ? `Sesi ${idx}` : ""}`.trim();
+    return `Perayaan Acara Sesi ${idx + 1}`;
+  }, []);
+
+  const getDressCode = useCallback((eventName: string, idx: number) => {
+    return getDressCodePalette(eventName, idx).theme;
+  }, []);
+
+  // Dynamic Couple Info
   const groomFullName = data.coupleInfo.groomName || "Versa Pratama, S.T.";
+  const groomNick = data.coupleInfo.groomNickname || data.coupleInfo.groomName?.split(" ")[0] || "Versa";
   const brideFullName = data.coupleInfo.brideName || "Mekar Anggraini, S.Ds.";
+  const brideNick = data.coupleInfo.brideNickname || data.coupleInfo.brideName?.split(" ")[0] || "Mekar";
+  const coupleDisplayName = `${groomNick} & ${brideNick}`;
 
   const groomParents = useMemo(() => {
     if (data.coupleInfo.groomFather && data.coupleInfo.groomMother) {
       return `${data.coupleInfo.groomFather} & ${data.coupleInfo.groomMother}`;
     }
-    return "Bpk. Bambang Wijaya & Ibu Sri Rahayu";
+    return "Bpk. Bambang Wijaya & Ibu Sri Wahyuni";
   }, [data.coupleInfo.groomFather, data.coupleInfo.groomMother]);
 
   const brideParents = useMemo(() => {
     if (data.coupleInfo.brideFather && data.coupleInfo.brideMother) {
       return `${data.coupleInfo.brideFather} & ${data.coupleInfo.brideMother}`;
     }
-    return "Bpk. Hendra Kusuma & Ibu Dewi Sartika";
+    return "Bpk. Herman Santoso & Ibu Dewi Lestari";
   }, [data.coupleInfo.brideFather, data.coupleInfo.brideMother]);
+
+  // Date Formatter
+  const formatWeddingDate = useCallback((dateVal?: string | Date): string => {
+    if (!dateVal) return "Sabtu, 24 Oktober 2026";
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return "Sabtu, 24 Oktober 2026";
+      return new Intl.DateTimeFormat("id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(d);
+    } catch {
+      return "Sabtu, 24 Oktober 2026";
+    }
+  }, []);
+
+  const primaryEventDateStr = useMemo(
+    () => formatWeddingDate(primaryEvent?.date),
+    [primaryEvent?.date, formatWeddingDate]
+  );
+
+  const secondaryEventDateStr = useMemo(
+    () => formatWeddingDate(secondaryEvent?.date || primaryEvent?.date),
+    [secondaryEvent?.date, primaryEvent?.date, formatWeddingDate]
+  );
+
+  // Cover & Profile Images
+  const coverImageSrc = useMemo(() => {
+    return (
+      data.coupleInfo.desktopCoverImage ||
+      "/templates/botanical/couple-center.jpg"
+    );
+  }, [data.coupleInfo.desktopCoverImage]);
+
+  const groomPhotoSrc = useMemo(() => {
+    return (
+      data.coupleInfo.groomPhoto ||
+      "/templates/botanical/groom-versa.jpg"
+    );
+  }, [data.coupleInfo.groomPhoto]);
+
+  const bridePhotoSrc = useMemo(() => {
+    return (
+      data.coupleInfo.bridePhoto ||
+      "/templates/botanical/bride-mekar.jpg"
+    );
+  }, [data.coupleInfo.bridePhoto]);
+
+  // Physical Gift Address
+  const giftShippingAddress = useMemo(() => {
+    return (
+      data.coupleInfo.giftAddress ||
+      secondaryEvent?.address ||
+      primaryEvent?.address ||
+      "Jl. Taman Cempaka No. 18, Kebayoran Baru, Jakarta Selatan 12180"
+    );
+  }, [data.coupleInfo.giftAddress, secondaryEvent?.address, primaryEvent?.address]);
+
+  const giftRecipientName = useMemo(() => {
+    return data.coupleInfo.giftReceiver || coupleDisplayName;
+  }, [data.coupleInfo.giftReceiver, coupleDisplayName]);
+
+  const giftPhoneNumber = useMemo(() => {
+    return data.coupleInfo.giftPhone || "0812-3456-7890";
+  }, [data.coupleInfo.giftPhone]);
+
+  const fullShippingText = useMemo(() => {
+    return `${giftShippingAddress} (Penerima: ${giftRecipientName} / ${giftPhoneNumber})`;
+  }, [giftShippingAddress, giftRecipientName, giftPhoneNumber]);
+
+  // Background Image & Floral Ornaments
+  const customBgImage = useMemo(() => {
+    return data.coupleInfo?.backgroundImage || "";
+  }, [data.coupleInfo.backgroundImage]);
+
+  const floralStyle = useMemo(() => {
+    return data.coupleInfo?.floralOrnament || "gold";
+  }, [data.coupleInfo.floralOrnament]);
+
+  const floralColor = useMemo(() => {
+    switch (floralStyle) {
+      case "burgundy":
+        return "#6c1d28";
+      case "sage":
+        return "#7a8c7b";
+      case "none":
+        return "transparent";
+      case "gold":
+      default:
+        return "#c5a880";
+    }
+  }, [floralStyle]);
+
+  // Bank Accounts & QRIS
+  const activeBankList = useMemo(() => {
+    if (data.bankAccounts && data.bankAccounts.length > 0) {
+      return data.bankAccounts;
+    }
+    return [
+      {
+        id: "default-bca",
+        bankName: "BCA",
+        accountNumber: "7410 8829 1100",
+        accountHolder: groomFullName,
+        qrisImageUrl: undefined,
+      },
+      {
+        id: "default-mandiri",
+        bankName: "Bank Mandiri",
+        accountNumber: "1370 0289 4432",
+        accountHolder: brideFullName,
+        qrisImageUrl: undefined,
+      },
+    ];
+  }, [data.bankAccounts, groomFullName, brideFullName]);
+
+  const customQrisUrl = useMemo(() => {
+    return data.bankAccounts?.find((b) => b.qrisImageUrl && b.qrisImageUrl.trim() !== "")?.qrisImageUrl || null;
+  }, [data.bankAccounts]);
 
   // Toast Helper
   const showToast = useCallback((message: string) => {
@@ -164,63 +758,62 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
     }, 2800);
   }, []);
 
-  // Audio Toggle
+  // Audio Play / Pause
   const toggleAudio = useCallback(() => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
-      showToast("Musik diheningkan");
-      window.dispatchEvent(
-        new CustomEvent("fasaro:music-state", { detail: { isPlaying: false } })
-      );
+      showToast("Musik latar dijeda");
     } else {
+      audioRef.current.muted = false;
       audioRef.current
         .play()
         .then(() => {
           setIsPlaying(true);
-          showToast("Musik pernikahan diputar");
-          window.dispatchEvent(
-            new CustomEvent("fasaro:music-state", { detail: { isPlaying: true } })
-          );
+          showToast("Memutar alunan musik pernikahan");
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn("Audio play prevented:", err);
           setIsPlaying(false);
+          showToast("Sentuh layar untuk memutar musik");
         });
     }
   }, [isPlaying, showToast]);
 
-  // Sync external music toggle events
+  // Lock body scroll while full-screen cover is active
   useEffect(() => {
-    const handleToggle = () => toggleAudio();
-    window.addEventListener("fasaro:music-toggle", handleToggle);
-    return () => window.removeEventListener("fasaro:music-toggle", handleToggle);
-  }, [toggleAudio]);
+    if (!isCoverDismissed) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isCoverDismissed]);
 
-  // Open Invitation Action
+  // Open Invitation Action with Slide-Up Curtain Animation
   const handleOpenInvitation = () => {
+    setIsCoverSliding(true);
     setIsOpen(true);
-    if (!isPlaying && audioRef.current) {
+
+    if (audioRef.current) {
       audioRef.current
         .play()
         .then(() => {
           setIsPlaying(true);
-          window.dispatchEvent(
-            new CustomEvent("fasaro:music-state", { detail: { isPlaying: true } })
-          );
         })
-        .catch(() => {
-          // Auto-play might be blocked by browser policy until interaction
-        });
+        .catch(() => {});
     }
 
-    const target = document.getElementById("spiritualSection");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
-    }
+    // Dismiss cover overlay after 950ms slide-up transition finishes
+    setTimeout(() => {
+      setIsCoverDismissed(true);
+    }, 950);
   };
 
-  // Copy to Clipboard Helper
+  // Copy to Clipboard
   const copyToClipboard = (text: string, label: string) => {
     if (navigator?.clipboard) {
       navigator.clipboard
@@ -248,11 +841,41 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
     )}&dates=${startIso}/${startIso}&location=${encodeURIComponent(venue)}`;
   };
 
+  // Generate QR Code Ticket for Guest
+  useEffect(() => {
+    if (guestName && typeof window !== "undefined") {
+      const payload = JSON.stringify({
+        guestName,
+        invitationSlug: data.slug || "botanical",
+        date: "2026-10-24",
+      });
+      QRCode.toDataURL(payload, { width: 240, margin: 1 })
+        .then(setQrTicketDataUrl)
+        .catch(() => {});
+    }
+  }, [guestName, data.slug]);
+
+  // Download QRIS Image (Failsafe with Blob fetch, Backend proxy, and Real Canvas QR Generation)
+  const handleDownloadQris = async () => {
+    try {
+      showToast("Sedang menyiapkan unduhan QRIS...");
+      await downloadWeddingQrisCard({
+        url: customQrisUrl,
+        coupleName: coupleDisplayName,
+        invitationSlug: data.slug || "wedding",
+      });
+      showToast("Gambar QRIS berhasil diunduh ke perangkat Anda!");
+    } catch (err) {
+      console.error("Gagal mengunduh QRIS:", err);
+      showToast("Gagal mengunduh QRIS. Silakan coba lagi.");
+    }
+  };
+
   // Live Countdown Effect
   useEffect(() => {
     const targetDateStr = primaryEvent?.date
       ? new Date(primaryEvent.date).toISOString()
-      : "2026-12-20T08:00:00+07:00";
+      : "2026-10-24T08:00:00+07:00";
     const targetTimestamp = new Date(targetDateStr).getTime();
 
     const updateTimer = () => {
@@ -285,9 +908,7 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
   const handleRsvpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = rsvpName.trim();
-    const wishes = rsvpWishes.trim();
-
-    if (!name || !wishes) return;
+    if (!name) return;
     setIsSubmitting(true);
 
     const newWishItem: LocalWish = {
@@ -295,13 +916,13 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
       senderName: name,
       timeAgo: "Baru saja",
       attendance: rsvpAttendance,
-      guestCount: rsvpCount,
-      message: wishes,
+      guestCount: `${rsvpCount} Orang`,
+      message: rsvpWishes.trim() || "Semoga menjadi keluarga sakinah mawaddah warahmah.",
     };
 
     setWishesList((prev) => [newWishItem, ...prev]);
+    setMobileWishPage(1);
 
-    // Send to public APIs in background
     try {
       await fetch("/api/public/rsvp", {
         method: "POST",
@@ -311,894 +932,1126 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
           guestName: name,
           status: rsvpAttendance === "Hadir" ? "attending" : rsvpAttendance === "Tidak Hadir" ? "declined" : "tentative",
           attendeeCount: parseInt(rsvpCount, 10) || 1,
+          sessionChosen: rsvpSession || null,
         }),
       });
 
-      await fetch("/api/public/wishes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invitationId: data.id || data.slug,
-          senderName: name,
-          message: wishes,
-          reaction: "💐",
-        }),
-      });
+      if (rsvpWishes.trim()) {
+        await fetch("/api/public/wishes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invitationId: data.id || data.slug,
+            senderName: name,
+            message: rsvpWishes.trim(),
+            reaction: "💐",
+          }),
+        });
+      }
     } catch {
-      // Ignored for demo or offline fallback
+      // Ignored for demo
     } finally {
       setIsSubmitting(false);
+      setRsvpSuccess(true);
       setRsvpWishes("");
-      showToast("Terima kasih atas doa restunya!");
+      showToast("Konfirmasi kehadiran Anda telah tercatat!");
+      setTimeout(() => setRsvpSuccess(false), 5000);
     }
   };
 
-  const stories = data.coupleInfo.stories && data.coupleInfo.stories.length > 0
-    ? data.coupleInfo.stories
-    : [
-        {
-          date: "2022",
-          title: "Pertama Bertemu",
-          story:
-            "Dipertemukan di kampus saat berkolaborasi dalam proyek riset desain dan teknik bersama. Percakapan santai yang menumbuhkan rasa saling mengagumi.",
-          imageUrl: null,
-        },
-        {
-          date: "2025",
-          title: "Lamaran Resmi",
-          story:
-            "Setelah melewati perjalanan panjang saling mendukung impian karier, Versa memantapkan niat dan melamar Mekar di hadapan kedua keluarga besar.",
-          imageUrl: null,
-        },
-        {
-          date: "2026",
-          title: "Menuju Pelaminan",
-          story:
-            "Mengikat janji seumur hidup dalam ikatan suci pernikahan, melangkah berdua menuju masa depan yang penuh berkah dan cinta yang abadi.",
-          imageUrl: null,
-        },
-      ];
+  // Love Story data
+  const stories: BotanicalStory[] = useMemo(() => {
+    if (data.coupleInfo.stories && data.coupleInfo.stories.length >= 7) {
+      return data.coupleInfo.stories.map((st, idx) => ({
+        date: st.date || `Bab ${idx + 1}`,
+        title: st.title,
+        story: st.story,
+        imageUrl: st.imageUrl || DEFAULT_STORIES[idx % DEFAULT_STORIES.length].imageUrl,
+        quote: "“Dua langkah yang menyelaraskan ritme detak, berjalan beriringan menuju satu tujuan abadi.”",
+        location: "Kisah Kasih",
+      }));
+    }
+    return DEFAULT_STORIES;
+  }, [data.coupleInfo.stories]);
 
-  const galleryList = data.galleries && data.galleries.length > 0
-    ? data.galleries.map((g) => g.imageUrl)
-    : DEFAULT_GALLERY_IMAGES;
+  // Gallery items - ensure valid URLs and fallback to DEFAULT_GALLERY_IMAGES if empty or invalid
+  const galleryList = useMemo(() => {
+    if (data.galleries && data.galleries.length > 0) {
+      const valid = data.galleries
+        .filter((g) => g.imageUrl && g.imageUrl.trim() !== "")
+        .map((g, idx) => ({
+          url: g.imageUrl,
+          title: g.caption || `Momen Kenangan #${idx + 1}`,
+          category: "Prewedding",
+        }));
+      if (valid.length > 0) return valid;
+    }
+    return DEFAULT_GALLERY_IMAGES;
+  }, [data.galleries]);
 
-  const audioSource =
-    data.musicUrl ||
-    "https://cdn.jsdelivr.net/gh/roimgit/fasaro-assets@main/music/mellow-wedding-1.mp3";
+  // Hardware-accelerated Scroll Reveal Observer (Zero window onscroll overhead)
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined") return;
+
+    if (!("IntersectionObserver" in window)) {
+      document
+        .querySelectorAll(".scroll-reveal, .scroll-reveal-left, .scroll-reveal-right")
+        .forEach((el) => el.classList.add("revealed"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("revealed");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll(
+        ".scroll-reveal:not(.revealed), .scroll-reveal-left:not(.revealed), .scroll-reveal-right:not(.revealed)"
+      );
+      elements.forEach((el) => observer.observe(el));
+    }, 60);
+
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, [isOpen]);
+
+  const audioSource = data.musicUrl || "/music/wedding-romance.mp3";
+
+  // Ambient Desktop Media (Video first, fallback to gallery image)
+  const rawYoutubeUrl = data.youtubeVideoUrl || data.coupleInfo?.youtubeVideoUrl;
+  const youtubeCoverId = getYouTubeVideoId(rawYoutubeUrl);
+  const directVideoUrl = useMemo(() => {
+    if (!rawYoutubeUrl) return null;
+    if (youtubeCoverId) return null;
+    if (/\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawYoutubeUrl) || rawYoutubeUrl.startsWith("/video/")) {
+      return rawYoutubeUrl;
+    }
+    return null;
+  }, [rawYoutubeUrl, youtubeCoverId]);
+
+  const ambientGalleryBg = useMemo(() => {
+    const fromGallery = data.galleries?.find((g) => g.imageUrl && g.imageUrl.trim() !== "")?.imageUrl;
+    return (
+      fromGallery ||
+      data.coupleInfo?.desktopCoverImage ||
+      data.coupleInfo?.backgroundImage ||
+      coverImageSrc ||
+      "/templates/botanical/gallery/gallery-1.jpg"
+    );
+  }, [data.galleries, data.coupleInfo, coverImageSrc]);
 
   return (
-    <div className="w-full bg-[#fcf9f4] text-[#1c1c19] font-sans-jakarta select-none relative overflow-x-hidden min-h-screen">
-      {/* Hidden Audio Element */}
-      <audio ref={audioRef} src={audioSource} loop preload="auto" />
+    <div className="min-h-screen flex flex-col lg:flex-row w-full max-w-[1680px] mx-auto shadow-2xl relative bg-[#fcf9f4] text-[#2a2421] antialiased theme-wrapper no-scrollbar">
+      {/* Background Audio */}
+      <audio
+        ref={audioRef}
+        src={audioSource}
+        loop
+        preload="auto"
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={() => {
+          console.warn("Audio load error, using local wedding music fallback");
+          if (audioRef.current && !audioRef.current.src.includes("/music/wedding-romance.mp3")) {
+            audioRef.current.src = "/music/wedding-romance.mp3";
+            audioRef.current.load();
+            if (isOpen) {
+              audioRef.current.play().catch(() => {});
+            }
+          }
+        }}
+      />
 
-      {/* FLOATING AUDIO CONTROLLER */}
+      {/* ========================================================================= */}
+      {/* DESKTOP LEFT PANEL: 58-60% Width Sticky Botanical Gallery & Title        */}
+      {/* ========================================================================= */}
       {!isEmbedded && (
-        <aside aria-label="Audio player" className="fixed top-6 right-5 z-50">
-          <button
-            onClick={toggleAudio}
-            title="Putar / Heningkan Musik"
-            className="w-12 h-12 rounded-full bg-white text-[#725b38] shadow-lg flex items-center justify-center transition-transform active:scale-95 duration-300 relative group cursor-pointer border border-[#d1c5b8]/30"
-          >
-            <div
-              className={`w-10 h-10 rounded-full bg-[#ebe8e3] flex items-center justify-center transition-all ${
-                isPlaying ? "animate-spin" : ""
-              }`}
-            >
-              {isPlaying ? (
-                <Disc3 className="w-5 h-5 text-[#725b38]" />
-              ) : (
-                <Music className="w-5 h-5 text-[#725b38]" />
-              )}
+        <aside className="hidden lg:flex lg:w-[58%] xl:w-[60%] h-screen sticky top-0 overflow-hidden flex-col justify-between p-12 xl:p-16 text-[#fcf9f4] z-10 select-none">
+          {/* Background Editorial / Botanical Photo or Video with Warm Vignette */}
+          <div className="absolute inset-0 z-0">
+            {youtubeCoverId ? (
+              <div className="w-full h-full relative overflow-hidden">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${youtubeCoverId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${youtubeCoverId}&playsinline=1&modestbranding=1&rel=0`}
+                  title="Botanical Background Video"
+                  className="absolute top-1/2 left-1/2 w-[300%] h-[300%] min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover pointer-events-none filter blur-[1px] scale-105"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                />
+                <div className="absolute inset-0 bg-[#1c1612]/75 mix-blend-multiply" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1c1612]/95 via-[#1c1612]/40 to-[#1c1612]/60" />
+              </div>
+            ) : directVideoUrl ? (
+              <div className="w-full h-full relative overflow-hidden">
+                <video
+                  src={directVideoUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute top-1/2 left-1/2 w-full h-full min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover pointer-events-none filter blur-[1px] scale-105"
+                />
+                <div className="absolute inset-0 bg-[#1c1612]/70 mix-blend-multiply" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1c1612]/95 via-[#1c1612]/40 to-[#1c1612]/60" />
+              </div>
+            ) : (
+              <>
+                <img
+                  src={coverImageSrc || "/templates/botanical/couple-center.jpg"}
+                  alt={`${coupleDisplayName} Botanical Prewedding`}
+                  className="w-full h-full object-cover object-center filter brightness-[0.82] contrast-[1.05]"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src =
+                      "/templates/botanical/couple-center.jpg";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1c1612]/95 via-[#1c1612]/30 to-[#1c1612]/60 mix-blend-multiply" />
+                <div className="absolute inset-0 bg-radial-gradient from-transparent via-transparent to-black/40" />
+              </>
+            )}
+          </div>
+
+          {/* Top Branding on Left Panel */}
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="w-8 h-[1px] bg-[#fcf9f4]/60" />
+              <span className="text-xs uppercase tracking-[0.3em] font-medium text-[#fcf9f4]/90 font-serif">
+                Official Wedding Invitation
+              </span>
             </div>
-            <span
-              className={`absolute -bottom-1 flex gap-0.5 items-end h-2.5 transition-opacity duration-300 ${
-                isPlaying ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              <span className="w-0.5 h-2 bg-[#725b38] rounded-full animate-pulse" />
-              <span className="w-0.5 h-3 bg-[#c5a880] rounded-full animate-bounce" />
-              <span className="w-0.5 h-1.5 bg-[#725b38] rounded-full animate-pulse" />
-            </span>
-          </button>
+            <div className="w-10 h-10 rounded-full border border-[#fcf9f4]/40 flex items-center justify-center font-serif-eb text-sm tracking-widest text-[#fcf9f4]/90 backdrop-blur-sm bg-black/10">
+              {groomNick[0] || "V"} &amp; {brideNick[0] || "M"}
+            </div>
+          </div>
+
+          {/* Center / Lower Editorial Title on Left Panel */}
+          <div className="relative z-10 my-auto py-12 max-w-xl">
+            <p className="text-xs uppercase tracking-[0.35em] text-[#c5a880] font-semibold mb-4">
+              The Wedding Celebration Of
+            </p>
+            <h1 className="font-serif-eb text-6xl xl:text-7xl 2xl:text-8xl font-normal leading-[1.05] tracking-tight text-white mb-6">
+              {groomNick} <span className="font-serif italic font-normal text-[#fcf9f4]/80">&amp;</span> {brideNick}
+            </h1>
+            <div className="h-[1px] w-24 bg-[#c5a880]/80 mb-6" />
+            <p className="font-serif italic text-xl xl:text-2xl text-[#fcf9f4]/90 font-light leading-relaxed mb-8">
+              &quot;Two souls with but a single thought, two hearts that beat as one.&quot;
+            </p>
+
+            {/* Wedding Date & Venue Chip */}
+            <div className="inline-flex items-center gap-6 bg-[#1c1612]/60 backdrop-blur-md border border-white/15 px-6 py-3.5 rounded-full text-[#fcf9f4]/90 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#c5a880]" />
+                <span className="font-medium tracking-wide">
+                  {primaryEventDateStr}
+                </span>
+              </div>
+              <span className="w-1 h-1 rounded-full bg-[#fcf9f4]/40" />
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#c5a880]" />
+                <span className="text-[#fcf9f4]/80">
+                  {primaryEvent?.venueName || "Grand Ballroom Hotel Santika Bogor"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Panel Note on Left Panel */}
+          <div className="relative z-10 flex items-center justify-between text-xs text-[#fcf9f4]/70 tracking-widest uppercase border-t border-white/15 pt-6 font-serif">
+            <span>Botanical Tema 01</span>
+            <span>Scroll Right to Explore Invitation ↓</span>
+          </div>
         </aside>
       )}
 
-      {/* 1. PARALLAX HERO / COVER SECTION */}
-      <header
-        id="home"
-        className={`relative w-full overflow-hidden flex flex-col items-center justify-between py-12 px-6 bg-[#f6f3ee] transition-all duration-700 ${
-          !isOpen && showCover ? "min-h-screen justify-center" : "min-h-[92vh]"
-        }`}
+      {/* ========================================================================= */}
+      {/* RIGHT PANEL: 40-42% Width on Desktop / 100% on Mobile Frame              */}
+      {/* ========================================================================= */}
+      <div
+        className={`w-full ${
+          !isEmbedded ? "lg:w-[42%] xl:w-[40%]" : "max-w-[480px] mx-auto"
+        } bg-[#1c1612] lg:bg-[#fcf9f4] flex flex-col justify-start items-center relative ${
+          isCoverDismissed ? "overflow-y-auto lg:h-screen" : "overflow-hidden h-screen"
+        } no-scrollbar shadow-inner`}
       >
-        {/* Ambient Botanical SVG Overlay Left Top */}
-        <svg
-          className="absolute -top-12 -left-12 w-48 h-48 opacity-25 text-[#c5a880] pointer-events-none"
-          fill="currentColor"
-          viewBox="0 0 200 200"
+        {/* FULL SCREEN / RIGHT-PANEL COVER OVERLAY */}
+        {!isCoverDismissed && (
+          <div
+            className={`fixed lg:absolute inset-0 z-50 w-full h-[100dvh] lg:h-full bg-[#fcf9f4] flex flex-col justify-between items-center px-4 py-4 sm:py-6 select-none overflow-hidden shadow-2xl transition-transform duration-1000 ease-[cubic-bezier(0.76,0,0.24,1)] ${
+              isCoverSliding ? "-translate-y-full" : "translate-y-0"
+            }`}
+          style={{
+            backgroundImage: `radial-gradient(circle at 50% 15%, rgba(197, 168, 128, 0.12) 0%, transparent 55%), radial-gradient(circle at 50% 85%, rgba(108, 29, 40, 0.05) 0%, transparent 60%)`,
+          }}
         >
-          <path
-            d="M42.7,-64.1C54.9,-58.5,64,-46.8,69.5,-33.5C75,-20.2,77,-5.2,74.3,9.1C71.6,23.5,64.2,37.2,53.8,47.4C43.5,57.7,30.2,64.5,15.7,68.4C1.3,72.4,-14.2,73.5,-28.4,69C-42.6,64.5,-55.4,54.4,-64.8,41.2C-74.2,28,-80.1,11.7,-78.9,-4.1C-77.7,-19.9,-69.3,-35.2,-57.6,-45.5C-45.8,-55.8,-30.7,-61,-16.1,-63.9C-1.5,-66.8,12.5,-67.4,30.5,-69.8L42.7,-64.1Z"
-            transform="translate(100 100) scale(0.9)"
-          />
-        </svg>
+          {/* Background Image Layer */}
+          {customBgImage && (
+            <div
+              className="absolute inset-0 bg-cover bg-center pointer-events-none z-0 opacity-20 mix-blend-multiply"
+              style={{ backgroundImage: `url(${customBgImage})` }}
+            />
+          )}
 
-        {/* Ambient Botanical SVG Overlay Right Bottom */}
-        <svg
-          className="absolute -bottom-16 -right-16 w-56 h-56 opacity-20 text-[#725b38] pointer-events-none"
-          fill="currentColor"
-          viewBox="0 0 200 200"
-        >
-          <path
-            d="M49.3,-68.2C62.9,-60.1,72.3,-45.2,76.6,-29.4C80.8,-13.7,80,3,75.1,18.4C70.1,33.8,61.1,48,48.4,58.7C35.8,69.5,19.5,76.9,2.4,73.6C-14.7,70.3,-32.5,56.3,-45.3,42.8C-58,29.4,-65.7,16.5,-68,-0.3C-70.3,-17.1,-67.2,-37.9,-55.8,-50.2C-44.4,-62.5,-24.8,-66.4,-4.8,-60.2C15.2,-54.1,35.7,-76.3,49.3,-68.2Z"
-            transform="translate(100 100) scale(0.9)"
+          {/* Botanical Floral Corner Ornaments */}
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="top-left"
+            className="w-56 h-56 sm:w-72 sm:h-72 opacity-50 -top-6 -left-6"
           />
-        </svg>
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="bottom-right"
+            className="w-56 h-56 sm:w-72 sm:h-72 opacity-50 -bottom-6 -right-6"
+          />
 
-        {/* Top Badge Monogram */}
-        <div className="flex flex-col items-center gap-2 z-10 text-center">
-          <div className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#725b38] mb-1 shadow-inner">
-            <Sparkles className="w-5 h-5" />
+          {/* Center Main Hero Block */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-4 w-full max-w-md my-auto z-10 space-y-2.5 sm:space-y-3">
+            <div className="w-9 h-9 rounded-full bg-[#f0ede9] border border-[#c5a880]/30 flex items-center justify-center text-[#c5a880] shadow-inner">
+              <Heart className="w-4 h-4 fill-current opacity-80" />
+            </div>
+
+            <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-[#6c1d28] uppercase">
+              THE WEDDING CELEBRATION OF
+            </p>
+
+            <h1 className="font-serif-eb text-3xl sm:text-4xl lg:text-5xl text-[#2a2421] font-normal tracking-wide leading-tight">
+              {groomNick} &amp; {brideNick}
+            </h1>
+
+            {/* Couple Oval Image */}
+            <div className="relative w-40 h-52 sm:w-48 sm:h-64 rounded-none overflow-hidden shadow-2xl p-1 bg-[#ebe8e3] border-4 border-white my-1 shrink-0">
+              <div className="relative w-full h-full rounded-none overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={coverImageSrc}
+                  alt={coupleDisplayName}
+                  className="w-full h-full object-cover rounded-none"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/templates/botanical/couple-center.jpg";
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Guest Personalization Card */}
+            <div className="w-full max-w-xs sm:max-w-sm bg-white/95 backdrop-blur-md rounded-none p-3 sm:p-4 shadow-sm border border-[#c5a880]/35 text-center">
+              <p className="text-[11px] sm:text-xs text-[#6b615b]">Kepada Yth. Bapak/Ibu/Saudara/i</p>
+              <p className="font-serif-eb text-base sm:text-lg font-bold text-[#2a2421] my-0.5">
+                {guestName || "Tamu Undangan Terhormat"}
+              </p>
+              <p className="text-[9px] sm:text-[10px] text-[#c5a880] tracking-widest uppercase font-semibold">
+                di Tempat
+              </p>
+            </div>
+
+            {/* Buka Undangan Button */}
+            <button
+              type="button"
+              onClick={handleOpenInvitation}
+              className="w-full max-w-xs sm:max-w-sm py-3.5 px-6 rounded-none bg-[#6c1d28] hover:bg-[#4e0514] text-white text-xs font-semibold tracking-[0.2em] uppercase shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer group"
+            >
+              <Heart className="w-4 h-4 fill-current group-hover:scale-110 transition-transform" />
+              <span>Buka Undangan</span>
+            </button>
           </div>
-          <p className="text-[0.75rem] font-semibold tracking-[0.2em] text-[#725b38] uppercase">
-            The Wedding Celebration Of
-          </p>
-          <h1 className="font-serif-playfair text-3xl sm:text-4xl text-[#1c1c19] tracking-tight mt-1 font-normal">
-            {coupleDisplayName}
-          </h1>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#f0ede9] mt-1 border border-[#d1c5b8]/40">
-            <Calendar className="w-3.5 h-3.5 text-[#725b38]" />
-            <span className="text-xs text-[#4d463c] font-medium">
-              {primaryEvent?.date
-                ? new Date(primaryEvent.date).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "Minggu, 20 Desember 2026"}
+
+          {/* Bottom subtle watermarking */}
+          <div className="z-10 shrink-0 pb-1 text-center">
+            <span className="text-[9px] text-[#8c6b3f]/70 uppercase tracking-widest font-serif">
+              Invity by Fasaro • 2026
             </span>
           </div>
         </div>
+      )}
 
-        {/* Midground Hero Couple Portrait */}
-        <div className="relative z-10 my-6 flex flex-col items-center">
-          <div className="relative w-64 h-80 rounded-full overflow-hidden shadow-2xl bg-[#ebe8e3] p-2 flex items-center justify-center border-4 border-white/60">
+      {/* ========================================================================= */}
+      {/* CENTERED MOBILE-FIRST INVITATION CONTAINER (MOBILE & DESKTOP)             */}
+      {/* ========================================================================= */}
+      <main className="w-full max-w-[460px] min-h-screen bg-[#ebe6dd] text-[#2a2421] font-sans-montserrat shadow-2xl relative z-10 overflow-x-hidden flex flex-col items-center border-x border-[#c5a880]/30 selection:bg-[#6c1d28] selection:text-white">
+        {/* Mobile Card Custom Background Image Layer */}
+        {customBgImage && (
+          <div
+            className="absolute inset-0 bg-cover bg-center pointer-events-none z-0 opacity-20 mix-blend-multiply"
+            style={{ backgroundImage: `url(${customBgImage})` }}
+          />
+        )}
+
+        {/* Mobile Sticky Top Header */}
+        <header className="sticky top-0 left-0 right-0 z-40 bg-[#f9f6f0]/95 backdrop-blur-md border-b border-[#c5a880]/30 px-4 py-2.5 flex items-center justify-between w-full shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-serif-eb text-xs font-semibold text-[#6c1d28] tracking-[0.2em] uppercase">
+              Undangan Pernikahan
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {guestName && isFeatureAvailable("qr_ticket", { data, forcedThemeId: "botanical" }) && (
+              <button
+                onClick={() => setShowQrTicketModal(true)}
+                className="p-1.5 rounded-full bg-white text-[#6c1d28] border border-[#c5a880]/30 shadow-xs cursor-pointer"
+                title="Tiket Masuk Tamu"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* SECTION 1: WELCOME HERO (MOBILE) */}
+        <section
+          id="mobile-home"
+          className="w-full flex flex-col items-center justify-center text-center px-6 pt-10 pb-12 bg-[#fcf9f4] relative overflow-hidden border-b border-[#c5a880]/20"
+        >
+          {/* Mobile Top Botanical Floral Corners */}
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="top-left"
+            className="w-40 h-40 opacity-40 -top-3 -left-3"
+          />
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="top-right"
+            className="w-40 h-40 opacity-40 -top-3 -right-3"
+          />
+          <div className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#c5a880] mb-2 shadow-inner">
+            <Heart className="w-5 h-5" />
+          </div>
+          <p className="text-[11px] font-bold tracking-[0.25em] text-[#6c1d28] uppercase mb-1">
+            Walimatul &apos;Ursy
+          </p>
+          <h1 className="font-serif-eb text-4xl text-[#2a2421] font-normal tracking-wide leading-tight mb-2">
+            {groomNick} &amp; {brideNick}
+          </h1>
+
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-none bg-[#f2ecdf] mb-6 border border-[#c5a880]/30 shadow-xs">
+            <Calendar className="w-3.5 h-3.5 text-[#6c1d28]" />
+            <span className="text-xs text-[#2a2421] font-medium">{primaryEventDateStr}</span>
+          </div>
+
+          {/* Couple Image Oval */}
+          <div className="relative w-52 h-68 rounded-full overflow-hidden shadow-xl p-1.5 bg-[#ebe8e3] border-4 border-white mb-2">
             <div className="relative w-full h-full rounded-full overflow-hidden">
               <Image
-                src={
-                  data.coupleInfo.desktopCoverImage ||
-                  data.coupleInfo.groomPhoto ||
-                  "/templates/botanical/cover.jpg"
-                }
+                src={coverImageSrc}
                 alt={coupleDisplayName}
                 fill
                 priority
                 className="object-cover rounded-full"
-                sizes="(max-width: 768px) 256px, 320px"
+                sizes="208px"
               />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Guest Personalization Card & CTA */}
-        <div className="w-full max-w-sm z-10 flex flex-col items-center">
-          <div className="w-full bg-white/90 backdrop-blur-md rounded-2xl p-5 shadow-sm border border-[#e5e2dd] text-center flex flex-col items-center gap-1.5 mb-4">
-            <p className="text-xs text-[#4d463c]">Kepada Yth. Bapak/Ibu/Saudara/i</p>
-            <p className="font-serif-playfair text-lg text-[#1c1c19] font-semibold">
-              {guestName || "Tamu Undangan Terhormat"}
+        {/* SECTION 2: SPIRITUAL VERSE */}
+        <section className="w-full px-6 py-14 sm:py-16 bg-[#f9f6f0] text-center flex flex-col items-center border-y border-[#c5a880]/20">
+          <div className="scroll-reveal max-w-md flex flex-col items-center">
+            <Heart className="w-5 h-5 text-[#c5a880] mb-3 fill-current opacity-70" />
+            <p className="font-serif-eb text-lg sm:text-xl text-[#6c1d28] tracking-wide leading-loose mb-3 max-w-md" dir="rtl">
+              وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُمْ مِنْ أَنْفُسِكُمْ أَزْوَاجًا لِتَسْكُنُوا إِلَيْهَا وَجَعَلَ بَيْنَكُمْ مَوَدَّةً وَرَحْمَةً
             </p>
-            <p className="text-[0.7rem] font-semibold text-[#7f766a] tracking-wider uppercase">
-              di Tempat
+            <p className="text-xs sm:text-sm text-[#6b615b] leading-relaxed italic max-w-md mb-2 font-serif-cormorant">
+              &quot;{data.coupleInfo.greetingMessage || "Dan di antara tanda-tanda kebesaran-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang."}&quot;
+            </p>
+            <p className="text-[10px] sm:text-[11px] text-[#6c1d28] uppercase font-bold tracking-widest">
+              (QS. Ar-Rum: 21)
             </p>
           </div>
-          <button
-            onClick={handleOpenInvitation}
-            className="w-full py-3.5 px-6 rounded-full bg-[#725b38] text-white text-xs font-semibold tracking-[0.18em] uppercase flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all duration-300 group cursor-pointer hover:bg-[#513d1d]"
-          >
-            <MailCheck className="w-4 h-4 transition-transform group-hover:scale-110" />
-            <span>Buka Undangan</span>
-          </button>
-        </div>
-      </header>
+        </section>
 
-      {/* 2. SPIRITUAL QUOTE SECTION */}
-      <section
-        id="spiritualSection"
-        className="w-full px-6 py-12 flex flex-col items-center text-center bg-[#fcf9f4]"
-      >
-        <Sparkles className="w-7 h-7 text-[#c5a880] mb-3" />
-        <p
-          className="font-serif-playfair text-xl text-[#725b38] tracking-wide leading-loose mb-4 max-w-md"
-          dir="rtl"
-        >
-          وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُمْ مِنْ أَنْفُسِكُمْ أَزْوَاجًا لِتَسْكُنُوا إِلَيْهَا
-          وَجَعَلَ بَيْنَكُمْ مَوَدَّةً وَرَحْمَةً
-        </p>
-        <p className="text-[0.9375rem] text-[#4d463c] max-w-lg leading-relaxed italic mb-3">
-          &quot;{data.coupleInfo.greetingMessage ||
-            "Dan di antara tanda-tanda kebesaran-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang."}&quot;
-        </p>
-        <p className="text-xs text-[#725b38] uppercase font-bold tracking-widest">
-          (QS. Ar-Rum: 21)
-        </p>
-      </section>
-
-      {/* 3. BRIDE & GROOM PROFILE (MEMPELAI) */}
-      <section
-        id="couple"
-        className="w-full px-5 py-12 bg-[#f6f3ee] flex flex-col items-center"
-      >
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Mempelai Bahagia
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            Mempelai Pria &amp; Wanita
-          </h2>
-          <p className="text-xs text-[#4d463c] max-w-sm mt-1.5 leading-relaxed">
-            Dengan memohon ridho dan rahmat Allah SWT, kami bermaksud melangsungkan
-            pernikahan putra-putri kami:
-          </p>
-        </div>
-
-        {/* Groom Profile Card */}
-        <article className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[#e5e2dd] flex flex-col items-center text-center mb-6">
-          <div className="w-32 h-32 rounded-full overflow-hidden bg-[#f0ede9] mb-4 shadow-inner relative border-2 border-[#d1c5b8]/50">
-            <Image
-              src={data.coupleInfo.groomPhoto || "/templates/botanical/groom.jpg"}
-              alt={groomFullName}
-              fill
-              className="object-cover"
-              sizes="128px"
-            />
-          </div>
-          <h3 className="font-serif-playfair text-xl text-[#1c1c19] font-semibold mb-1">
-            {groomFullName}
-          </h3>
-          <p className="text-xs text-[#4d463c] mb-4 leading-relaxed">
-            Putra pertama dari pasangan
-            <br />
-            <span className="font-semibold text-[#1c1c19]">{groomParents}</span>
-          </p>
-          {data.coupleInfo.groomInstagram && (
-            <a
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#f0ede9] text-[#4d463c] hover:text-[#725b38] text-xs font-medium transition-colors"
-              href={`https://instagram.com/${data.coupleInfo.groomInstagram.replace("@", "")}`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <InstagramIcon className="w-3.5 h-3.5" />
-              <span>@{data.coupleInfo.groomInstagram.replace("@", "")}</span>
-            </a>
-          )}
-        </article>
-
-        {/* Romantic Monogram Divider */}
-        <div className="my-2 flex items-center justify-center w-12 h-12 rounded-full bg-[#f0ede9] text-[#725b38] font-serif-playfair text-2xl font-serif shadow-sm border border-[#d1c5b8]/40">
-          &amp;
-        </div>
-
-        {/* Bride Profile Card */}
-        <article className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[#e5e2dd] flex flex-col items-center text-center mt-6">
-          <div className="w-32 h-32 rounded-full overflow-hidden bg-[#f0ede9] mb-4 shadow-inner relative border-2 border-[#d1c5b8]/50">
-            <Image
-              src={data.coupleInfo.bridePhoto || "/templates/botanical/bride.jpg"}
-              alt={brideFullName}
-              fill
-              className="object-cover"
-              sizes="128px"
-            />
-          </div>
-          <h3 className="font-serif-playfair text-xl text-[#1c1c19] font-semibold mb-1">
-            {brideFullName}
-          </h3>
-          <p className="text-xs text-[#4d463c] mb-4 leading-relaxed">
-            Putri kedua dari pasangan
-            <br />
-            <span className="font-semibold text-[#1c1c19]">{brideParents}</span>
-          </p>
-          {data.coupleInfo.brideInstagram && (
-            <a
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#f0ede9] text-[#4d463c] hover:text-[#725b38] text-xs font-medium transition-colors"
-              href={`https://instagram.com/${data.coupleInfo.brideInstagram.replace("@", "")}`}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              <InstagramIcon className="w-3.5 h-3.5" />
-              <span>@{data.coupleInfo.brideInstagram.replace("@", "")}</span>
-            </a>
-          )}
-        </article>
-      </section>
-
-      {/* 4. COUNTDOWN & EVENTS (ACARA) */}
-      <section id="event" className="w-full px-5 py-12 bg-[#fcf9f4] flex flex-col items-center">
-        <div className="text-center mb-6">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Save The Date
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            Hitung Mundur Hari Bahagia
-          </h2>
-        </div>
-
-        {/* Live Timer */}
-        <div className="grid grid-cols-4 gap-2 w-full max-w-sm mb-10 text-center">
-          <div className="bg-[#f6f3ee] rounded-xl p-3 shadow-sm border border-[#e5e2dd]">
-            <span className="font-serif-playfair text-xl font-bold text-[#725b38] block">
-              {timeLeft.days}
-            </span>
-            <span className="text-[0.65rem] font-semibold text-[#7f766a] uppercase tracking-wider">
-              Hari
-            </span>
-          </div>
-          <div className="bg-[#f6f3ee] rounded-xl p-3 shadow-sm border border-[#e5e2dd]">
-            <span className="font-serif-playfair text-xl font-bold text-[#725b38] block">
-              {timeLeft.hours}
-            </span>
-            <span className="text-[0.65rem] font-semibold text-[#7f766a] uppercase tracking-wider">
-              Jam
-            </span>
-          </div>
-          <div className="bg-[#f6f3ee] rounded-xl p-3 shadow-sm border border-[#e5e2dd]">
-            <span className="font-serif-playfair text-xl font-bold text-[#725b38] block">
-              {timeLeft.minutes}
-            </span>
-            <span className="text-[0.65rem] font-semibold text-[#7f766a] uppercase tracking-wider">
-              Menit
-            </span>
-          </div>
-          <div className="bg-[#f6f3ee] rounded-xl p-3 shadow-sm border border-[#e5e2dd]">
-            <span className="font-serif-playfair text-xl font-bold text-[#725b38] block">
-              {timeLeft.seconds}
-            </span>
-            <span className="text-[0.65rem] font-semibold text-[#7f766a] uppercase tracking-wider">
-              Detik
-            </span>
-          </div>
-        </div>
-
-        {/* Event Cards Container */}
-        <div className="w-full max-w-md flex flex-col gap-6">
-          {/* Card 1: Akad Nikah */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e5e2dd] relative overflow-hidden">
-            <div className="w-12 h-12 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#725b38] mb-3">
-              <Heart className="w-5 h-5 fill-[#725b38]" />
+        {/* SECTION 3: MEMPELAI (BRIDE & GROOM PROFILE) */}
+        <section className="w-full px-5 sm:px-8 py-14 sm:py-16 bg-[#fcf9f4] flex flex-col items-center">
+          <div className="text-center mb-8 scroll-reveal">
+            <div className="inline-flex items-center justify-center gap-3 mb-2 text-[#c5a880]">
+              <span className="w-8 h-[1px] bg-[#c5a880]/50" />
+              <Heart className="w-3.5 h-3.5 text-[#6c1d28] fill-current" />
+              <span className="w-8 h-[1px] bg-[#c5a880]/50" />
             </div>
-            <span className="text-[0.7rem] font-bold text-[#725b38] uppercase tracking-wider block mb-1">
-              Prosesi Sakral
-            </span>
-            <h3 className="font-serif-playfair text-xl text-[#1c1c19] font-semibold mb-2">
-              {primaryEvent?.eventName || "Akad Nikah"}
-            </h3>
-            <p className="text-sm text-[#4d463c] mb-1">
-              {primaryEvent?.date
-                ? new Date(primaryEvent.date).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "Minggu, 20 Desember 2026"}
-            </p>
-            <p className="text-xs font-semibold text-[#725b38] mb-4">
-              Pukul {primaryEvent?.startTime || "08.00"} - {primaryEvent?.endTime || "10.00 WIB"}
-            </p>
-            <div className="bg-[#f6f3ee] rounded-xl p-4 mb-4 border border-[#e5e2dd]/60">
-              <p className="text-sm font-semibold text-[#1c1c19]">
-                {primaryEvent?.venueName || "Masjid Raya Bogor"}
-              </p>
-              <p className="text-xs text-[#4d463c] mt-0.5">
-                {primaryEvent?.address ||
-                  "Jl. Pajajaran No. 10, RT 01/RW 03, Baranangsiang, Kota Bogor"}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <a
-                className="flex-1 py-2.5 px-4 rounded-full bg-[#725b38] text-white text-xs font-semibold uppercase text-center flex items-center justify-center gap-1.5 shadow-sm hover:bg-[#513d1d] transition-colors"
-                href={
-                  primaryEvent?.mapsUrl ||
-                  `https://maps.google.com/?q=${encodeURIComponent(
-                    primaryEvent?.venueName || "Masjid Raya Bogor"
-                  )}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Buka Google Maps</span>
-              </a>
-              <a
-                className="py-2.5 px-4 rounded-full bg-[#f0ede9] text-[#4d463c] text-xs font-semibold uppercase text-center flex items-center justify-center gap-1.5 hover:text-[#725b38] transition-colors"
-                href={generateGoogleCalendarUrl(
-                  `${primaryEvent?.eventName || "Akad Nikah"} - ${coupleDisplayName}`,
-                  primaryEvent?.date || "2026-12-20",
-                  primaryEvent?.startTime || "08:00",
-                  primaryEvent?.venueName || "Masjid Raya Bogor"
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <CalendarPlus className="w-3.5 h-3.5" />
-                <span>Simpan Jadwal</span>
-              </a>
-            </div>
+            <h2 className="font-serif-eb text-3xl text-[#2a2421] font-normal tracking-wide">
+              {groomNick} &amp; {brideNick}
+            </h2>
           </div>
 
-          {/* Card 2: Resepsi Pernikahan */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e5e2dd] relative overflow-hidden">
-            <div className="w-12 h-12 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#725b38] mb-3">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <span className="text-[0.7rem] font-bold text-[#725b38] uppercase tracking-wider block mb-1">
-              Perayaan Cinta
-            </span>
-            <h3 className="font-serif-playfair text-xl text-[#1c1c19] font-semibold mb-2">
-              {secondaryEvent?.eventName || "Resepsi Pernikahan"}
-            </h3>
-            <p className="text-sm text-[#4d463c] mb-1">
-              {secondaryEvent?.date
-                ? new Date(secondaryEvent.date).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "Minggu, 20 Desember 2026"}
-            </p>
-            <p className="text-xs font-semibold text-[#725b38] mb-4">
-              Pukul {secondaryEvent?.startTime || "11.00"} - {secondaryEvent?.endTime || "14.00 WIB"}
-            </p>
-            <div className="bg-[#f6f3ee] rounded-xl p-4 mb-4 border border-[#e5e2dd]/60">
-              <p className="text-sm font-semibold text-[#1c1c19]">
-                {secondaryEvent?.venueName || "Grand Ballroom Hotel Santika Bogor"}
-              </p>
-              <p className="text-xs text-[#4d463c] mt-0.5">
-                {secondaryEvent?.address ||
-                  "Jl. Raya Padjadjaran, Tegallega, Kota Bogor, Jawa Barat"}
-              </p>
-            </div>
-            <div className="w-full">
-              <div
-                className="w-full h-44 bg-cover bg-center rounded-xl mb-3 shadow-inner border border-[#d1c5b8]/40"
-                style={{
-                  backgroundImage:
-                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAXYuMday_A_9PM82TuEmRc_AGDLOC3kv7K8WMW72USU1INZmW_cwOUjkNsgORcfW6QtoEDzNEcttggFHmBKlITQxS--bmQ2rO_S1WQuqbPbaXnL7p3qO5Ir_NJ2Csn8XZ_I8AV0icgx51CoQ-UOtTJ0D3L7krKT9npZiRiE2aZkSsNFLxY37gDm8ndscE6Eqq4kNC_EcpEfjDiLdDeaA1x8qEsbC5AWUAKUWEx09GcX6grdG9swMSm')",
-                }}
+          {/* Groom Card */}
+          <div className="scroll-reveal w-full max-w-md bg-white rounded-none p-6 shadow-sm border border-[#c5a880]/30 flex flex-col items-center text-center mb-4 transition-all hover:shadow-md">
+            <div className="w-28 h-28 rounded-full overflow-hidden bg-[#f0ede9] mb-3 shadow-inner relative border-2 border-[#c5a880]/50">
+              <Image
+                src={data.coupleInfo.groomPhoto || "/templates/botanical/groom.jpg"}
+                alt={groomFullName}
+                fill
+                className="object-cover"
+                sizes="112px"
               />
+            </div>
+            <h3 className="font-serif-eb text-xl text-[#2a2421] font-semibold mb-1">
+              {groomFullName}
+            </h3>
+            <p className="text-xs text-[#6b615b] mb-3 leading-relaxed">
+              Putra pertama dari
+              <br />
+              <strong className="text-[#2a2421]">{groomParents}</strong>
+            </p>
+            {data.coupleInfo.groomInstagram && (
               <a
-                className="w-full py-2.5 px-4 rounded-full bg-[#725b38] text-white text-xs font-semibold uppercase text-center flex items-center justify-center gap-1.5 shadow-sm hover:bg-[#513d1d] transition-colors"
-                href={
-                  secondaryEvent?.mapsUrl ||
-                  `https://maps.google.com/?q=${encodeURIComponent(
-                    secondaryEvent?.venueName || "Grand Ballroom Hotel Santika Bogor"
-                  )}`
-                }
+                href={`https://instagram.com/${data.coupleInfo.groomInstagram.replace("@", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-[#f9f6f0] text-xs text-[#2a2421] hover:text-[#6c1d28] transition-colors"
               >
-                <Navigation className="w-3.5 h-3.5" />
-                <span>Petunjuk Arah Lokasi</span>
+                <InstagramIcon className="w-3 h-3" />
+                <span>@{data.coupleInfo.groomInstagram.replace("@", "")}</span>
               </a>
-            </div>
+            )}
           </div>
-        </div>
-      </section>
 
-      {/* 5. LOVE STORY TIMELINE */}
-      <section className="w-full px-5 py-12 bg-[#f6f3ee] flex flex-col items-center">
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Kisah Kasih
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            Our Love Journey
-          </h2>
-        </div>
+          <div className="my-1 flex items-center justify-center w-10 h-10 rounded-full bg-[#f4ece0] text-[#6c1d28] font-serif-eb text-lg font-bold shadow-xs border border-[#c5a880]/30">
+            &amp;
+          </div>
 
-        <div className="relative w-full max-w-md pl-6 flex flex-col gap-6">
-          <div className="absolute left-2.5 top-3 bottom-3 w-0.5 bg-[#c5a880]/40" />
+          {/* Bride Card */}
+          <div className="scroll-reveal w-full max-w-md bg-white rounded-none p-6 shadow-sm border border-[#c5a880]/30 flex flex-col items-center text-center mt-4 transition-all hover:shadow-md">
+            <div className="w-28 h-28 rounded-full overflow-hidden bg-[#f0ede9] mb-3 shadow-inner relative border-2 border-[#c5a880]/50">
+              <Image
+                src={data.coupleInfo.bridePhoto || "/templates/botanical/bride.jpg"}
+                alt={brideFullName}
+                fill
+                className="object-cover"
+                sizes="112px"
+              />
+            </div>
+            <h3 className="font-serif-eb text-xl text-[#2a2421] font-semibold mb-1">
+              {brideFullName}
+            </h3>
+            <p className="text-xs text-[#6b615b] mb-3 leading-relaxed">
+              Putri kedua dari
+              <br />
+              <strong className="text-[#2a2421]">{brideParents}</strong>
+            </p>
+            {data.coupleInfo.brideInstagram && (
+              <a
+                href={`https://instagram.com/${data.coupleInfo.brideInstagram.replace("@", "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-[#f9f6f0] text-xs text-[#2a2421] hover:text-[#6c1d28] transition-colors"
+              >
+                <InstagramIcon className="w-3 h-3" />
+                <span>@{data.coupleInfo.brideInstagram.replace("@", "")}</span>
+              </a>
+            )}
+          </div>
+        </section>
 
-          {stories.map((item, idx) => (
-            <div key={`story-${idx}`} className="relative flex items-start gap-4">
-              <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-[#725b38] text-white flex items-center justify-center text-xs shadow-sm">
-                <Heart className="w-2.5 h-2.5 fill-white" />
-              </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e2dd] w-full">
-                <span className="text-[0.7rem] font-bold text-[#725b38] uppercase tracking-wider">
-                  {item.date}
-                </span>
-                <h4 className="font-serif-playfair text-base font-semibold text-[#1c1c19] mt-0.5 mb-1">
-                  {item.title}
-                </h4>
-                {item.imageUrl && (
-                  <div className="relative w-full h-36 rounded-lg overflow-hidden my-2 shadow-inner">
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 400px"
+        {/* SECTION 4: KISAH KAMI (PERJALANAN CINTA) */}
+        {isFeatureAvailable("love_story", { data, forcedThemeId: "botanical" }) && (
+          <section id="mobile-kisah" className="w-full px-5 sm:px-8 py-14 sm:py-16 bg-[#f9f6f0] flex flex-col items-center">
+            <div className="text-center mb-8 scroll-reveal">
+              <h2 className="font-serif-eb text-2xl sm:text-3xl text-[#2a2421] font-normal">
+                Perjalanan Cinta Kami
+              </h2>
+            </div>
+
+            <div className="w-full max-w-md flex flex-col gap-6 overflow-hidden">
+              {stories.map((st, idx) => {
+                const isEven = idx % 2 === 0;
+                return (
+                  <div
+                    key={`m-ch-${idx}`}
+                    className={`bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 flex flex-col hover:shadow-md ${
+                      isEven ? "scroll-reveal-left" : "scroll-reveal-right"
+                    }`}
+                  >
+                  <div className="w-full h-40 sm:h-44 rounded-none overflow-hidden relative mb-3.5 shadow-inner">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={st.imageUrl}
+                      alt={st.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          "/templates/botanical/gallery/gallery-1.jpg";
+                      }}
                     />
                   </div>
-                )}
-                <p className="text-xs text-[#4d463c] leading-relaxed">{item.story}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 6. PHOTO GALLERY & PREWEDDING VIDEO */}
-      <section id="gallery" className="w-full px-5 py-12 bg-[#fcf9f4] flex flex-col items-center">
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Dokumentasi
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            Galeri Prewedding
-          </h2>
-        </div>
-
-        {/* Masonry-like Photo Cards */}
-        <div className="w-full max-w-md grid grid-cols-2 gap-3 mb-6">
-          {galleryList.slice(0, 5).map((imgUrl, idx) => {
-            const isWide = idx === 2;
-            return (
-              <div
-                key={`gal-${idx}`}
-                onClick={() => setLightboxImg(imgUrl)}
-                className={`${
-                  isWide ? "col-span-2 h-56" : "h-48"
-                } rounded-xl overflow-hidden shadow-sm bg-[#f0ede9] relative cursor-pointer group border border-[#e5e2dd]`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imgUrl}
-                  alt={`Prewedding ${idx + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Cinematic Video Player / Mockup */}
-        <div className="w-full max-w-md bg-white rounded-2xl p-4 shadow-sm border border-[#e5e2dd] flex flex-col items-center">
-          <p className="text-[0.7rem] font-bold text-[#725b38] uppercase tracking-wider mb-2">
-            Cinematic Teaser
-          </p>
-          {data.youtubeVideoUrl ? (
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow">
-              <iframe
-                className="w-full h-full"
-                src={data.youtubeVideoUrl.replace("watch?v=", "embed/")}
-                title="Wedding Cinematic Teaser"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          ) : (
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#ebe8e3] flex items-center justify-center group cursor-pointer">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxDmdxe_YyPxWNPMOJBBquw0i4HcOyNUEoK73_ldQBjh6iTLhbD3VjvmSAx5WpE3fmoAq2aZ7Lf_AAYRjzoBCtkx4Zp_bsgHg_2iVGFjruGLmKibVHBovgu5u-ExB4qlLHfBBhdcRFodVcCNjAxuFhIX_ae-RAtLDFwpekdlSm25rtHApj549ltZtDSsmZhX1ULSJ2uxuXXnFDtsXMmIlHyD8BL7jM2N93hoRk1HonDKidupVpw6Xi"
-                alt="Cinematic still"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] flex items-center justify-center transition-all group-hover:bg-black/15">
-                <div className="w-14 h-14 rounded-full bg-[#725b38] text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                  <Play className="w-6 h-6 fill-white ml-0.5" />
+                  <h3 className="font-serif-eb text-lg font-semibold text-[#2a2421] mb-1.5">
+                    {st.title}
+                  </h3>
+                  <p className="text-xs text-[#6b615b] leading-relaxed">{st.story}</p>
                 </div>
-              </div>
+              );
+            })}
             </div>
-          )}
-          <p className="text-xs text-[#4d463c] mt-2 text-center">
-            Video teaser perjalanan cinta {coupleDisplayName}
-          </p>
-        </div>
-      </section>
+          </section>
+        )}
 
-      {/* 7. DIGITAL GIFT & CASHLESS ANGPAO */}
-      <section id="gift" className="w-full px-5 py-12 bg-[#f6f3ee] flex flex-col items-center">
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Tanda Kasih
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            Kado Digital &amp; Angpao
-          </h2>
-          <p className="text-xs text-[#4d463c] max-w-sm mt-1.5 leading-relaxed">
-            Doa restu Anda adalah kado terindah bagi kami. Namun jika ingin memberikan tanda
-            kasih secara digital, Anda dapat melalui rekening berikut:
-          </p>
-        </div>
+        {/* SECTION 5: ACARA & COUNTDOWN */}
+        <section
+          id="mobile-acara"
+          className="w-full px-5 sm:px-8 py-16 sm:py-20 flex flex-col items-center relative overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 12%, rgba(197, 168, 128, 0.15) 0%, transparent 65%), linear-gradient(180deg, #fdfbf7 0%, #f6f0e4 50%, #fdfbf7 100%)",
+          }}
+        >
+          {/* Subtle Botanical Corner Accents for Luxury Event Frame */}
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="top-left"
+            className="w-36 h-36 opacity-35 -top-3 -left-3"
+          />
+          <BotanicalFloralCorner
+            color={floralColor}
+            position="bottom-right"
+            className="w-36 h-36 opacity-35 -bottom-3 -right-3"
+          />
 
-        <div className="w-full max-w-md flex flex-col gap-4">
-          {data.bankAccounts && data.bankAccounts.length > 0 ? (
-            data.bankAccounts.map((acc, idx) => (
-              <div
-                key={`bank-${idx}`}
-                className="bg-white rounded-2xl p-5 shadow-sm border border-[#e5e2dd] flex flex-col"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-serif-playfair text-lg font-bold text-[#1c1c19]">
-                    {acc.bankName}
-                  </span>
-                  <Package className="w-5 h-5 text-[#725b38]" />
-                </div>
-                <p className="text-xs text-[#4d463c]">Nomor Rekening:</p>
-                <p className="font-serif-playfair text-lg font-semibold text-[#725b38] tracking-wider mb-1">
-                  {acc.accountNumber}
-                </p>
-                <p className="text-xs text-[#4d463c] mb-4">a.n {acc.accountHolder}</p>
-                <button
-                  onClick={() => copyToClipboard(acc.accountNumber, `Nomor Rekening ${acc.bankName}`)}
-                  className="w-full py-2 px-4 rounded-full bg-[#f0ede9] text-[#1c1c19] text-xs font-semibold uppercase flex items-center justify-center gap-1.5 active:bg-[#725b38] active:text-white transition-colors cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Salin Nomor Rekening</span>
-                </button>
-              </div>
-            ))
-          ) : (
-            <>
-              {/* Default BCA Card */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#e5e2dd] flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-serif-playfair text-lg font-bold text-[#1c1c19]">BCA</span>
-                  <Package className="w-5 h-5 text-[#725b38]" />
-                </div>
-                <p className="text-xs text-[#4d463c]">Nomor Rekening:</p>
-                <p className="font-serif-playfair text-lg font-semibold text-[#725b38] tracking-wider mb-1">
-                  8020192831
-                </p>
-                <p className="text-xs text-[#4d463c] mb-4">a.n {groomFullName}</p>
-                <button
-                  onClick={() => copyToClipboard("8020192831", "Nomor Rekening BCA")}
-                  className="w-full py-2 px-4 rounded-full bg-[#f0ede9] text-[#1c1c19] text-xs font-semibold uppercase flex items-center justify-center gap-1.5 active:bg-[#725b38] active:text-white transition-colors cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Salin Nomor Rekening</span>
-                </button>
-              </div>
-
-              {/* Default Mandiri Card */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-[#e5e2dd] flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-serif-playfair text-lg font-bold text-[#1c1c19]">
-                    Bank Mandiri
-                  </span>
-                  <Package className="w-5 h-5 text-[#725b38]" />
-                </div>
-                <p className="text-xs text-[#4d463c]">Nomor Rekening:</p>
-                <p className="font-serif-playfair text-lg font-semibold text-[#725b38] tracking-wider mb-1">
-                  133009281920
-                </p>
-                <p className="text-xs text-[#4d463c] mb-4">a.n {brideFullName}</p>
-                <button
-                  onClick={() => copyToClipboard("133009281920", "Nomor Rekening Mandiri")}
-                  className="w-full py-2 px-4 rounded-full bg-[#f0ede9] text-[#1c1c19] text-xs font-semibold uppercase flex items-center justify-center gap-1.5 active:bg-[#725b38] active:text-white transition-colors cursor-pointer"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Salin Nomor Rekening</span>
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Physical Gift Delivery Address Accordion */}
-          <details className="bg-white rounded-2xl p-5 shadow-sm border border-[#e5e2dd] group">
-            <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-semibold text-[#1c1c19]">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-[#725b38]" />
-                <span>Kirim Kado Fisik</span>
-              </div>
-              <span className="text-xs text-[#7f766a] transition-transform group-open:rotate-180">
-                ▼
-              </span>
-            </summary>
-            <div className="pt-4 text-left">
-              <p className="text-xs text-[#4d463c] mb-1">Alamat Penerima:</p>
-              <p className="text-sm font-semibold text-[#1c1c19]">
-                Kediaman Mempelai ({coupleDisplayName})
-              </p>
-              <p className="text-xs text-[#4d463c] mb-3 leading-relaxed">
-                Cluster Magnolia Blok B3 No. 12, Jl. Pajajaran Indah, Bogor Timur, Kota Bogor, 16143
-                (No. HP: 0812-8920-1122)
-              </p>
-              <button
-                onClick={() =>
-                  copyToClipboard(
-                    "Cluster Magnolia Blok B3 No. 12, Jl. Pajajaran Indah, Bogor Timur, Kota Bogor, 16143",
-                    "Alamat Pengiriman"
-                  )
-                }
-                className="w-full py-2 px-4 rounded-full bg-[#f0ede9] text-[#1c1c19] text-xs font-semibold uppercase flex items-center justify-center gap-1.5 active:bg-[#725b38] active:text-white transition-colors cursor-pointer"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                <span>Salin Alamat Lengkap</span>
-              </button>
-            </div>
-          </details>
-        </div>
-      </section>
-
-      {/* 8. RSVP & WISHES WALL (UCAPAN & DOA) */}
-      <section id="wishes" className="w-full px-5 py-12 bg-[#fcf9f4] flex flex-col items-center">
-        <div className="text-center mb-8">
-          <p className="text-xs font-semibold text-[#725b38] tracking-widest uppercase mb-1">
-            Konfirmasi Kehadiran
-          </p>
-          <h2 className="font-serif-playfair text-2xl sm:text-3xl text-[#1c1c19] font-normal">
-            RSVP &amp; Ucapan Doa
-          </h2>
-          <p className="text-xs text-[#4d463c] max-w-sm mt-1.5 leading-relaxed">
-            Kehadiran dan doa restu Anda merupakan kebahagiaan terbesar bagi kami.
-          </p>
-        </div>
-
-        {/* RSVP Form Card */}
-        <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-sm border border-[#e5e2dd] mb-10">
-          <form onSubmit={handleRsvpSubmit} className="flex flex-col gap-4">
-            <div>
-              <label className="block text-[0.7rem] font-semibold text-[#7f766a] uppercase tracking-wider mb-1.5">
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                required
-                value={rsvpName}
-                onChange={(e) => setRsvpName(e.target.value)}
-                placeholder="Contoh: Bpk. Rian Hidayat"
-                className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[#1c1c19] text-sm border border-[#e5e2dd] focus:outline-none focus:bg-[#f0ede9] focus:border-[#725b38]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[0.7rem] font-semibold text-[#7f766a] uppercase tracking-wider mb-1.5">
-                Konfirmasi Kehadiran
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["Hadir", "Masih Ragu", "Tidak Hadir"] as const).map((status) => {
-                  const isSelected = rsvpAttendance === status;
-                  return (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setRsvpAttendance(status)}
-                      className={`flex flex-col items-center justify-center p-2.5 rounded-xl text-center text-xs font-semibold transition-all border ${
-                        isSelected
-                          ? "bg-[#725b38] text-white border-[#725b38] shadow-sm"
-                          : "bg-[#f6f3ee] text-[#4d463c] border-[#e5e2dd] hover:bg-[#f0ede9]"
-                      }`}
-                    >
-                      {status === "Hadir" && "Hadir"}
-                      {status === "Masih Ragu" && "Ragu"}
-                      {status === "Tidak Hadir" && "Maaf, Tidak"}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[0.7rem] font-semibold text-[#7f766a] uppercase tracking-wider mb-1.5">
-                Jumlah Tamu
-              </label>
-              <select
-                value={rsvpCount}
-                onChange={(e) => setRsvpCount(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[#1c1c19] text-sm border border-[#e5e2dd] focus:outline-none focus:bg-[#f0ede9]"
-              >
-                <option value="1 Orang">1 Orang</option>
-                <option value="2 Orang">2 Orang</option>
-                <option value="3 Orang">3 Orang</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[0.7rem] font-semibold text-[#7f766a] uppercase tracking-wider mb-1.5">
-                Ucapan &amp; Doa Restu
-              </label>
-              <textarea
-                required
-                rows={3}
-                value={rsvpWishes}
-                onChange={(e) => setRsvpWishes(e.target.value)}
-                placeholder="Tuliskan ucapan selamat dan doa untuk kedua mempelai..."
-                className="w-full px-4 py-2.5 rounded-xl bg-[#f6f3ee] text-[#1c1c19] text-sm border border-[#e5e2dd] focus:outline-none focus:bg-[#f0ede9] resize-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-full bg-[#725b38] text-white text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all hover:bg-[#513d1d] cursor-pointer disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              <span>{isSubmitting ? "Mengirim..." : "Kirim Ucapan & Konfirmasi"}</span>
-            </button>
-          </form>
-        </div>
-
-        {/* Live Wishes Feed */}
-        <div className="w-full max-w-md flex flex-col gap-3">
-          <div className="flex items-center justify-between px-1 mb-1">
-            <span className="font-serif-playfair text-base font-semibold text-[#1c1c19]">
-              Untaian Doa
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-[#ebe8e3] text-xs text-[#725b38] font-bold">
-              {wishesList.length} Ucapan
-            </span>
+          <div className="text-center mb-8 relative z-10 scroll-reveal">
+            <h2 className="font-serif-eb text-2xl sm:text-3xl text-[#2a2421] font-normal tracking-wide">
+              Rangkaian Acara Pernikahan
+            </h2>
           </div>
 
-          <div className="flex flex-col gap-3 max-h-96 overflow-y-auto pr-1 no-scrollbar">
-            {wishesList.map((wish) => (
-              <div
-                key={wish.id}
-                className="bg-white rounded-xl p-4 shadow-sm border border-[#e5e2dd] flex flex-col gap-1 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-[#1c1c19]">{wish.senderName}</span>
-                  <span className="text-[0.7rem] text-[#7f766a]">{wish.timeAgo}</span>
-                </div>
-                <span
-                  className={`inline-flex items-center gap-1 text-xs font-medium ${
-                    wish.attendance === "Hadir"
-                      ? "text-[#725b38]"
-                      : wish.attendance === "Masih Ragu"
-                      ? "text-[#7f766a]"
-                      : "text-rose-600"
-                  }`}
-                >
-                  {wish.attendance === "Hadir" && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  {wish.attendance === "Masih Ragu" && <HelpCircle className="w-3.5 h-3.5" />}
-                  {wish.attendance} ({wish.guestCount})
+          {/* Countdown Blocks */}
+          {isFeatureAvailable("countdown", { data, forcedThemeId: "botanical" }) && (
+            <div className="scroll-reveal w-full max-w-md grid grid-cols-4 gap-2.5 sm:gap-3 mb-8 text-center relative z-10">
+              <div className="bg-white/95 backdrop-blur-xs rounded-none p-3 shadow-sm border border-[#c5a880]/35">
+                <span className="font-serif-eb text-xl sm:text-2xl font-bold text-[#6c1d28] block">
+                  {timeLeft.days}
                 </span>
-                <p className="text-xs text-[#4d463c] mt-1 leading-relaxed">{wish.message}</p>
+                <span className="text-[9px] uppercase tracking-wider text-[#6b615b] font-semibold">
+                  Hari
+                </span>
               </div>
-            ))}
+              <div className="bg-white/95 backdrop-blur-xs rounded-none p-3 shadow-sm border border-[#c5a880]/35">
+                <span className="font-serif-eb text-xl sm:text-2xl font-bold text-[#6c1d28] block">
+                  {timeLeft.hours}
+                </span>
+                <span className="text-[9px] uppercase tracking-wider text-[#6b615b] font-semibold">
+                  Jam
+                </span>
+              </div>
+              <div className="bg-white/95 backdrop-blur-xs rounded-none p-3 shadow-sm border border-[#c5a880]/35">
+                <span className="font-serif-eb text-xl sm:text-2xl font-bold text-[#6c1d28] block">
+                  {timeLeft.minutes}
+                </span>
+                <span className="text-[9px] uppercase tracking-wider text-[#6b615b] font-semibold">
+                  Menit
+                </span>
+              </div>
+              <div className="bg-white/95 backdrop-blur-xs rounded-none p-3 shadow-sm border border-[#c5a880]/35">
+                <span className="font-serif-eb text-xl sm:text-2xl font-bold text-[#c5a880] block">
+                  {timeLeft.seconds}
+                </span>
+                <span className="text-[9px] uppercase tracking-wider text-[#6b615b] font-semibold">
+                  Detik
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Event Cards (Dynamic: supports 1, 2, 3, 4+ schedules) */}
+          <div className="w-full max-w-md flex flex-col gap-6 relative z-10">
+            {schedules.map((ev, idx) => {
+              const sessionDateStr = formatWeddingDate(ev.date);
+
+              return (
+                <React.Fragment key={`m-ev-${idx}`}>
+                  {/* Luxury Botanical Divider between multiple events */}
+                  {idx > 0 && <LuxuryBotanicalDivider />}
+
+                  <div className="scroll-reveal bg-white/95 backdrop-blur-xs rounded-none p-6 shadow-md border border-[#c5a880]/40 transition-all hover:shadow-lg">
+                    <div className="w-16 h-[2px] bg-[#c5a880] mx-auto mb-4" />
+                    <h3 className="font-serif-eb text-2xl text-[#6c1d28] font-normal tracking-wide mb-1 text-center">
+                      {ev.eventName}
+                    </h3>
+                    <p className="text-xs text-[#6b615b] uppercase tracking-wider mb-4 text-center">
+                      {sessionDateStr}
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mb-4 text-xs font-semibold text-[#6c1d28] bg-[#fdfbf7] py-1.5 px-3 border border-[#c5a880]/20">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Pukul {ev.startTime || "08.00"} — {ev.endTime || "Selesai"}</span>
+                    </div>
+
+                    <div className="bg-[#f9f6f0] rounded-none p-3.5 mb-4 border border-[#c5a880]/20 text-left">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-[#6c1d28] shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-bold text-[#2a2421]">
+                            {ev.venueName || "Lokasi Acara"}
+                          </p>
+                          <p className="text-[11px] text-[#6b615b] mt-1 leading-relaxed">
+                            {ev.address}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <DressCodeGuide
+                        info={getDressCodePalette(ev.eventName, idx)}
+                      />
+                    </div>
+
+                    {isFeatureAvailable("google_maps", { data, forcedThemeId: "botanical" }) && (
+                      <GoogleMapEmbed
+                        venueName={ev.venueName || "Lokasi Acara"}
+                        address={ev.address}
+                        mapsUrl={ev.mapsUrl}
+                        latitude={ev.latitude}
+                        longitude={ev.longitude}
+                        heightClass="h-48 sm:h-52"
+                        themeStyle={{
+                          mapContainerClass: "border-[#c5a880]/30 bg-[#f7f2ea]",
+                          badgeClass: "bg-[#2a2421]/80 text-[#f9f6f0]",
+                        }}
+                      />
+                    )}
+                  </div>
+                </React.Fragment>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 9. FOOTER & CLOSING */}
-      <footer className="w-full px-6 py-12 bg-[#f0ede9] text-center flex flex-col items-center border-t border-[#e5e2dd]">
-        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#725b38] mb-4 shadow-sm border border-[#d1c5b8]/30">
-          <Heart className="w-5 h-5 fill-[#725b38]" />
-        </div>
-        <p className="text-sm text-[#4d463c] max-w-md leading-relaxed mb-6">
-          Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i
-          berkenan hadir untuk memberikan doa restu kepada kedua mempelai.
-        </p>
-        <p className="text-xs text-[#7f766a] mb-1">Kami yang berbahagia,</p>
-        <h3 className="font-serif-playfair text-2xl text-[#1c1c19] font-semibold mb-6">
-          {coupleDisplayName}
-        </h3>
+        {/* SECTION 6: GALERI */}
+        {isFeatureAvailable("gallery", { data, forcedThemeId: "botanical" }) && (
+          <section id="mobile-galeri" className="w-full px-5 sm:px-8 py-14 sm:py-16 bg-[#f9f6f0] flex flex-col items-center">
+            <div className="text-center mb-8 scroll-reveal">
+              <h2 className="font-serif-eb text-2xl sm:text-3xl text-[#2a2421] font-normal">
+                Galeri Kenangan
+              </h2>
+            </div>
 
-        <div className="flex gap-3 mb-8">
-          <a
-            className="py-2.5 px-5 rounded-full bg-white text-[#1c1c19] text-xs font-semibold uppercase tracking-wider flex items-center gap-2 shadow-sm hover:text-[#725b38] transition-colors border border-[#d1c5b8]/40"
-            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-              `Undangan Pernikahan ${coupleDisplayName}`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            {/* Natural Aspect Ratio Gallery: Columns layout, NO text, respects vertical / horizontal orientation */}
+            <div className="scroll-reveal w-full max-w-md columns-2 gap-3 space-y-3 px-1">
+              {galleryList.map((item, idx) => (
+                <div
+                  key={`m-gal-${idx}`}
+                  onClick={() => setLightboxImg(item.url)}
+                  className="break-inside-avoid relative overflow-hidden shadow-xs border border-[#c5a880]/30 cursor-pointer group bg-stone-50 mb-3 hover:shadow-md transition-all"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="w-full h-auto block object-cover group-hover:scale-105 transition-transform duration-500 rounded-none"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/templates/botanical/gallery/gallery-1.jpg";
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* SECTION 7: HADIAH & KADO */}
+        {Boolean(
+          isFeatureAvailable("digital_gift", { data, forcedThemeId: "botanical" }) ||
+            (giftShippingAddress && isFeatureAvailable("physical_gift", { data, forcedThemeId: "botanical" }))
+        ) && (
+          <section id="mobile-hadiah" className="w-full px-5 sm:px-8 py-14 sm:py-16 bg-[#fcf9f4] flex flex-col items-center">
+            <div className="text-center mb-8 scroll-reveal">
+              <h2 className="font-serif-eb text-2xl sm:text-3xl text-[#2a2421] font-normal">
+                Kado Digital &amp; Amplop
+              </h2>
+            </div>
+
+            <div className="w-full max-w-md flex flex-col gap-4">
+              {/* Bank Accounts List & QRIS */}
+              {isFeatureAvailable("digital_gift", { data, forcedThemeId: "botanical" }) && (
+                <>
+                  {activeBankList.map((account, bIdx) => (
+                    <div key={`m-bank-${bIdx}`} className="scroll-reveal bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-sm text-[#2a2421]">{account.bankName}</span>
+                        <span className="text-[11px] text-[#6c1d28] font-semibold tracking-wider uppercase font-serif">
+                          Transfer Bank
+                        </span>
+                      </div>
+                      <p className="font-mono text-lg font-bold text-[#6c1d28] select-all my-1.5">
+                        {account.accountNumber}
+                      </p>
+                      <p className="text-xs text-[#6b615b] mb-4">
+                        a.n. <strong className="text-[#2a2421]">{account.accountHolder}</strong>
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(account.accountNumber, `No. Rekening ${account.bankName}`)}
+                        className="w-full py-2.5 px-3 rounded-none bg-[#f0eae0] text-[#2a2421] text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:bg-[#6c1d28] active:text-white transition-colors"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Salin Nomor Rekening</span>
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* QRIS / E-Wallet Card */}
+                  <div className="scroll-reveal bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 flex flex-col items-center text-center hover:shadow-md transition-all">
+                    <span className="text-[11px] text-[#6c1d28] font-semibold tracking-wider uppercase font-serif mb-3">
+                      QRIS Pembayaran Digital
+                    </span>
+                    <div className="w-44 h-44 bg-[#fcf9f4] p-2.5 rounded-none border border-[#c5a880]/30 shadow-inner flex items-center justify-center mb-3">
+                      {customQrisUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={customQrisUrl} alt="QRIS Amplop Digital" className="w-full h-full object-contain" />
+                      ) : (
+                        <svg className="w-full h-full text-[#6c1d28]" viewBox="0 0 100 100" fill="currentColor">
+                          <rect x="10" y="10" width="25" height="25" fill="#6c1d28" rx="3" />
+                          <rect x="15" y="15" width="15" height="15" fill="white" rx="2" />
+                          <rect x="18" y="18" width="9" height="9" fill="#6c1d28" />
+                          <rect x="65" y="10" width="25" height="25" fill="#6c1d28" rx="3" />
+                          <rect x="70" y="15" width="15" height="15" fill="white" rx="2" />
+                          <rect x="73" y="18" width="9" height="9" fill="#6c1d28" />
+                          <rect x="10" y="65" width="25" height="25" fill="#6c1d28" rx="3" />
+                          <rect x="15" y="70" width="15" height="15" fill="white" rx="2" />
+                          <rect x="18" y="73" width="9" height="9" fill="#6c1d28" />
+                          <rect x="45" y="15" width="10" height="10" fill="#c5a880" />
+                          <rect x="45" y="35" width="10" height="20" fill="#6c1d28" />
+                          <rect x="40" y="65" width="15" height="10" fill="#6c1d28" />
+                          <rect x="65" y="45" width="20" height="10" fill="#c5a880" />
+                          <rect x="65" y="65" width="15" height="20" fill="#6c1d28" />
+                          <text x="50" y="54" fontSize="7" textAnchor="middle" fill="#6c1d28" fontWeight="bold">
+                            QRIS
+                          </text>
+                        </svg>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#6b615b] leading-relaxed mb-3">
+                      Pindai dengan aplikasi m-Banking atau e-Wallet (BCA, Mandiri, BRI, GoPay, OVO, Dana).
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleDownloadQris}
+                      className="w-full py-2.5 px-3 rounded-none bg-[#f0eae0] hover:bg-[#6c1d28] hover:text-white text-[#2a2421] text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Unduh Gambar QRIS</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Kirim Kado Fisik */}
+              {giftShippingAddress && isFeatureAvailable("physical_gift", { data, forcedThemeId: "botanical" }) && (
+                <details className="scroll-reveal bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 group">
+                  <summary className="flex items-center justify-between cursor-pointer list-none text-xs font-semibold text-[#2a2421]">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-[#6c1d28]" />
+                      <span>Kirim Kado Fisik</span>
+                    </div>
+                    <span className="text-[10px] text-[#6b615b] transition-transform group-open:rotate-180">
+                      ▼
+                    </span>
+                  </summary>
+                  <div className="pt-3 text-left">
+                    <p className="text-[11px] text-[#6b615b] mb-1">Alamat Penerima:</p>
+                    <p className="text-xs font-semibold text-[#2a2421]">
+                      Penerima: {giftRecipientName} {giftPhoneNumber ? `(${giftPhoneNumber})` : ""}
+                    </p>
+                    <p className="text-[11px] text-[#6b615b] my-2 leading-relaxed bg-[#f9f6f0] p-2.5 rounded-none border border-[#c5a880]/20">
+                      {giftShippingAddress}
+                    </p>
+                    <button
+                      onClick={() => copyToClipboard(fullShippingText, "Alamat Pengiriman")}
+                      className="w-full py-2.5 px-3 rounded-none bg-[#f0eae0] text-[#2a2421] text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer active:bg-[#6c1d28] active:text-white transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Alamat Lengkap</span>
+                    </button>
+                  </div>
+                </details>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* SECTION 8: BUKU TAMU & RSVP */}
+        {Boolean(
+          isFeatureAvailable("rsvp", { data, forcedThemeId: "botanical" }) ||
+            isFeatureAvailable("wishes", { data, forcedThemeId: "botanical" })
+        ) && (
+          <section id="mobile-buku-tamu" className="w-full px-5 sm:px-8 py-14 sm:py-16 bg-[#f9f6f0] flex flex-col items-center relative overflow-hidden">
+            {/* Mobile Bottom Botanical Floral Corners */}
+            <BotanicalFloralCorner
+              color={floralColor}
+              position="bottom-left"
+              className="w-36 h-36 opacity-35 -bottom-3 -left-3"
+            />
+            <BotanicalFloralCorner
+              color={floralColor}
+              position="bottom-right"
+              className="w-36 h-36 opacity-35 -bottom-3 -right-3"
+            />
+            <div className="text-center mb-8 relative z-10 scroll-reveal">
+              <h2 className="font-serif-eb text-2xl sm:text-3xl text-[#2a2421] font-normal">
+                RSVP &amp; Ucapan Doa
+              </h2>
+            </div>
+
+            {isFeatureAvailable("rsvp", { data, forcedThemeId: "botanical" }) && (
+              <div className="scroll-reveal w-full max-w-md bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 mb-8 relative z-10">
+                <form onSubmit={handleRsvpSubmit} className="space-y-3.5">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#6b615b] uppercase tracking-wider mb-1">
+                      Nama Lengkap
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={rsvpName}
+                      onChange={(e) => setRsvpName(e.target.value)}
+                      placeholder="Nama Tamu"
+                      className="w-full px-3 py-2 rounded-none bg-[#f9f6f0] text-xs border border-[#c5a880]/30 outline-none focus:border-[#6c1d28]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#6b615b] uppercase tracking-wider mb-1">
+                      Kehadiran
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setRsvpAttendance("Hadir")}
+                        className={`py-2 rounded-none text-xs font-semibold ${
+                          rsvpAttendance === "Hadir"
+                            ? "bg-[#6c1d28] text-white"
+                            : "bg-[#f9f6f0] text-[#6b615b]"
+                        }`}
+                      >
+                        Hadir Sukacita
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRsvpAttendance("Tidak Hadir")}
+                        className={`py-2 rounded-none text-xs font-semibold ${
+                          rsvpAttendance === "Tidak Hadir"
+                            ? "bg-[#6c1d28] text-white"
+                            : "bg-[#f9f6f0] text-[#6b615b]"
+                        }`}
+                      >
+                        Berhalangan
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[#6b615b] uppercase tracking-wider mb-1">
+                        Jumlah Tamu
+                      </label>
+                      <select
+                        value={rsvpCount}
+                        onChange={(e) => setRsvpCount(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-none bg-[#f9f6f0] text-xs border border-[#c5a880]/30 outline-none"
+                      >
+                        <option value="1">1 Orang</option>
+                        <option value="2">2 Orang</option>
+                        <option value="3">3 Orang</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-[#6b615b] uppercase tracking-wider mb-1">
+                        Sesi Acara
+                      </label>
+                      <select
+                        value={rsvpSession}
+                        onChange={(e) => setRsvpSession(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-none bg-[#f9f6f0] text-xs border border-[#c5a880]/30 outline-none"
+                      >
+                        <option value="Semua Sesi Acara">Semua Sesi</option>
+                        {schedules.map((sch, i) => (
+                          <option key={i} value={sch.eventName}>
+                            {sch.eventName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#6b615b] uppercase tracking-wider mb-1">
+                      Doa &amp; Ucapan Restu
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={rsvpWishes}
+                      onChange={(e) => setRsvpWishes(e.target.value)}
+                      placeholder="Tuliskan ucapan selamat..."
+                      className="w-full px-3 py-2 rounded-none bg-[#f9f6f0] text-xs border border-[#c5a880]/30 outline-none focus:border-[#6c1d28] resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 px-4 rounded-none bg-[#6c1d28] hover:bg-[#4e0514] text-white text-xs font-semibold uppercase tracking-wider shadow-xs cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    {isSubmitting ? "Mengirim..." : "Kirim Reservasi & Doa"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Wishes Stream Feed (Fixed solid height, non-flexible) */}
+            {isFeatureAvailable("wishes", { data, forcedThemeId: "botanical" }) && (
+              <div className="scroll-reveal w-full max-w-md bg-white rounded-none p-5 sm:p-6 shadow-sm border border-[#c5a880]/30 min-h-[360px] h-[360px] flex flex-col justify-between relative z-10">
+                <div className="flex items-center justify-between pb-2 border-b border-[#c5a880]/20 shrink-0">
+                  <span className="font-serif-eb text-base font-semibold text-[#2a2421]">
+                    Doa &amp; Ucapan
+                  </span>
+                  <span className="text-[11px] font-bold text-[#6c1d28] bg-[#f4ece0] px-2.5 py-0.5 rounded-none">
+                    {wishesList.length} Doa
+                  </span>
+                </div>
+
+                {(() => {
+                  const MOBILE_PER_PAGE = 3;
+                  const totalMobilePages = Math.max(1, Math.ceil(wishesList.length / MOBILE_PER_PAGE));
+                  const pageWishes = wishesList.slice((mobileWishPage - 1) * MOBILE_PER_PAGE, mobileWishPage * MOBILE_PER_PAGE);
+
+                  return (
+                    <>
+                      <div className="h-[235px] min-h-[235px] max-h-[235px] flex flex-col justify-start gap-2 overflow-hidden my-auto">
+                        {pageWishes.map((wish) => (
+                          <div
+                            key={`m-wish-${wish.id}`}
+                            className="p-2.5 rounded-none bg-[#f9f6f0] border border-[#c5a880]/20 shrink-0"
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs font-bold text-[#2a2421] truncate">{wish.senderName}</span>
+                              <span className="text-[10px] text-[#6b615b] shrink-0">{wish.timeAgo}</span>
+                            </div>
+                            <p className="text-xs text-[#6b615b] leading-relaxed line-clamp-2">&quot;{wish.message}&quot;</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-[#c5a880]/20 text-xs text-[#6b615b] shrink-0">
+                        <span className="text-[11px]">
+                          Halaman {mobileWishPage} dari {totalMobilePages}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setMobileWishPage((p) => Math.max(1, p - 1))}
+                            disabled={mobileWishPage === 1}
+                            className="px-2.5 py-1 border border-[#c5a880]/30 bg-[#f9f6f0] hover:bg-[#6c1d28] hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors rounded-none text-[11px] font-semibold cursor-pointer"
+                          >
+                            Sebelumnya
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMobileWishPage((p) => Math.min(totalMobilePages, p + 1))}
+                            disabled={mobileWishPage === totalMobilePages}
+                            className="px-2.5 py-1 border border-[#c5a880]/30 bg-[#f9f6f0] hover:bg-[#6c1d28] hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors rounded-none text-[11px] font-semibold cursor-pointer"
+                          >
+                            Selanjutnya
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* FOOTER */}
+        <footer className="w-full px-6 py-16 bg-[#f0ede9] text-center flex flex-col items-center border-t border-[#c5a880]/30 pb-28">
+          <div className="scroll-reveal flex flex-col items-center w-full">
+            <Heart className="w-5 h-5 text-[#c5a880] mb-3 fill-current opacity-70" />
+            <p className="text-xs text-[#6b615b] max-w-sm mb-4 leading-relaxed">
+              Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu.
+            </p>
+            <h3 className="font-serif-eb text-xl text-[#2a2421] font-semibold mb-4">
+              {coupleDisplayName}
+            </h3>
+
+            <a
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                `Undangan Pernikahan ${coupleDisplayName}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2.5 px-5 rounded-none bg-white text-[#2a2421] text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 shadow-xs border border-[#c5a880]/30 mb-6 cursor-pointer hover:bg-[#6c1d28] hover:text-white transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Bagikan Undangan</span>
+            </a>
+
+            <p className="text-[10px] text-[#6b615b] uppercase tracking-widest">
+              Invity by Fasaro © 2026
+            </p>
+          </div>
+        </footer>
+
+        {/* Mobile Sticky Bottom Nav */}
+        {isOpen && (
+          <nav
+            className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 lg:hidden bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-none border border-[#c5a880]/40 shadow-xl flex items-center gap-4 text-xs font-medium text-[#6b615b] animate-in fade-in duration-500"
+            aria-label="Navigasi Undangan"
           >
-            <Share2 className="w-4 h-4" />
-            <span>Bagikan Undangan</span>
-          </a>
-        </div>
+            <a
+              href="#mobile-home"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <Home className="w-4 h-4 text-[#c5a880]" />
+              <span className="text-[9px] mt-0.5 font-semibold">Beranda</span>
+            </a>
+            <a
+              href="#mobile-kisah"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <Heart className="w-4 h-4 text-[#6c1d28]" />
+              <span className="text-[9px] mt-0.5 font-semibold">Kisah</span>
+            </a>
+            <a
+              href="#mobile-acara"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <Calendar className="w-4 h-4 text-[#c5a880]" />
+              <span className="text-[9px] mt-0.5 font-semibold">Acara</span>
+            </a>
+            <a
+              href="#mobile-galeri"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <Camera className="w-4 h-4 text-[#6c1d28]" />
+              <span className="text-[9px] mt-0.5 font-semibold">Galeri</span>
+            </a>
+            <a
+              href="#mobile-hadiah"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <Package className="w-4 h-4 text-[#c5a880]" />
+              <span className="text-[9px] mt-0.5 font-semibold">Hadiah</span>
+            </a>
+            <a
+              href="#mobile-buku-tamu"
+              className="flex flex-col items-center p-1 hover:text-[#6c1d28] transition-colors"
+            >
+              <CheckCircle2 className="w-4 h-4 text-[#6c1d28]" />
+              <span className="text-[9px] mt-0.5 font-semibold">RSVP</span>
+            </a>
+          </nav>
+        )}
+      </main>
+      </div>
 
-        <p className="text-[0.65rem] text-[#7f766a] uppercase tracking-widest">
-          Designed with love by Fasaro Wedding © 2026
-        </p>
-      </footer>
-
-      {/* LIGHTBOX MODAL PREVIEW */}
+      {/* ========================================================================= */}
+      {/* 3. LIGHTBOX MODAL PREVIEW                                                */}
+      {/* ========================================================================= */}
       {lightboxImg && (
         <div
           onClick={() => setLightboxImg(null)}
@@ -1207,21 +2060,124 @@ export const BotanicalTheme: React.FC<ThemeProps> = ({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={lightboxImg}
-            alt="Preview Prewedding"
-            className="max-w-full max-h-[85vh] rounded-xl object-contain shadow-2xl"
+            alt="Preview Kenangan"
+            className="max-w-full max-h-[85vh] rounded-none object-contain shadow-2xl"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                "/templates/botanical/gallery/gallery-1.jpg";
+            }}
           />
           <button
             onClick={() => setLightboxImg(null)}
-            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white text-[#1c1c19] flex items-center justify-center hover:bg-[#f0ede9]"
+            className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white text-[#2a2421] flex items-center justify-center hover:bg-[#f0ede9] cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
       )}
 
-      {/* FLOATING TOAST NOTIFICATION */}
+      {/* ========================================================================= */}
+      {/* 4. GUEST QR CODE TICKET MODAL                                            */}
+      {/* ========================================================================= */}
+      {showQrTicketModal && isFeatureAvailable("qr_ticket", { data, forcedThemeId: "botanical" }) && (
+        <div
+          onClick={() => setShowQrTicketModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-none max-w-xs w-full p-5 border border-[#c5a880]/30 shadow-2xl text-center space-y-3"
+          >
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-4 h-4 text-[#6c1d28]" />
+                <span className="font-bold text-xs text-[#2a2421]">Tiket Masuk Tamu</span>
+              </div>
+              <button
+                onClick={() => setShowQrTicketModal(false)}
+                className="p-1 rounded-none text-stone-400 hover:text-stone-700 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-0.5">
+              <p className="text-[11px] uppercase tracking-wider text-[#6b615b] font-semibold">
+                Tamu Terhormat
+              </p>
+              <h4 className="font-bold text-base text-[#2a2421]">{guestName}</h4>
+            </div>
+
+            <div className="bg-[#f9f6f0] p-3 rounded-none border border-[#c5a880]/30 inline-block mx-auto shadow-inner">
+              {qrTicketDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrTicketDataUrl} alt="QR Tiket" className="w-44 h-44 mx-auto rounded-none" />
+              ) : (
+                <div className="w-44 h-44 flex items-center justify-center text-xs text-stone-400">
+                  Menyiapkan QR...
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-[#6b615b]">
+              Tunjukkan kode QR ini kepada penerima tamu di meja resepsi acara pernikahan.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowQrTicketModal(false)}
+              className="w-full py-2 px-3 rounded-none bg-[#6c1d28] text-white text-xs font-semibold hover:bg-[#4e0514] transition-colors cursor-pointer"
+            >
+              Tutup Tiket
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. FLOATING VINYL DISC AUDIO CONTROLLER (FIXED BOTTOM RIGHT)              */}
+      {/* ========================================================================= */}
+      {isFeatureAvailable("music", { data, forcedThemeId: "botanical" }) && (
+        <aside
+          aria-label="Pemutar Musik Latar"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 pointer-events-auto"
+        >
+          <button
+            type="button"
+            onClick={toggleAudio}
+            aria-label={isPlaying ? "Jeda Musik Latar" : "Putar Musik Latar"}
+            title={isPlaying ? "Jeda Musik Latar" : "Putar Musik Latar"}
+            className="group relative flex items-center justify-center w-12 h-12 rounded-full bg-[#2a2421]/95 border-2 border-[#c5a880] text-[#c5a880] shadow-2xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            {isPlaying ? (
+              <>
+                {/* Vinyl record spinning animation */}
+                <div className="w-8 h-8 rounded-full bg-[#1c1612] flex items-center justify-center animate-spin [animation-duration:4s]">
+                  <div className="w-3 h-3 rounded-full bg-[#c5a880] flex items-center justify-center">
+                    <div className="w-1 h-1 rounded-full bg-[#fcf9f4]" />
+                  </div>
+                </div>
+                {/* Audio pulse badge */}
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6c1d28] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[#6c1d28]"></span>
+                </span>
+              </>
+            ) : (
+              <Play className="w-5 h-5 ml-0.5 text-stone-400 group-hover:text-[#c5a880] transition-colors" />
+            )}
+          </button>
+          <span className="hidden sm:inline-block bg-[#2a2421]/90 text-[#fcf9f4] text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-full border border-[#c5a880]/30 backdrop-blur-md shadow-lg font-sans">
+            {isPlaying ? "Playing: Romantic Melody" : "Music Paused"}
+          </span>
+        </aside>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5. FLOATING TOAST NOTIFICATION                                           */}
+      {/* ========================================================================= */}
       <div
-        className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1c1c19] text-white py-2.5 px-5 rounded-full text-xs font-medium shadow-xl transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none ${
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#2a2421] text-white py-2.5 px-5 rounded-none text-xs font-medium shadow-xl transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none ${
           toastMessage ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
       >

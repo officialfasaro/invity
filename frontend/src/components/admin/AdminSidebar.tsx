@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -13,11 +13,10 @@ import {
   LogOut,
   Palette,
   Power,
-  QrCode,
   Radio,
   Shield,
   ShieldCheck,
-  Sparkles,
+  Edit3,
   Tag,
   Users,
   X,
@@ -54,6 +53,22 @@ export default function AdminSidebar({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const [themesCount, setThemesCount] = useState<number>(1);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/admin/themes")
+      .then((res) => res.json())
+      .then((json) => {
+        if (isMounted && json?.success && Array.isArray(json?.data)) {
+          setThemesCount(json.data.length);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const isTabActive = (tabId: string, href: string) => {
     if (href === "/admin/verifikasi-manual") {
@@ -63,6 +78,16 @@ export default function AdminSidebar({
       return currentTab === tabId;
     }
     return false;
+  };
+
+  const handleLogout = async () => {
+    onClose();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    window.location.href = "/login";
   };
 
   const SECTIONS: NavSection[] = [
@@ -100,15 +125,7 @@ export default function AdminSidebar({
           label: "Katalog Desain",
           href: "/admin?tab=themes",
           icon: Palette,
-          badge: "6 Tema",
-        },
-        {
-          id: "scanner",
-          label: "Scanner Meja Tamu",
-          href: "/admin?tab=scanner",
-          icon: QrCode,
-          badge: "Live",
-          badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+          badge: `${themesCount} Tema`,
         },
       ],
     },
@@ -192,8 +209,8 @@ export default function AdminSidebar({
                 <Shield className="w-4 h-4 fill-white" />
               </div>
               <div className="flex flex-col">
-                <span className="font-sans font-bold text-base tracking-tight text-slate-900">
-                  Fasaro
+                <span className="font-sans font-bold text-base tracking-tight text-slate-900 leading-tight">
+                  Invity <span className="text-[10px] font-normal text-slate-500">by Fasaro</span>
                 </span>
                 <span className="text-[#F97316] font-sans text-[10px] font-bold uppercase tracking-wider">
                   Master Admin
@@ -288,7 +305,7 @@ export default function AdminSidebar({
             onClick={() => onClose()}
             className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
           >
-            <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
+            <Edit3 className="w-4 h-4 text-[#F97316] shrink-0" />
             <span>Buka Studio Undangan</span>
           </Link>
 
@@ -303,14 +320,14 @@ export default function AdminSidebar({
             <span>Lihat Web Publik</span>
           </Link>
 
-          <Link
-            href="/login"
-            onClick={() => onClose()}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer text-left"
           >
             <LogOut className="w-4 h-4 shrink-0" />
             <span>Keluar (Logout)</span>
-          </Link>
+          </button>
         </div>
       </aside>
     </>

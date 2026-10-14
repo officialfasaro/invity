@@ -5,6 +5,7 @@ import {
   Check,
   CreditCard,
   QrCode,
+  Download,
   ExternalLink,
   CheckCircle2,
   AlertCircle,
@@ -15,6 +16,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
+import { downloadImageFile } from "@/utils/downloadHelper";
 
 declare global {
   interface Window {
@@ -85,6 +87,14 @@ interface PublicSettings {
   plan_ultimate_period?: string;
   plan_ultimate_badge?: string;
   plan_ultimate_features?: string;
+  single_promo_mode?: string;
+  promo_plan_name?: string;
+  promo_plan_price?: string;
+  promo_plan_original_price?: string;
+  promo_plan_desc?: string;
+  promo_plan_period?: string;
+  promo_plan_badge?: string;
+  promo_plan_features?: string;
 }
 
 export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
@@ -112,11 +122,38 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
     "STARTER" | "ELEGANT" | "ULTIMATE" | null
   >(null);
 
-  const manualTier: "STARTER" | "ELEGANT" | "ULTIMATE" =
-    selectedManualTier ??
-    (currentTier && ["STARTER", "ELEGANT", "ULTIMATE"].includes(currentTier)
-      ? (currentTier as "STARTER" | "ELEGANT" | "ULTIMATE")
-      : "STARTER");
+  const isSinglePromo = settings.single_promo_mode !== "false";
+  const promoPlanName = settings.promo_plan_name || "Paket Promo All-In-One";
+  const promoPlanPrice = parseInt(settings.promo_plan_price || "79000", 10) || 79000;
+  const promoPlanOriginalPrice = parseInt(settings.promo_plan_original_price || "249000", 10) || 249000;
+  const promoPlanDesc =
+    settings.promo_plan_desc ||
+    "Satu penawaran spesial untuk seluruh kebutuhan pernikahan Anda dengan semua fitur terbuka tanpa batasan.";
+  const promoPlanPeriod = settings.promo_plan_period || "Masa Aktif 1 Tahun Penuh";
+  const promoPlanBadge = settings.promo_plan_badge || "PROMO SPESIAL LAUNCHING • ALL FEATURES UNLOCKED";
+  const promoFeatures = settings.promo_plan_features
+    ? settings.promo_plan_features.split("\n").map((s) => s.trim()).filter(Boolean)
+    : [
+        "Akses Bebas ke Seluruh Tema Desain",
+        "Ganti Tema 1-Klik Kapan Saja",
+        "Masa Aktif 365 Hari (1 Tahun)",
+        "Galeri Foto HD Tanpa Batas (WebP)",
+        "Musik Latar Autoplay & Playlist Kustom",
+        "Amplop Digital Multi Rekening & QRIS",
+        "Buku Tamu RSVP Realtime & Ucapan Doa",
+        "Navigasi Google Maps Presisi & Petunjuk Arah",
+        "Countdown Timer Menuju Hari H",
+        "Love Story & Timeline Perjalanan Cinta",
+        "QR Code Check-in Resepsi Tamu",
+        "Kirim Kado Fisik & Alamat Pengiriman",
+      ];
+
+  const manualTier: "STARTER" | "ELEGANT" | "ULTIMATE" = isSinglePromo
+    ? "ELEGANT"
+    : (selectedManualTier ??
+      (currentTier && ["STARTER", "ELEGANT", "ULTIMATE"].includes(currentTier)
+        ? (currentTier as "STARTER" | "ELEGANT" | "ULTIMATE")
+        : "STARTER"));
 
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [activeMidtransTier, setActiveMidtransTier] = useState<string | null>(null);
@@ -153,8 +190,9 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
     fetch("/api/public/settings")
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (!ignore && json?.data) {
-          setSettings((prev) => ({ ...prev, ...json.data }));
+        const data = json?.data || json;
+        if (!ignore && data) {
+          setSettings((prev) => ({ ...prev, ...data }));
         }
       })
       .catch(() => {
@@ -202,6 +240,14 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
   const isManualEnabled =
     paymentMode === "MANUAL_ONLY" ||
     (paymentMode === "BOTH" && settings.feature_manual_payment !== "false");
+
+  useEffect(() => {
+    if (isManualEnabled && !isGatewayEnabled) {
+      setActivePaymentMethodTab("MANUAL");
+    } else if (isGatewayEnabled && !isManualEnabled) {
+      setActivePaymentMethodTab("GATEWAY");
+    }
+  }, [isGatewayEnabled, isManualEnabled]);
 
   // Load Midtrans Snap script only if gateway is enabled
   useEffect(() => {
@@ -256,43 +302,71 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
         "Prioritas Verifikasi Kilat 10 Menit",
       ];
 
-  const plans = [
-    {
-      id: "STARTER",
-      name: settings.plan_starter_name || "Paket Starter",
-      originalPrice: "Rp 89.000",
-      price: "Rp 39.000",
-      rawAmount: 39000,
-      period: settings.plan_starter_period || "Masa Aktif 90 Hari",
-      desc: settings.plan_starter_desc || "Cocok untuk acara akad / syukuran intim keluarga.",
-      features: starterFeatures,
-    },
-    {
-      id: "ELEGANT",
-      name: settings.plan_elegant_name || "Paket Elegant",
-      originalPrice: "Rp 249.000",
-      price: "Rp 149.000",
-      rawAmount: 149000,
-      period: settings.plan_elegant_period || "Masa Aktif 1 Tahun Penuh (365 Hari)",
-      desc: settings.plan_elegant_desc || "Pilihan terbaik untuk resepsi pernikahan lengkap & modern.",
-      popular: true,
-      features: elegantFeatures,
-    },
-    {
-      id: "ULTIMATE",
-      name: settings.plan_ultimate_name || "Paket Ultimate Event Day",
-      originalPrice: "Rp 499.000",
-      price: "Rp 279.000",
-      rawAmount: 279000,
-      period: settings.plan_ultimate_period || "Masa Aktif Selamanya (Lifetime)",
-      desc: settings.plan_ultimate_desc || "Solusi lengkap hari-H dengan sistem check-in VIP resepsi.",
-      features: ultimateFeatures,
-    },
-  ];
+  interface BillingPlanItem {
+    id: string;
+    name: string;
+    originalPrice: string;
+    price: string;
+    rawAmount: number;
+    period: string;
+    desc: string;
+    popular?: boolean;
+    badge?: string;
+    features: string[];
+  }
+
+  const plans: BillingPlanItem[] = isSinglePromo
+    ? [
+        {
+          id: "ELEGANT",
+          name: promoPlanName,
+          originalPrice: `Rp ${promoPlanOriginalPrice.toLocaleString("id-ID")}`,
+          price: `Rp ${promoPlanPrice.toLocaleString("id-ID")}`,
+          rawAmount: promoPlanPrice,
+          period: promoPlanPeriod,
+          desc: promoPlanDesc,
+          popular: true,
+          badge: promoPlanBadge,
+          features: promoFeatures,
+        },
+      ]
+    : [
+        {
+          id: "STARTER",
+          name: settings.plan_starter_name || "Paket Starter",
+          originalPrice: "Rp 89.000",
+          price: "Rp 39.000",
+          rawAmount: 39000,
+          period: settings.plan_starter_period || "Masa Aktif 90 Hari",
+          desc: settings.plan_starter_desc || "Cocok untuk acara akad / syukuran intim keluarga.",
+          features: starterFeatures,
+        },
+        {
+          id: "ELEGANT",
+          name: settings.plan_elegant_name || "Paket Elegant",
+          originalPrice: "Rp 249.000",
+          price: "Rp 149.000",
+          rawAmount: 149000,
+          period: settings.plan_elegant_period || "Masa Aktif 1 Tahun Penuh (365 Hari)",
+          desc: settings.plan_elegant_desc || "Pilihan terbaik untuk resepsi pernikahan lengkap & modern.",
+          popular: true,
+          features: elegantFeatures,
+        },
+        {
+          id: "ULTIMATE",
+          name: settings.plan_ultimate_name || "Paket Ultimate Event Day",
+          originalPrice: "Rp 499.000",
+          price: "Rp 279.000",
+          rawAmount: 279000,
+          period: settings.plan_ultimate_period || "Masa Aktif Selamanya (Lifetime)",
+          desc: settings.plan_ultimate_desc || "Solusi lengkap hari-H dengan sistem check-in VIP resepsi.",
+          features: ultimateFeatures,
+        },
+      ];
 
   const amountMap: Record<string, number> = {
     STARTER: 39000,
-    ELEGANT: 149000,
+    ELEGANT: isSinglePromo ? promoPlanPrice : 149000,
     ULTIMATE: 279000,
   };
 
@@ -488,7 +562,7 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
     const chosenTier = tier || manualTier;
     const refOrderId = orderId || lastOrderSubmitted?.orderId || "TERBARU";
 
-    const msg = `Halo Admin Fasaro, saya sudah melakukan transfer pembayaran untuk pesanan #${refOrderId} paket ${chosenTier} senilai Rp ${formattedAmount}. Mohon segera diverifikasi & diaktifkan ya. Terima kasih!`;
+    const msg = `Halo Admin Invity, saya sudah melakukan transfer pembayaran untuk pesanan #${refOrderId} paket ${chosenTier} senilai Rp ${formattedAmount}. Mohon segera diverifikasi & diaktifkan ya. Terima kasih!`;
     return `https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -503,11 +577,11 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
               Status Paket &amp; Tagihan Undangan
             </h2>
             {isPaid ? (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+              <span className="px-2.5 py-0.5 rounded-none bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
                 Aktif &amp; Terverifikasi
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200">
+              <span className="px-2.5 py-0.5 rounded-none bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200">
                 {currentTier ? `Paket ${currentTier} (Belum Aktif)` : "Belum Memilih Paket"}
               </span>
             )}
@@ -543,6 +617,17 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
             </button>
           </div>
         )}
+      </div>
+
+      {/* Informasi Penting Pembayaran Non-refundable */}
+      <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 flex items-start gap-3 text-xs text-amber-900">
+        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <span className="font-bold text-amber-900">Informasi Penting Sebelum Transaksi:</span>
+          <p className="text-[11px] leading-relaxed text-amber-800/95">
+            Seluruh pembayaran paket undangan bersifat <strong>final dan tidak dapat dikembalikan (non-refundable)</strong>. Mohon pastikan kembali pilihan paket dan keputusan Anda sebelum menyelesaikan pembayaran.
+          </p>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -636,7 +721,7 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
       )}
 
       {/* Pricing Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={isSinglePromo ? "max-w-2xl mx-auto w-full" : "grid grid-cols-1 md:grid-cols-3 gap-4"}>
         {plans.map((p) => {
           const isCurrent = currentTier === p.id;
           const isPendingMidtrans = activeMidtransTier === p.id;
@@ -645,17 +730,17 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
           return (
             <div
               key={p.id}
-              className={`rounded-xl bg-white p-5 border flex flex-col justify-between space-y-4 shadow-xs relative transition-all ${
+              className={`rounded-2xl bg-white p-6 sm:p-7 border flex flex-col justify-between space-y-5 shadow-xs relative transition-all ${
                 isSelectedForManual
-                  ? "border-2 border-[#F97316] ring-1 ring-orange-200"
+                  ? "border-2 border-[#F97316] ring-2 ring-orange-500/10"
                   : p.popular
-                  ? "border border-orange-300"
+                  ? "border-2 border-orange-300"
                   : "border-[#E2E8F0]"
               }`}
             >
               {p.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-semibold uppercase tracking-wider shadow-xs">
-                  Paling Populer
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-none bg-[#F97316] text-white text-[11px] font-bold uppercase tracking-wider shadow-xs flex items-center gap-1.5 whitespace-nowrap">
+                  <span>{isSinglePromo ? (p.badge || "PROMO SPESIAL LAUNCHING") : "Paling Populer"}</span>
                 </span>
               )}
 
@@ -770,21 +855,23 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                 </div>
               </div>
 
-              {/* Package Switcher Dropdown */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium">Ubah Paket:</span>
-                <select
-                  value={manualTier}
-                  onChange={(e) =>
-                    setSelectedManualTier(e.target.value as "STARTER" | "ELEGANT" | "ULTIMATE")
-                  }
-                  className="px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs font-semibold focus:border-[#F97316] outline-none"
-                >
-                  <option value="STARTER">Starter (Rp 39.000)</option>
-                  <option value="ELEGANT">Elegant (Rp 149.000)</option>
-                  <option value="ULTIMATE">Ultimate (Rp 279.000)</option>
-                </select>
-              </div>
+              {/* Package Switcher Dropdown (Only show if multiple tiers) */}
+              {!isSinglePromo && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-medium">Ubah Paket:</span>
+                  <select
+                    value={manualTier}
+                    onChange={(e) =>
+                      setSelectedManualTier(e.target.value as "STARTER" | "ELEGANT" | "ULTIMATE")
+                    }
+                    className="px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs font-semibold focus:border-[#F97316] outline-none"
+                  >
+                    <option value="STARTER">Starter (Rp 39.000)</option>
+                    <option value="ELEGANT">Elegant (Rp 149.000)</option>
+                    <option value="ULTIMATE">Ultimate (Rp 279.000)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -837,23 +924,40 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={settings.manual_qris_image_url}
-                        alt="QRIS Fasaro"
+                        alt="QRIS Invity by Fasaro"
                         className="w-24 h-24 object-contain rounded-lg border border-[#E2E8F0] bg-white p-1 shrink-0"
                       />
                       <div className="space-y-1 text-xs">
-                        <div className="font-bold text-slate-900">QRIS Toko Resmi Fasaro</div>
+                        <div className="font-bold text-slate-900">QRIS Toko Resmi Invity by Fasaro</div>
                         <p className="text-slate-500 text-[11px]">
                           Scan menggunakan GoPay, OVO, Dana, ShopeePay, atau BCA Mobile.
                         </p>
-                        <a
-                          href={settings.manual_qris_image_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-[#F97316] font-semibold hover:underline"
-                        >
-                          <span>Buka Gambar Penuh</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (settings.manual_qris_image_url) {
+                                downloadImageFile(
+                                  settings.manual_qris_image_url,
+                                  "QRIS-Invity-Official.jpg"
+                                );
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-orange-50 hover:bg-orange-100 text-[#F97316] font-semibold text-[11px] border border-orange-200 transition-colors cursor-pointer"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>Unduh QRIS</span>
+                          </button>
+                          <a
+                            href={settings.manual_qris_image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-800 font-medium hover:underline"
+                          >
+                            <span>Buka Penuh</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -880,7 +984,7 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                   {/* Upload File Input */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 block">
-                      Pilih File Bukti Transfer (Dari HP / Laptop):
+                      Upload File Bukti Transfer (Dari HP / Laptop):
                     </label>
                     <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-[#E2E8F0] hover:border-[#F97316] bg-slate-50 hover:bg-orange-50/30 rounded-xl cursor-pointer transition-all">
                       <input
@@ -899,7 +1003,7 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                         <div className="text-center space-y-1">
                           <Upload className="w-6 h-6 text-slate-400 mx-auto" />
                           <div className="text-xs font-medium text-slate-700">
-                            Klik untuk pilih file struk/bukti
+                            Klik untuk upload file struk/bukti
                           </div>
                           <div className="text-[10px] text-slate-400">
                             JPG, PNG, atau WebP (Maks. 5MB)
@@ -946,6 +1050,17 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                       placeholder="https://.../bukti-transfer.jpg"
                       className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs min-h-[38px] focus:border-[#F97316] outline-none"
                     />
+                  </div>
+
+                  {/* Peringatan Non-refundable */}
+                  <div className="p-3 rounded-lg bg-amber-50/80 border border-amber-200 space-y-1 text-xs text-amber-900">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-800 text-[11px]">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Perhatian: Pembayaran Non-Refundable</span>
+                    </div>
+                    <p className="text-[10px] leading-relaxed text-amber-800/95">
+                      Dana yang sudah ditransfer <strong>tidak dapat dikembalikan</strong>. Pastikan nominal dan paket sudah sesuai sebelum mengirim bukti transfer.
+                    </p>
                   </div>
 
                   {/* Tombol Kirim Bukti */}
@@ -1014,12 +1129,12 @@ export const BillingUpgradeTab: React.FC<BillingUpgradeTabProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono text-slate-500 truncate max-w-[120px]">{tx.orderId}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-none font-bold uppercase tracking-wider ${
                       tx.tier === "ULTIMATE" ? "bg-purple-50 text-purple-700 border border-purple-200" :
                       tx.tier === "ELEGANT" ? "bg-blue-50 text-blue-700 border border-blue-200" :
                       "bg-amber-50 text-amber-700 border border-amber-200"
                     }`}>{tx.tier}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-none font-semibold ${
                       tx.paymentStatus === "SETTLEMENT" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
                       tx.paymentStatus === "WAITING_VERIFICATION" ? "bg-blue-50 text-blue-700 border border-blue-200" :
                       tx.paymentStatus === "EXPIRED" || tx.paymentStatus === "CANCELLED" ? "bg-red-50 text-red-600 border border-red-200" :

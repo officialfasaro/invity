@@ -4,6 +4,11 @@ import React, { useEffect, useState, useRef } from "react";
 import QRCode from "qrcode";
 import { Download, QrCode, Send, X, Users, Check, Calendar } from "lucide-react";
 import { GuestItem } from "./tabs/GuestBookTab";
+import {
+  generateGuestTicketBlob,
+  shareGuestInvitationWithTicket,
+} from "@/utils/ticketHelper";
+import { triggerBlobDownload } from "@/utils/downloadHelper";
 
 interface GuestQrTicketModalProps {
   isOpen: boolean;
@@ -68,104 +73,32 @@ export const GuestQrTicketModal: React.FC<GuestQrTicketModalProps> = ({
         )}&code=${encodeURIComponent(guest.slugCode)}`
       : `/invitation/${invitationSlug}?to=${encodeURIComponent(guest.name)}`;
 
-  const handleDownloadTicket = () => {
-    if (!qrDataUrl) return;
-
-    // Create a high-res canvas ticket for download
-    const canvas = document.createElement("canvas");
-    canvas.width = 600;
-    canvas.height = 780;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Background
-    ctx.fillStyle = "#FFFFFF";
-    ctx.roundRect ? ctx.roundRect(0, 0, 600, 780, 24) : ctx.fillRect(0, 0, 600, 780);
-    ctx.fill();
-
-    // Top Header Banner
-    const gradient = ctx.createLinearGradient(0, 0, 600, 0);
-    gradient.addColorStop(0, "#F97316");
-    gradient.addColorStop(1, "#EA580C");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 600, 120);
-
-    // Brand Name
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 22px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("TIKET MASUK & CHECK-IN TAMU", 300, 52);
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.fillText(weddingTitle || "Undangan Pernikahan", 300, 84);
-
-    // Guest Info Section
-    ctx.fillStyle = "#64748B";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("KARTU UNDANGAN RESMI UNTUK", 300, 160);
-
-    ctx.fillStyle = "#0F172A";
-    ctx.font = "bold 26px sans-serif";
-    ctx.fillText(guest.name, 300, 198);
-
-    // Quota Badge
-    ctx.fillStyle = "#F3F4F6";
-    ctx.fillRect(230, 218, 140, 32);
-    ctx.fillStyle = "#374151";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`Kuota: ${guest.quota} Pax`, 300, 239);
-
-    // QR Image
-    const qrImg = new Image();
-    qrImg.crossOrigin = "anonymous";
-    qrImg.onload = () => {
-      ctx.drawImage(qrImg, 150, 270, 300, 300);
-
-      // Slug Code text
-      ctx.fillStyle = "#94A3B8";
-      ctx.font = "12px monospace";
-      ctx.fillText(`KODE: ${guest.slugCode}`, 300, 600);
-
-      // Divider line
-      ctx.strokeStyle = "#E2E8F0";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(40, 630);
-      ctx.lineTo(560, 630);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Footer Instructions
-      ctx.fillStyle = "#475569";
-      ctx.font = "13px sans-serif";
-      ctx.fillText("Tunjukkan QR Code ini kepada penerima tamu di meja resepsi.", 300, 670);
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillStyle = "#F97316";
-      ctx.fillText("fasaro.id", 300, 715);
-
-      // Trigger download
-      const link = document.createElement("a");
-      link.download = `Tiket-QR-${guest.name.replace(/[^a-zA-Z0-9]/g, "-")}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    };
-    qrImg.src = qrDataUrl;
+  const handleDownloadTicket = async () => {
+    if (!guest) return;
+    try {
+      const blob = await generateGuestTicketBlob({
+        guest,
+        weddingTitle: weddingTitle || "Undangan Pernikahan",
+        invitationSlug,
+      });
+      const cleanName = (guest.name || "Tamu").replace(/[^a-zA-Z0-9]/g, "-");
+      triggerBlobDownload(blob, `Tiket-QR-${cleanName}.png`);
+    } catch (err) {
+      console.error("Gagal mengunduh tiket:", err);
+    }
   };
 
-  const handleShareWhatsApp = () => {
-    const text = `Halo *${guest.name}*,\n\nMerupakan suatu kehormatan bagi kami apabila Anda berkenan hadir di acara pernikahan kami:\n\n*${weddingTitle}*\n\nBerikut tautan undangan digital & tiket check-in kehadiran Anda:\n${invitationUrl}\n\nMohon simpan tiket atau tunjukkan QR Code pada tautan di atas kepada penerima tamu di meja resepsi saat tiba di lokasi.\n\nTerima kasih.`;
-    const cleanPhone = guest.phoneNumber ? guest.phoneNumber.replace(/[^0-9]/g, "") : "";
-    let waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    if (cleanPhone) {
-      const formatted = cleanPhone.startsWith("0")
-        ? `62${cleanPhone.slice(1)}`
-        : cleanPhone.startsWith("62")
-        ? cleanPhone
-        : `62${cleanPhone}`;
-      waUrl = `https://wa.me/${formatted}?text=${encodeURIComponent(text)}`;
-    }
-    window.open(waUrl, "_blank");
+  const handleShareWhatsApp = async () => {
+    if (!guest) return;
+    const text = `Halo *${guest.name}*,\n\nMerupakan suatu kehormatan bagi kami apabila Anda berkenan hadir di acara pernikahan kami:\n\n*${weddingTitle}*\n\n🎟️ *KARTU AKSES & TIKET CHECK-IN TAMU:*\nKode Akses: *${guest.slugCode}* (Kuota: ${guest.quota} Pax)\n\nBerikut tautan undangan digital & tiket check-in kehadiran Anda:\n${invitationUrl}\n\nMohon simpan tiket atau tunjukkan QR Code pada tautan di atas kepada penerima tamu di meja resepsi saat tiba di lokasi.\n\nTerima kasih.`;
+
+    await shareGuestInvitationWithTicket({
+      guest,
+      weddingTitle: weddingTitle || "Undangan Pernikahan",
+      invitationSlug,
+      invitationUrl,
+      greetingText: text,
+    });
   };
 
   const handleCopyLink = async () => {
@@ -210,12 +143,12 @@ export const GuestQrTicketModal: React.FC<GuestQrTicketModalProps> = ({
             </span>
             <h4 className="font-bold text-lg text-slate-900">{guest.name}</h4>
             <div className="flex items-center justify-center gap-2 pt-0.5">
-              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-200">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-none bg-orange-50 text-[#F97316] border border-orange-200">
                 <Users className="w-3 h-3" />
                 <span>{guest.quota} Pax</span>
               </span>
               {guest.checkedInAt ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-none bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <Check className="w-3 h-3" />
                   <span>
                     Sudah Hadir (
@@ -227,7 +160,7 @@ export const GuestQrTicketModal: React.FC<GuestQrTicketModalProps> = ({
                   </span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-none bg-slate-100 text-slate-600 border border-slate-200">
                   Belum Check-in
                 </span>
               )}

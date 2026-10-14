@@ -7,11 +7,15 @@ import {
   Check,
   CheckCircle2,
   Clock,
+  Cloud,
   Database,
   Download,
   HardDrive,
   RefreshCw,
+  RotateCcw,
   Server,
+  CloudUpload,
+  Trash2,
   X,
 } from "lucide-react";
 export interface MaintenanceHealthData {
@@ -166,6 +170,92 @@ export const AdminSystemToolsTab: React.FC<AdminSystemToolsTabProps> = ({
       setActionResult({
         type: "error",
         msg: err instanceof Error ? err.message : "Gagal mengunduh cadangan data",
+      });
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleResetSales = async () => {
+    const confirmed = window.confirm(
+      "PERINGATAN: Apakah Anda yakin ingin mereset seluruh data transaksi penjualan admin?\\n\\nSemua riwayat transaksi pembayaran dan omset akan dihapus secara permanen."
+    );
+    if (!confirmed) return;
+
+    setActiveAction("reset_sales");
+    setActionResult(null);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_sales" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal mereset data penjualan");
+      setActionResult({
+        type: "success",
+        msg: json.message || "Seluruh data penjualan admin berhasil direset ke 0.",
+      });
+      void onRefreshDiagnostics();
+    } catch (err) {
+      setActionResult({
+        type: "error",
+        msg: err instanceof Error ? err.message : "Gagal mereset data penjualan",
+      });
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleTestSanity = async () => {
+    setActiveAction("sanity_test");
+    setActionResult(null);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test_sanity" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal tes koneksi Sanity");
+      setActionResult({
+        type: json.success ? "success" : "error",
+        msg: json.message || "Status Sanity berhasil diperiksa.",
+      });
+    } catch (err) {
+      setActionResult({
+        type: "error",
+        msg: err instanceof Error ? err.message : "Gagal tes koneksi Sanity",
+      });
+    } finally {
+      setActiveAction(null);
+    }
+  };
+
+  const handleSyncSanity = async () => {
+    const confirmed = window.confirm(
+      "Apakah Anda ingin menyinkronkan seluruh data undangan dan pengaturan situs ke Sanity CMS sekarang?"
+    );
+    if (!confirmed) return;
+
+    setActiveAction("sanity_sync");
+    setActionResult(null);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync_all_to_sanity" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal sinkron ke Sanity");
+      setActionResult({
+        type: "success",
+        msg: json.message || "Data berhasil disinkronkan ke Sanity CMS.",
+      });
+    } catch (err) {
+      setActionResult({
+        type: "error",
+        msg: err instanceof Error ? err.message : "Gagal sinkron ke Sanity",
       });
     } finally {
       setActiveAction(null);
@@ -422,6 +512,63 @@ export const AdminSystemToolsTab: React.FC<AdminSystemToolsTabProps> = ({
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 Export snapshot data sistem dalam format JSON
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleResetSales}
+            disabled={Boolean(activeAction)}
+            className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 text-left space-y-2.5 transition-all group disabled:opacity-50 shadow-xs"
+          >
+            <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+              <RotateCcw className={`w-4 h-4 ${activeAction === "reset_sales" ? "animate-spin" : ""}`} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-rose-900 group-hover:text-rose-700">
+                Reset Data Penjualan
+              </p>
+              <p className="text-[11px] text-rose-600 mt-0.5">
+                Kosongkan semua riwayat transaksi pembayaran ke Rp 0
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleTestSanity}
+            disabled={Boolean(activeAction)}
+            className="p-4 rounded-xl border border-sky-200 bg-sky-50/50 hover:bg-sky-50 text-left space-y-2.5 transition-all group disabled:opacity-50 shadow-xs"
+          >
+            <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
+              <Cloud className={`w-4 h-4 ${activeAction === "sanity_test" ? "animate-spin" : ""}`} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-sky-900 group-hover:text-sky-700">
+                Uji Sanity CMS
+              </p>
+              <p className="text-[11px] text-sky-600 mt-0.5">
+                Cek status koneksi Sanity Project (3bb1fiht)
+              </p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSyncSanity}
+            disabled={Boolean(activeAction)}
+            className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 text-left space-y-2.5 transition-all group disabled:opacity-50 shadow-xs"
+          >
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+              <CloudUpload className={`w-4 h-4 ${activeAction === "sanity_sync" ? "animate-pulse" : ""}`} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-indigo-900 group-hover:text-indigo-700">
+                Sync Massal ke Sanity
+              </p>
+              <p className="text-[11px] text-indigo-600 mt-0.5">
+                Kirim seluruh data undangan aktif ke Sanity
               </p>
             </div>
           </button>

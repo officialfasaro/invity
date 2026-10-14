@@ -230,7 +230,7 @@ export const WishesWallSection: React.FC<WishesWallSectionProps> = ({
         </form>
 
         {/* Wishes List Wall */}
-        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+        <div className="space-y-3 max-h-80 overflow-y-auto pr-1 no-scrollbar">
           {isLoading ? (
             <p
               className={`text-center text-xs py-4 font-medium ${

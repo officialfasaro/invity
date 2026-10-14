@@ -15,6 +15,13 @@ import {
 } from "../services/google-auth.service";
 
 async function userHasActivePackage(userId: string): Promise<boolean> {
+  // 1. Direct transaction check: User has completed payment verified by admin or gateway
+  const settledTx = await prisma.paymentTransaction.findFirst({
+    where: { userId, paymentStatus: "SETTLEMENT" },
+  });
+  if (settledTx) return true;
+
+  // 2. Invitation check: User has an active invitation with validity period
   const invitation = await prisma.invitation.findFirst({
     where: { userId },
     include: {
@@ -35,6 +42,28 @@ async function userHasActivePackage(userId: string): Promise<boolean> {
   }
 
   return false;
+}
+
+async function getUserLatestTransaction(userId: string) {
+  const tx = await prisma.paymentTransaction.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      orderId: true,
+      paymentStatus: true,
+      tier: true,
+      amount: true,
+      paymentType: true,
+      proofImageUrl: true,
+      createdAt: true,
+      verifiedAt: true,
+    },
+  });
+  if (!tx) return null;
+  return {
+    ...tx,
+    amount: Number(tx.amount),
+  };
 }
 
 export async function login(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -66,6 +95,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
     }
 
     const hasActivePackage = user.role === "ADMIN" ? true : await userHasActivePackage(user.id);
+    const latestTransaction = await getUserLatestTransaction(user.id);
 
     const token = signJwtToken({
       userId: user.id,
@@ -89,6 +119,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         email: user.email,
         role: user.role,
         hasActivePackage,
+        latestTransaction,
       },
     });
   } catch (error) {
@@ -139,7 +170,7 @@ export async function register(req: Request, res: Response, next: NextFunction):
           create: {
             slug: `undangan-${Math.random().toString(36).substring(2, 8)}`,
             title: `Pernikahan ${name}`,
-            themeId: "minimalist",
+            themeId: "botanical",
             isActive: true,
             coupleInfo: {
               groomName: name,
@@ -365,11 +396,13 @@ export async function getMe(req: Request, res: Response, next: NextFunction): Pr
     }
 
     const hasActivePackage = user.role === "ADMIN" ? true : await userHasActivePackage(user.id);
+    const latestTransaction = await getUserLatestTransaction(user.id);
 
     res.json({
       user: {
         ...user,
         hasActivePackage,
+        latestTransaction,
       },
     });
   } catch (error) {

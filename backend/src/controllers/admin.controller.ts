@@ -2,11 +2,16 @@ import { Request, Response, NextFunction } from "express";
 import fs from "fs/promises";
 import path from "path";
 import prisma from "../config/prisma";
-import { UserRole, SubscriptionTier, PaymentStatus } from "@prisma/client";
+import { UserRole, SubscriptionTier, PaymentStatus, PaymentType, Prisma } from "@prisma/client";
 import { signJwtToken } from "../middleware/auth.middleware";
 import { AUTH_COOKIE_NAME } from "../config/constants";
 import { SYSTEM_SETTING_DEFINITIONS } from "../services/settings.service";
 import { invalidateInvitationCache } from "../services/cache.service";
+import {
+  syncCmsSettingsToSanity,
+  syncInvitationToSanity,
+  testSanityConnection,
+} from "../services/sanity.service";
 import { z } from "zod";
 
 export async function getMetrics(
@@ -97,7 +102,7 @@ export async function getClients(
             coupleInfo: true,
             paymentTransactions: {
               orderBy: { createdAt: "desc" },
-              take: 5,
+              take: 10,
               select: { tier: true, paymentStatus: true },
             },
           },
@@ -125,8 +130,6 @@ export async function getClients(
       if (inv) {
         if (!inv.isActive) {
           status = "INACTIVE";
-        } else if (!settlementTx && !inv.activeUntil) {
-          status = latestTier === "BELUM_PILIH_PAKET" ? "UNSELECTED" : "UNPAID";
         } else if (inv.activeUntil && new Date(inv.activeUntil) < new Date()) {
           status = "EXPIRED";
         } else {
@@ -167,66 +170,190 @@ export async function patchClient(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { invitationId, addDays, isActive, tier } = req.body;
+    const {
+      userId,
+      invitationId,
+      addDays,
+      isActive,
+      tier,
+      isLifetime,
+      customExpireDate,
+    } = req.body;
 
-    if (!invitationId) {
-      res.status(400).json({ success: false, error: "invitationId wajib disertakan" });
+    if (!invitationId && !userId) {
+      res.status(400).json({ success: false, error: "invitationId atau userId wajib disertakan" });
       return;
     }
 
-    const currentInv = await prisma.invitation.findUnique({
-      where: { id: invitationId },
-      select: { activeUntil: true, userId: true },
-    });
+    const VALID_SUBSCRIPTION_TIERS: SubscriptionTier[] = [
+      SubscriptionTier.FREE,
+      SubscriptionTier.STARTER,
+      SubscriptionTier.ELEGANT,
+      SubscriptionTier.ULTIMATE,
+    ];
 
-    if (!currentInv) {
+    let targetInv = null;
+    if (invitationId) {
+      targetInv = await prisma.invitation.findUnique({
+        where: { id: invitationId },
+        select: {
+          id: true,
+          userId: true,
+          activeUntil: true,
+          isActive: true,
+          coupleInfo: true,
+        },
+      });
+    }
+
+    if (!targetInv && userId) {
+      targetInv = await prisma.invitation.findFirst({
+        where: { userId },
+        select: {
+          id: true,
+          userId: true,
+          activeUntil: true,
+          isActive: true,
+          coupleInfo: true,
+        },
+      });
+    }
+
+    // Jika user belum memiliki invitation, Super Admin bebas membuatkan / menginisialisasi akses langsung
+    if (!targetInv && userId) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        res.status(404).json({ success: false, error: "User tidak ditemukan" });
+        return;
+      }
+      const initialTier =
+        tier && VALID_SUBSCRIPTION_TIERS.includes(tier as SubscriptionTier)
+          ? (tier as SubscriptionTier)
+          : SubscriptionTier.ELEGANT;
+      const slug = `undangan-${Math.random().toString(36).substring(2, 8)}`;
+
+      targetInv = await prisma.invitation.create({
+        data: {
+          userId: user.id,
+          slug,
+          title: `Undangan ${user.name}`,
+          themeId: "minimalist-chic",
+          isActive: true,
+          coupleInfo: {
+            groomName: "Mempelai Pria",
+            brideName: "Mempelai Wanita",
+            selectedTier: initialTier,
+          },
+          activeUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+        select: {
+          id: true,
+          userId: true,
+          activeUntil: true,
+          isActive: true,
+          coupleInfo: true,
+        },
+      });
+    }
+
+    if (!targetInv) {
       res.status(404).json({ success: false, error: "Undangan tidak ditemukan" });
       return;
     }
 
     const updateData: {
       isActive?: boolean;
-      activeUntil?: Date;
+      activeUntil?: Date | null;
+      coupleInfo?: Prisma.InputJsonValue;
     } = {};
 
     if (typeof isActive === "boolean") {
       updateData.isActive = isActive;
     }
 
-    if (typeof addDays === "number" && addDays !== 0) {
+    // Pengaturan Masa Aktif (Lifetime, Kustom Tanggal, atau Tambah Hari)
+    if (isLifetime || addDays === 36500) {
+      const lifetimeDate = new Date();
+      lifetimeDate.setFullYear(lifetimeDate.getFullYear() + 100);
+      updateData.activeUntil = lifetimeDate;
+    } else if (customExpireDate) {
+      const parsedDate = new Date(customExpireDate);
+      if (!isNaN(parsedDate.getTime())) {
+        updateData.activeUntil = parsedDate;
+      }
+    } else if (typeof addDays === "number" && addDays > 0) {
       const baseDate =
-        currentInv.activeUntil && currentInv.activeUntil > new Date()
-          ? new Date(currentInv.activeUntil)
+        targetInv.activeUntil && targetInv.activeUntil > new Date()
+          ? new Date(targetInv.activeUntil)
           : new Date();
       baseDate.setDate(baseDate.getDate() + addDays);
       updateData.activeUntil = baseDate;
     }
 
-    const updated = await prisma.invitation.update({
-      where: { id: invitationId },
-      data: updateData,
-    });
+    const currentCoupleInfo: Record<string, Prisma.InputJsonValue> =
+      typeof targetInv.coupleInfo === "object" && targetInv.coupleInfo !== null && !Array.isArray(targetInv.coupleInfo)
+        ? { ...(targetInv.coupleInfo as Record<string, Prisma.InputJsonValue>) }
+        : {};
 
-    if (tier) {
+    // Validasi & Update Subscription Tier
+    if (tier && VALID_SUBSCRIPTION_TIERS.includes(tier as SubscriptionTier)) {
+      const chosenTier = tier as SubscriptionTier;
+      currentCoupleInfo.selectedTier = chosenTier;
+      updateData.coupleInfo = currentCoupleInfo;
+
+      // Jika belum ada masa aktif yang diatur dan saat ini belum aktif/expired, berikan 365 hari default
+      if (!updateData.activeUntil && (!targetInv.activeUntil || targetInv.activeUntil <= new Date())) {
+        const oneYear = new Date();
+        oneYear.setDate(oneYear.getDate() + 365);
+        updateData.activeUntil = oneYear;
+      }
+
+      // Buat transaksi settlement resmi Super Admin Override (Rp 0)
       await prisma.paymentTransaction.create({
         data: {
-          orderId: `ADMIN-ADJUST-${Date.now()}`,
-          userId: currentInv.userId,
-          invitationId: invitationId,
-          tier: tier as SubscriptionTier,
-          amount:
-            tier === "ULTIMATE" ? 279000 : tier === "ELEGANT" ? 149000 : tier === "STARTER" ? 39000 : 0,
+          orderId: `ADMIN-GRANT-${Date.now()}`,
+          userId: targetInv.userId,
+          invitationId: targetInv.id,
+          tier: chosenTier,
+          amount: 0,
           paymentType: "GATEWAY",
           paymentStatus: "SETTLEMENT",
-          verifiedBy: "ADMIN_OVERRIDE",
+          verifiedBy: req.user?.email ? `SUPER_ADMIN (${req.user.email})` : "SUPER_ADMIN",
           verifiedAt: new Date(),
+        },
+      });
+    } else if (tier === "RESET" || tier === "BELUM_PILIH_PAKET") {
+      // Cabut status paket langganan
+      delete currentCoupleInfo.selectedTier;
+      updateData.coupleInfo = currentCoupleInfo;
+      updateData.activeUntil = null;
+
+      // Batalkan transaksi settlement terdahulu untuk undangan ini
+      await prisma.paymentTransaction.updateMany({
+        where: {
+          invitationId: targetInv.id,
+          paymentStatus: "SETTLEMENT",
+        },
+        data: {
+          paymentStatus: "CANCELLED",
         },
       });
     }
 
+    const updated = await prisma.invitation.update({
+      where: { id: targetInv.id },
+      data: updateData,
+    });
+
+    try {
+      await invalidateInvitationCache(targetInv.id, updated.slug);
+    } catch {
+      // ignore cache invalidation errors
+    }
+
     res.json({
       success: true,
-      message: "Data klien & undangan berhasil diperbarui",
+      message: "Hak akses dan paket langganan klien berhasil diperbarui oleh Super Admin",
       data: updated,
     });
   } catch (error) {
@@ -280,16 +407,116 @@ export async function impersonate(
   }
 }
 
+const ALL_DEFAULT_THEME_FEATURES = [
+  "music",
+  "rsvp",
+  "wishes",
+  "digital_gift",
+  "physical_gift",
+  "love_story",
+  "gallery",
+  "countdown",
+  "google_maps",
+  "qr_ticket",
+];
+
+const DEFAULT_THEMES_TO_SEED = [
+  {
+    themeKey: "botanical",
+    name: "Botanical Tema 01",
+    category: "Botanical",
+    thumbnail: "/templates/botanical/cover.jpg",
+    previewUrl: "/invitation/demo-botanical",
+    isPremium: false,
+    isActive: true,
+  },
+  {
+    themeKey: "editorial",
+    name: "Editorial Tema 01",
+    category: "Editorial",
+    thumbnail: "/templates/editorial/cover.jpg",
+    previewUrl: "/invitation/demo-editorial",
+    isPremium: false,
+    isActive: true,
+  },
+  {
+    themeKey: "gothic",
+    name: "Gothic Tema 01",
+    category: "Gothic",
+    thumbnail: "/templates/gothic/cover.jpg",
+    previewUrl: "/invitation/demo-gothic",
+    isPremium: false,
+    isActive: true,
+  },
+  {
+    themeKey: "raka-ayu",
+    name: "Royal Tema 01",
+    category: "Royal",
+    thumbnail: "/templates/raka-ayu/cover.jpg",
+    previewUrl: "/invitation/demo-raka-ayu",
+    isPremium: false,
+    isActive: true,
+  },
+  {
+    themeKey: "wedding-3d",
+    name: "3D Tema 01",
+    category: "3D",
+    thumbnail: "/templates/wedding-3d/cover.jpg",
+    previewUrl: "/invitation/demo-wedding-3d",
+    isPremium: false,
+    isActive: true,
+  },
+];
+
 export async function getThemes(
   _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const themes = await prisma.themeCatalog.findMany({
+    let themes = await prisma.themeCatalog.findMany({
       orderBy: { createdAt: "asc" },
     });
-    res.json({ success: true, data: themes });
+
+    // Ensure all 5 official themes are present in the catalog
+    const existingKeys = new Set(themes.map((t) => t.themeKey));
+    const missing = DEFAULT_THEMES_TO_SEED.filter((dt) => !existingKeys.has(dt.themeKey));
+    if (missing.length > 0) {
+      for (const m of missing) {
+        await prisma.themeCatalog.upsert({
+          where: { themeKey: m.themeKey },
+          update: m,
+          create: m,
+        });
+      }
+      themes = await prisma.themeCatalog.findMany({
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    const settings = await prisma.systemSetting.findMany({
+      where: { key: { startsWith: "template_features_" } },
+    });
+
+    const settingsMap = new Map(settings.map((s) => [s.key, s.value]));
+
+    const enriched = themes.map((t) => {
+      const settingVal = settingsMap.get(`template_features_${t.themeKey}`);
+      let parsedFeatures = ALL_DEFAULT_THEME_FEATURES;
+      if (settingVal) {
+        try {
+          parsedFeatures = JSON.parse(settingVal);
+        } catch {
+          // fallback to default
+        }
+      }
+      return {
+        ...t,
+        features: parsedFeatures,
+      };
+    });
+
+    res.json({ success: true, data: enriched });
   } catch (error) {
     next(error);
   }
@@ -301,7 +528,7 @@ export async function createTheme(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { themeKey, name, category, thumbnail, isPremium, isActive } = req.body;
+    const { themeKey, name, category, thumbnail, isPremium, isActive, features } = req.body;
 
     if (!themeKey || !name || !thumbnail) {
       res.status(400).json({
@@ -311,9 +538,11 @@ export async function createTheme(
       return;
     }
 
+    const cleanKey = themeKey.toLowerCase().trim();
+
     const newTheme = await prisma.themeCatalog.create({
       data: {
-        themeKey: themeKey.toLowerCase().trim(),
+        themeKey: cleanKey,
         name,
         category: category || "Modern Chic",
         thumbnail,
@@ -322,10 +551,24 @@ export async function createTheme(
       },
     });
 
+    const featureList = Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES;
+    await prisma.systemSetting.upsert({
+      where: { key: `template_features_${cleanKey}` },
+      update: { value: JSON.stringify(featureList) },
+      create: {
+        key: `template_features_${cleanKey}`,
+        value: JSON.stringify(featureList),
+        description: `Fitur aktif untuk tema ${name}`,
+      },
+    });
+
     res.json({
       success: true,
       message: "Tema baru berhasil ditambahkan",
-      data: newTheme,
+      data: {
+        ...newTheme,
+        features: featureList,
+      },
     });
   } catch (error) {
     next(error);
@@ -338,7 +581,7 @@ export async function updateTheme(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id, name, category, thumbnail, isPremium, isActive } = req.body;
+    const { id, name, category, thumbnail, isPremium, isActive, features } = req.body;
 
     if (!id) {
       res.status(400).json({ success: false, error: "id tema wajib disertakan" });
@@ -356,10 +599,38 @@ export async function updateTheme(
       },
     });
 
+    let currentFeatures = ALL_DEFAULT_THEME_FEATURES;
+    if (features !== undefined) {
+      currentFeatures = Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES;
+      await prisma.systemSetting.upsert({
+        where: { key: `template_features_${updated.themeKey}` },
+        update: { value: JSON.stringify(currentFeatures) },
+        create: {
+          key: `template_features_${updated.themeKey}`,
+          value: JSON.stringify(currentFeatures),
+          description: `Fitur aktif untuk tema ${updated.name}`,
+        },
+      });
+    } else {
+      const existingSetting = await prisma.systemSetting.findUnique({
+        where: { key: `template_features_${updated.themeKey}` },
+      });
+      if (existingSetting) {
+        try {
+          currentFeatures = JSON.parse(existingSetting.value);
+        } catch {
+          // fallback
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: "Tema berhasil diperbarui",
-      data: updated,
+      data: {
+        ...updated,
+        features: currentFeatures,
+      },
     });
   } catch (error) {
     next(error);
@@ -388,10 +659,10 @@ export async function deleteTheme(
       return;
     }
 
-    if (existingTheme.themeKey === "minimalist") {
+    if (existingTheme.themeKey === "botanical") {
       res.status(400).json({
         success: false,
-        error: "Tema default 'minimalist' adalah fondasi sistem dan tidak boleh dihapus.",
+        error: "Tema default 'botanical' adalah fondasi sistem dan tidak boleh dihapus.",
       });
       return;
     }
@@ -402,11 +673,11 @@ export async function deleteTheme(
       select: { id: true, slug: true },
     });
 
-    // Reassign ke tema default 'minimalist' secara aman
+    // Reassign ke tema default 'botanical' secara aman
     if (affectedInvitations.length > 0) {
       await prisma.invitation.updateMany({
         where: { themeId: existingTheme.themeKey },
-        data: { themeId: "minimalist" },
+        data: { themeId: "botanical" },
       });
 
       // Reset cache untuk seluruh undangan yang terdampak
@@ -576,6 +847,11 @@ export async function updateAdminSettings(
       orderBy: { key: "asc" },
     });
 
+    // Background sync to Sanity CMS
+    void syncCmsSettingsToSanity(updatedSettings).catch((err) => {
+      console.error("[AdminSettings] Sanity sync background error:", err);
+    });
+
     res.json({
       success: true,
       message: "Pengaturan sistem berhasil disimpan",
@@ -740,11 +1016,35 @@ export async function getVerifyPayments(
 ): Promise<void> {
   try {
     const status = (req.query.status as string) || "WAITING_VERIFICATION";
+    const search = ((req.query.search as string) || "").trim();
+    const paymentType = (req.query.paymentType as string) || "";
+
+    const whereClause: Prisma.PaymentTransactionWhereInput = {};
+
+    if (status && status !== "ALL") {
+      whereClause.paymentStatus = status as PaymentStatus;
+    }
+
+    if (paymentType && paymentType !== "ALL") {
+      whereClause.paymentType = paymentType as PaymentType;
+    } else {
+      whereClause.paymentType = {
+        in: [PaymentType.MANUAL_BANK, PaymentType.MANUAL_QRIS],
+      };
+    }
+
+    if (search) {
+      whereClause.OR = [
+        { orderId: { contains: search, mode: "insensitive" } },
+        { user: { name: { contains: search, mode: "insensitive" } } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+        { invitation: { title: { contains: search, mode: "insensitive" } } },
+        { invitation: { slug: { contains: search, mode: "insensitive" } } },
+      ];
+    }
 
     const transactions = await prisma.paymentTransaction.findMany({
-      where: {
-        paymentStatus: status as "WAITING_VERIFICATION" | "PENDING" | "SETTLEMENT" | "CANCELLED",
-      },
+      where: whereClause,
       include: {
         user: {
           select: { id: true, name: true, email: true },
@@ -821,14 +1121,41 @@ export async function actionVerifyPayment(
           },
         });
 
-        if (transaction.invitationId) {
+        let targetInvId = transaction.invitationId;
+        if (!targetInvId) {
+          let userInv = await tx.invitation.findFirst({
+            where: { userId: transaction.userId },
+          });
+          if (!userInv) {
+            userInv = await tx.invitation.create({
+              data: {
+                slug: `undangan-${transaction.userId.slice(-6)}`,
+                title: "Pernikahan Mempelai",
+                userId: transaction.userId,
+                themeId: "botanical",
+                isActive: true,
+                activeUntil,
+                coupleInfo: {
+                  selectedTier: transaction.tier,
+                },
+              },
+            });
+          }
+          targetInvId = userInv.id;
+          await tx.paymentTransaction.update({
+            where: { id: transactionId },
+            data: { invitationId: targetInvId },
+          });
+        }
+
+        if (targetInvId) {
           const inv = await tx.invitation.findUnique({
-            where: { id: transaction.invitationId },
+            where: { id: targetInvId },
           });
           const coupleInfo = (inv?.coupleInfo as Record<string, unknown>) || {};
 
           await tx.invitation.update({
-            where: { id: transaction.invitationId },
+            where: { id: targetInvId },
             data: {
               isActive: true,
               activeUntil,
@@ -1121,6 +1448,68 @@ export async function actionMaintenance(
         success: true,
         message: "Cache memori dan revalidasi halaman publik berhasil dibersihkan.",
         timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    if (action === "reset_sales") {
+      const deleteResult = await prisma.paymentTransaction.deleteMany({});
+      res.json({
+        success: true,
+        message: `Seluruh data penjualan admin berhasil direset. ${deleteResult.count} riwayat transaksi telah dihapus.`,
+        deletedCount: deleteResult.count,
+      });
+      return;
+    }
+
+    if (action === "test_sanity") {
+      const sanityStatus = await testSanityConnection();
+      res.json({
+        success: sanityStatus.connected,
+        message: sanityStatus.connected
+          ? `Koneksi Sanity CMS prima (Latensi: ${sanityStatus.latencyMs} ms, Project: ${sanityStatus.projectId}, Dataset: ${sanityStatus.dataset})`
+          : `Gagal terhubung ke Sanity CMS: ${sanityStatus.error}`,
+        data: sanityStatus,
+      });
+      return;
+    }
+
+    if (action === "sync_all_to_sanity") {
+      const [allInvitations, allSettings] = await Promise.all([
+        prisma.invitation.findMany({
+          include: {
+            eventSchedules: true,
+            galleries: true,
+            bankAccounts: true,
+          },
+        }),
+        prisma.systemSetting.findMany(),
+      ]);
+
+      let syncedInvitations = 0;
+      for (const inv of allInvitations) {
+        const resSync = await syncInvitationToSanity({
+          id: inv.id,
+          slug: inv.slug,
+          title: inv.title,
+          themeId: inv.themeId,
+          isActive: inv.isActive,
+          activeUntil: inv.activeUntil,
+          coupleInfo: (inv.coupleInfo as Record<string, unknown>) || {},
+          eventSchedules: inv.eventSchedules,
+          galleries: inv.galleries,
+          bankAccounts: inv.bankAccounts,
+        });
+        if (resSync.success) syncedInvitations++;
+      }
+
+      await syncCmsSettingsToSanity(allSettings);
+
+      res.json({
+        success: true,
+        message: `Sinkronisasi massal ke Sanity CMS selesai: ${syncedInvitations} undangan dan ${allSettings.length} pengaturan berhasil disimpan ke cloud Sanity.`,
+        syncedInvitations,
+        syncedSettings: allSettings.length,
       });
       return;
     }

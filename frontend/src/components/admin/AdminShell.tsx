@@ -48,6 +48,15 @@ export default function AdminShell({ children, sessionUser }: AdminShellProps) {
     ? "Verifikasi Pembayaran Manual"
     : TAB_LABELS[currentTab] || "Dashboard";
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    window.location.href = "/login";
+  };
+
   return (
     <div className="min-h-screen bg-[#F3F6FB] text-slate-800 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
       {/* 1. Left Vertical Sidebar (Desktop Sticky + Mobile Drawer) */}
@@ -118,14 +127,15 @@ export default function AdminShell({ children, sessionUser }: AdminShellProps) {
             </div>
 
             {/* Logout Button */}
-            <Link
-              href="/login"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-medium transition-colors shadow-xs"
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-medium transition-colors shadow-xs cursor-pointer"
               title="Keluar dari Panel Admin"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Keluar</span>
-            </Link>
+            </button>
           </div>
         </header>
 
@@ -137,7 +147,7 @@ export default function AdminShell({ children, sessionUser }: AdminShellProps) {
         {/* Bottom Footer */}
         <footer className="border-t border-[#E2E8F0] bg-white py-4 px-6 text-center text-xs text-slate-500">
           <p>
-            Panel Manajemen Platform Fasaro &copy; {new Date().getFullYear()}. Hak Cipta Dilindungi.
+            Panel Manajemen Platform Invity by Fasaro &copy; {new Date().getFullYear()}. Hak Cipta Dilindungi.
           </p>
         </footer>
       </div>

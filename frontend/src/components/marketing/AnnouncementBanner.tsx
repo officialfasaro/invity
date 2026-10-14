@@ -21,8 +21,9 @@ export const AnnouncementBanner: React.FC<AnnouncementBannerProps> = ({
       fetch("/api/public/settings")
         .then((res) => res.json())
         .then((json) => {
-          if (json.success && json.data) {
-            setSettings(json.data);
+          const data = json?.data || json;
+          if (data) {
+            setSettings(data);
           }
         })
         .catch(() => {

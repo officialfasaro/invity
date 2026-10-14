@@ -7,16 +7,31 @@ import {
   Save,
   Tag,
   ListPlus,
-  Sparkles,
+  Zap,
+  CheckCircle2,
   Info,
 } from "lucide-react";
 import { SettingItem } from "./AdminCmsContentTab";
+import { ALL_FEATURES, FeatureId } from "@/types/wedding";
 
 interface AdminPricingTabProps {
   settings: SettingItem[];
   onSaveSettings: (updatedSettings: SettingItem[]) => Promise<void>;
   isSaving: boolean;
 }
+
+const DEFAULT_PROMO_FEATURES = `Akses Semua Desain & Tema (Termasuk Tema Premium)
+Ganti Tema 1-Klik Kapan Saja
+Masa Aktif 1 Tahun Penuh (365 Hari)
+Galeri Foto HD Tanpa Batas & Video
+Musik Latar Autoplay & Playlist Kustom
+Amplop Digital Multi Rekening & QRIS Dinamis
+Buku Tamu RSVP Realtime & Ucapan Doa
+Navigasi Google Maps Presisi & Panduan Arah
+Countdown Timer Menuju Hari Bahagia
+Love Story & Timeline Perjalanan Cinta
+QR Code Check-in Resepsi & Tiket Tamu
+Kirim Kado Fisik & Alamat Pengiriman`;
 
 const DEFAULT_STARTER_FEATURES = `1 Pilihan Tema Minimalist
 Masa Aktif 90 Hari
@@ -69,6 +84,14 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
     }));
 
     const extraPricingKeys = [
+      "single_promo_mode",
+      "promo_plan_name",
+      "promo_plan_price",
+      "promo_plan_original_price",
+      "promo_plan_desc",
+      "promo_plan_period",
+      "promo_plan_badge",
+      "promo_plan_features",
       "price_starter",
       "price_starter_original",
       "max_photos_starter",
@@ -92,6 +115,10 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
       "plan_ultimate_period",
       "plan_ultimate_badge",
       "plan_ultimate_features",
+      "package_features_promo",
+      "package_features_starter",
+      "package_features_elegant",
+      "package_features_ultimate",
     ];
 
     for (const k of extraPricingKeys) {
@@ -161,9 +188,56 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
     .map((l) => l.trim())
     .filter(Boolean);
 
+  // Single Promo values for Live Preview
+  const isSinglePromoMode = formData.single_promo_mode !== "false";
+  const promoPrice = parseInt(formData.promo_plan_price || "79000", 10) || 79000;
+  const promoOriginal = parseInt(formData.promo_plan_original_price || "249000", 10) || 249000;
+  const promoName = formData.promo_plan_name || "Paket Promo All-In-One";
+  const promoDesc =
+    formData.promo_plan_desc ||
+    "Satu penawaran spesial untuk seluruh kebutuhan pernikahan Anda dengan semua fitur terbuka tanpa batasan.";
+  const promoPeriod = formData.promo_plan_period || "Masa Aktif 1 Tahun Penuh";
+  const promoBadge = formData.promo_plan_badge || "PROMO SPESIAL LAUNCHING • ALL FEATURES UNLOCKED";
+  const promoFeaturesRaw =
+    formData.promo_plan_features !== undefined
+      ? formData.promo_plan_features
+      : DEFAULT_PROMO_FEATURES;
+  const promoFeaturesList = promoFeaturesRaw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
   const calculateDiscount = (price: number, orig: number) => {
     if (orig <= price) return null;
     return Math.round(((orig - price) / orig) * 100);
+  };
+
+  const getPackageFeatures = (tier: "promo" | "starter" | "elegant" | "ultimate"): FeatureId[] => {
+    const key = `package_features_${tier}`;
+    const raw = formData[key];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // fallback
+      }
+    }
+    if (tier === "starter") {
+      return ["countdown", "google_maps", "rsvp", "wishes"];
+    }
+    if (tier === "elegant") {
+      return ["music", "countdown", "google_maps", "rsvp", "wishes", "digital_gift", "gallery"];
+    }
+    return ALL_FEATURES.map((f) => f.id);
+  };
+
+  const handleTogglePackageFeature = (tier: "promo" | "starter" | "elegant" | "ultimate", featureId: FeatureId) => {
+    const current = getPackageFeatures(tier);
+    const next = current.includes(featureId)
+      ? current.filter((id) => id !== featureId)
+      : [...current, featureId];
+    handleChange(`package_features_${tier}`, JSON.stringify(next));
   };
 
   return (
@@ -198,6 +272,192 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: EDIT FORM */}
         <div className="xl:col-span-6 space-y-6">
+          {/* Card 0: Single Promo Package Configuration (Primary / Recommended) */}
+          <div className="rounded-2xl border-2 border-orange-500 bg-white p-5 sm:p-6 space-y-4 shadow-sm relative">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E2E8F0] pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Paket Promo All-In-One (1 Paket Semua Fitur)
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Direkomendasikan untuk launching bisnis awal tanpa friksi pemilihan tier.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mode Toggle Switch */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-700">Status Mode:</span>
+                <select
+                  value={formData.single_promo_mode ?? "true"}
+                  onChange={(e) => handleChange("single_promo_mode", e.target.value)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold outline-none cursor-pointer ${
+                    (formData.single_promo_mode ?? "true") === "true"
+                      ? "bg-orange-500 text-white border-orange-600"
+                      : "bg-slate-100 text-slate-700 border-slate-300"
+                  }`}
+                >
+                  <option value="true" className="bg-white text-slate-900">✓ Aktif (1 Promo All-In-One)</option>
+                  <option value="false" className="bg-white text-slate-900">Nonaktif (Gunakan 3 Tier)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">Nama Paket Promo</label>
+                <input
+                  type="text"
+                  value={formData.promo_plan_name ?? "Paket Promo All-In-One"}
+                  onChange={(e) => handleChange("promo_plan_name", e.target.value)}
+                  placeholder="Paket Promo All-In-One"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">Badge Label Tag</label>
+                <input
+                  type="text"
+                  value={formData.promo_plan_badge ?? "PROMO SPESIAL LAUNCHING • ALL FEATURES UNLOCKED"}
+                  onChange={(e) => handleChange("promo_plan_badge", e.target.value)}
+                  placeholder="PROMO SPESIAL LAUNCHING • ALL FEATURES UNLOCKED"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="font-semibold text-slate-700">Deskripsi Singkat</label>
+                <input
+                  type="text"
+                  value={
+                    formData.promo_plan_desc ??
+                    "Satu penawaran spesial untuk seluruh kebutuhan pernikahan Anda dengan semua fitur terbuka tanpa batasan."
+                  }
+                  onChange={(e) => handleChange("promo_plan_desc", e.target.value)}
+                  placeholder="Satu penawaran spesial untuk seluruh kebutuhan pernikahan Anda dengan semua fitur terbuka tanpa batasan."
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="font-semibold text-slate-700">Keterangan Masa Aktif</label>
+                <input
+                  type="text"
+                  value={formData.promo_plan_period ?? "Masa Aktif 1 Tahun Penuh"}
+                  onChange={(e) => handleChange("promo_plan_period", e.target.value)}
+                  placeholder="Masa Aktif 1 Tahun Penuh (365 Hari)"
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">Harga Promo (Rp)</label>
+                <input
+                  type="number"
+                  value={formData.promo_plan_price || "79000"}
+                  onChange={(e) => handleChange("promo_plan_price", e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] font-mono text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-700">Harga Coret Asli (Rp)</label>
+                <input
+                  type="number"
+                  value={formData.promo_plan_original_price || "249000"}
+                  onChange={(e) => handleChange("promo_plan_original_price", e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] font-mono text-slate-900 focus:outline-none focus:border-[#F97316]"
+                />
+              </div>
+            </div>
+
+            {/* Poin-Poin Fitur Promo */}
+            <div className="pt-2 border-t border-[#E2E8F0] space-y-1.5 text-xs">
+              <label className="font-semibold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <ListPlus className="w-3.5 h-3.5 text-[#F97316]" />
+                  <span>Daftar Fitur Paket Promo (1 Baris = 1 Fitur)</span>
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  {promoFeaturesList.length} Poin Fitur
+                </span>
+              </label>
+              <textarea
+                rows={8}
+                value={promoFeaturesRaw}
+                onChange={(e) => handleChange("promo_plan_features", e.target.value)}
+                placeholder="Akses Semua Desain & Tema&#10;Ganti Tema 1-Klik Bebas&#10;Masa Aktif 1 Tahun Penuh"
+                className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-xs text-slate-900 focus:outline-none focus:border-[#F97316] font-mono leading-relaxed"
+              />
+              <p className="text-[10px] text-slate-400">
+                Poin fitur di atas langsung dirender sebagai checklist lengkap pada kartu promo di landing page, form pemesanan, dan billing dashboard.
+              </p>
+            </div>
+
+            {/* Saklar 10 Fitur Sistem Aktif (Promo) */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F97316]" />
+                  <span>Fitur Sistem Aktif Paket Promo ({getPackageFeatures("promo").length}/10)</span>
+                </label>
+                <div className="flex gap-2 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_promo", JSON.stringify(ALL_FEATURES.map((f) => f.id)))}
+                    className="text-[#F97316] hover:underline"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_promo", JSON.stringify([]))}
+                    className="text-slate-500 hover:underline"
+                  >
+                    Kosongkan
+                  </button>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Menentukan fitur mana saja yang aktif dan terbuka bagi klien yang menggunakan paket Promo Launching ini.
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 p-2.5 rounded-lg border border-[#E2E8F0] bg-slate-50/70">
+                {ALL_FEATURES.map((f) => {
+                  const isChecked = getPackageFeatures("promo").includes(f.id);
+                  return (
+                    <label
+                      key={f.id}
+                      className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-[11px] ${
+                        isChecked ? "bg-white text-slate-800 font-medium shadow-2xs" : "text-slate-400"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleTogglePackageFeature("promo", f.id)}
+                        className="accent-[#F97316]"
+                      />
+                      <span className="truncate">{f.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible / Optional 3 Tier Section for backup */}
+          <div className="pt-4 border-t border-slate-200">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
+              Konfigurasi 3 Paket Standar (Hanya Tampil Jika Mode 1 Promo Dinonaktifkan)
+            </h4>
+          </div>
+
           {/* Card 1: Starter Package */}
           <div className="rounded-xl border border-[#E2E8F0] bg-white p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
@@ -317,13 +577,61 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                 Poin fitur di atas langsung dirender sebagai checklist pada kartu harga beranda dan dashboard.
               </p>
             </div>
+
+            {/* Saklar 10 Fitur Sistem Aktif (Starter) */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F97316]" />
+                  <span>Fitur Sistem Aktif Paket Starter ({getPackageFeatures("starter").length}/10)</span>
+                </label>
+                <div className="flex gap-2 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_starter", JSON.stringify(ALL_FEATURES.map((f) => f.id)))}
+                    className="text-[#F97316] hover:underline"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_starter", JSON.stringify([]))}
+                    className="text-slate-500 hover:underline"
+                  >
+                    Kosongkan
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 p-2.5 rounded-lg border border-[#E2E8F0] bg-slate-50/70">
+                {ALL_FEATURES.map((f) => {
+                  const isChecked = getPackageFeatures("starter").includes(f.id);
+                  return (
+                    <label
+                      key={f.id}
+                      className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-[11px] ${
+                        isChecked ? "bg-white text-slate-800 font-medium shadow-2xs" : "text-slate-400"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleTogglePackageFeature("starter", f.id)}
+                        className="accent-[#F97316]"
+                      />
+                      <span className="truncate">{f.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Card 2: Elegant Package */}
           <div className="rounded-xl border-2 border-orange-200 bg-orange-50/20 p-5 space-y-4 shadow-xs">
             <div className="flex items-center justify-between border-b border-orange-200 pb-3">
               <span className="text-xs font-bold uppercase tracking-wider text-[#F97316] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#F97316]" />
                 <span>2. Paket Elegant (Best Seller)</span>
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-[#F97316] text-white font-bold">
@@ -418,6 +726,54 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
               <p className="text-[10px] text-slate-400">
                 Poin fitur di atas langsung dirender sebagai checklist pada kartu harga beranda dan dashboard.
               </p>
+            </div>
+
+            {/* Saklar 10 Fitur Sistem Aktif (Elegant) */}
+            <div className="pt-3 border-t border-orange-200 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F97316]" />
+                  <span>Fitur Sistem Aktif Paket Elegant ({getPackageFeatures("elegant").length}/10)</span>
+                </label>
+                <div className="flex gap-2 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_elegant", JSON.stringify(ALL_FEATURES.map((f) => f.id)))}
+                    className="text-[#F97316] hover:underline"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_elegant", JSON.stringify([]))}
+                    className="text-slate-500 hover:underline"
+                  >
+                    Kosongkan
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 p-2.5 rounded-lg border border-orange-200 bg-white">
+                {ALL_FEATURES.map((f) => {
+                  const isChecked = getPackageFeatures("elegant").includes(f.id);
+                  return (
+                    <label
+                      key={f.id}
+                      className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-[11px] ${
+                        isChecked ? "bg-orange-50 text-slate-900 font-medium shadow-2xs border border-orange-200" : "text-slate-400"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleTogglePackageFeature("elegant", f.id)}
+                        className="accent-[#F97316]"
+                      />
+                      <span className="truncate">{f.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -520,6 +876,54 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
                 Poin fitur di atas langsung dirender sebagai checklist pada kartu harga beranda dan dashboard.
               </p>
             </div>
+
+            {/* Saklar 10 Fitur Sistem Aktif (Ultimate) */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-slate-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F97316]" />
+                  <span>Fitur Sistem Aktif Paket Ultimate ({getPackageFeatures("ultimate").length}/10)</span>
+                </label>
+                <div className="flex gap-2 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_ultimate", JSON.stringify(ALL_FEATURES.map((f) => f.id)))}
+                    className="text-[#F97316] hover:underline"
+                  >
+                    Pilih Semua
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={() => handleChange("package_features_ultimate", JSON.stringify([]))}
+                    className="text-slate-500 hover:underline"
+                  >
+                    Kosongkan
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 p-2.5 rounded-lg border border-[#E2E8F0] bg-slate-50/70">
+                {ALL_FEATURES.map((f) => {
+                  const isChecked = getPackageFeatures("ultimate").includes(f.id);
+                  return (
+                    <label
+                      key={f.id}
+                      className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-[11px] ${
+                        isChecked ? "bg-white text-slate-800 font-medium shadow-2xs" : "text-slate-400"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleTogglePackageFeature("ultimate", f.id)}
+                        className="accent-[#F97316]"
+                      />
+                      <span className="truncate">{f.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -545,142 +949,199 @@ export const AdminPricingTab: React.FC<AdminPricingTabProps> = ({
             </span>
           </div>
 
-          {/* 3-Card Grid Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-stretch">
-            {/* 1. Preview Starter */}
-            <div className="rounded-xl bg-white border border-[#E2E8F0] p-4 flex flex-col justify-between shadow-xs">
-              <div className="space-y-3">
-                <div>
-                  {starterBadge && (
-                    <span className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1.5 py-0.5 rounded bg-slate-100">
-                      {starterBadge}
-                    </span>
-                  )}
-                  <h4 className="font-bold text-sm text-slate-900 leading-snug">{starterName}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{starterDesc}</p>
-                </div>
+          {/* Live Preview Display */}
+          {isSinglePromoMode ? (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-white border-2 border-[#F97316] p-6 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-orange-100/50 to-transparent rounded-bl-full pointer-events-none" />
 
-                <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs line-through text-slate-400 font-mono">
-                      Rp {starterOriginal.toLocaleString("id-ID")}
-                    </span>
-                    {calculateDiscount(starterPrice, starterOriginal) && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                        Hemat {calculateDiscount(starterPrice, starterOriginal)}%
+                <div className="space-y-4 relative z-10">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold tracking-wide uppercase">
+                    <Tag className="w-3 h-3 text-orange-600" />
+                    <span>{promoBadge}</span>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-900 leading-snug">{promoName}</h4>
+                    <p className="text-xs text-slate-500 mt-1">{promoDesc}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#E2E8F0] space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs line-through text-slate-400 font-mono">
+                        Rp {promoOriginal.toLocaleString("id-ID")}
                       </span>
-                    )}
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-slate-900 font-sans tracking-tight">
-                      Rp {starterPrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-medium">{starterPeriod}</p>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
-                  {starterFeaturesList.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className="leading-tight">{feat}</span>
+                      {calculateDiscount(promoPrice, promoOriginal) && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Hemat {calculateDiscount(promoPrice, promoOriginal)}%
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-sans tracking-tight">
+                        Rp {promoPrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-orange-600 font-semibold">{promoPeriod} • Akses Penuh Semua Fitur</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#E2E8F0]">
+                    <p className="text-xs font-bold text-slate-800 mb-2">Semua Fitur Terbuka:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600">
+                      {promoFeaturesList.map((feat, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                          <Check className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
+                          <span className="leading-snug">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <div className="w-full py-2.5 px-4 rounded-xl bg-orange-500 text-white font-bold text-xs text-center shadow-xs">
+                      Pilih Paket Promo &amp; Buat Undangan
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* 2. Preview Elegant */}
-            <div className="rounded-xl bg-white border-2 border-[#F97316] p-4 flex flex-col justify-between relative shadow-sm ring-1 ring-orange-100">
-              {elegantBadge && (
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-bold shadow-xs whitespace-nowrap">
-                  {elegantBadge}
-                </div>
-              )}
-
-              <div className="space-y-3 pt-1">
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900 leading-snug">{elegantName}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{elegantDesc}</p>
-                </div>
-
-                <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs line-through text-slate-400 font-mono">
-                      Rp {elegantOriginal.toLocaleString("id-ID")}
-                    </span>
-                    {calculateDiscount(elegantPrice, elegantOriginal) && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                        Hemat {calculateDiscount(elegantPrice, elegantOriginal)}%
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-stretch">
+              {/* 1. Preview Starter */}
+              <div className="rounded-xl bg-white border border-[#E2E8F0] p-4 flex flex-col justify-between shadow-xs">
+                <div className="space-y-3">
+                  <div>
+                    {starterBadge && (
+                      <span className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wider text-slate-500 px-1.5 py-0.5 rounded bg-slate-100">
+                        {starterBadge}
                       </span>
                     )}
+                    <h4 className="font-bold text-sm text-slate-900 leading-snug">{starterName}</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{starterDesc}</p>
                   </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-[#F97316] font-sans tracking-tight">
-                      Rp {elegantPrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-medium">{elegantPeriod}</p>
-                </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
-                  {elegantFeaturesList.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5" />
-                      <span className={`leading-tight ${idx === 0 ? "font-semibold text-slate-900" : ""}`}>
-                        {feat}
+                  <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs line-through text-slate-400 font-mono">
+                        Rp {starterOriginal.toLocaleString("id-ID")}
+                      </span>
+                      {calculateDiscount(starterPrice, starterOriginal) && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Hemat {calculateDiscount(starterPrice, starterOriginal)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-slate-900 font-sans tracking-tight">
+                        Rp {starterPrice.toLocaleString("id-ID")}
                       </span>
                     </div>
-                  ))}
+                    <p className="text-[10px] text-slate-500 font-medium">{starterPeriod}</p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
+                    {starterFeaturesList.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className="leading-tight">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Preview Elegant */}
+              <div className="rounded-xl bg-white border-2 border-[#F97316] p-4 flex flex-col justify-between relative shadow-sm ring-1 ring-orange-100">
+                {elegantBadge && (
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-bold shadow-xs whitespace-nowrap">
+                    {elegantBadge}
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 leading-snug">{elegantName}</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{elegantDesc}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs line-through text-slate-400 font-mono">
+                        Rp {elegantOriginal.toLocaleString("id-ID")}
+                      </span>
+                      {calculateDiscount(elegantPrice, elegantOriginal) && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Hemat {calculateDiscount(elegantPrice, elegantOriginal)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-[#F97316] font-sans tracking-tight">
+                        Rp {elegantPrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">{elegantPeriod}</p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
+                    {elegantFeaturesList.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-[#F97316] shrink-0 mt-0.5" />
+                        <span className={`leading-tight ${idx === 0 ? "font-semibold text-slate-900" : ""}`}>
+                          {feat}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Preview Ultimate */}
+              <div className="rounded-xl bg-white border border-[#E2E8F0] p-4 flex flex-col justify-between shadow-xs">
+                <div className="space-y-3">
+                  <div>
+                    {ultimateBadge && (
+                      <span className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wider text-purple-700 px-1.5 py-0.5 rounded bg-purple-50 border border-purple-200">
+                        {ultimateBadge}
+                      </span>
+                    )}
+                    <h4 className="font-bold text-sm text-slate-900 leading-snug">{ultimateName}</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{ultimateDesc}</p>
+                  </div>
+
+                  <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs line-through text-slate-400 font-mono">
+                        Rp {ultimateOriginal.toLocaleString("id-ID")}
+                      </span>
+                      {calculateDiscount(ultimatePrice, ultimateOriginal) && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Hemat {calculateDiscount(ultimatePrice, ultimateOriginal)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-slate-900 font-sans tracking-tight">
+                        Rp {ultimatePrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 font-medium">{ultimatePeriod}</p>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
+                    {ultimateFeaturesList.map((feat, idx) => (
+                      <div key={idx} className="flex items-start gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                        <span className={`leading-tight ${idx === 0 ? "font-semibold text-slate-900" : ""}`}>
+                          {feat}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* 3. Preview Ultimate */}
-            <div className="rounded-xl bg-white border border-[#E2E8F0] p-4 flex flex-col justify-between shadow-xs">
-              <div className="space-y-3">
-                <div>
-                  {ultimateBadge && (
-                    <span className="inline-block mb-1 text-[9px] font-bold uppercase tracking-wider text-purple-700 px-1.5 py-0.5 rounded bg-purple-50 border border-purple-200">
-                      {ultimateBadge}
-                    </span>
-                  )}
-                  <h4 className="font-bold text-sm text-slate-900 leading-snug">{ultimateName}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{ultimateDesc}</p>
-                </div>
-
-                <div className="pt-2 border-t border-[#E2E8F0] space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs line-through text-slate-400 font-mono">
-                      Rp {ultimateOriginal.toLocaleString("id-ID")}
-                    </span>
-                    {calculateDiscount(ultimatePrice, ultimateOriginal) && (
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                        Hemat {calculateDiscount(ultimatePrice, ultimateOriginal)}%
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-slate-900 font-sans tracking-tight">
-                      Rp {ultimatePrice.toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 font-medium">{ultimatePeriod}</p>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0] text-[11px] text-slate-600">
-                  {ultimateFeaturesList.map((feat, idx) => (
-                    <div key={idx} className="flex items-start gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                      <span className={`leading-tight ${idx === 0 ? "font-semibold text-slate-900" : ""}`}>
-                        {feat}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </form>

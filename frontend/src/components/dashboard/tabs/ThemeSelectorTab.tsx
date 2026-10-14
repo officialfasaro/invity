@@ -6,7 +6,8 @@ import {
   Check,
   ExternalLink,
   Lock,
-  Sparkles,
+  Palette,
+  ArrowRight,
 } from "lucide-react";
 import { THEME_LIST, ThemeId } from "@/types/wedding";
 
@@ -43,20 +44,15 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
       {(tier === "STARTER" || tier === "FREE") && (
         <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
+            <Palette className="w-4 h-4 text-[#F97316] shrink-0" />
             <span>
-              Anda saat ini menggunakan <strong>Paket Starter</strong> dengan akses tema Minimalist. Upgrade ke Paket Elegant atau Ultimate untuk membuka seluruh koleksi tema adat, floral, dan luxury.
+              Anda saat ini aktif menggunakan tema{" "}
+              <strong>
+                {THEME_LIST.find((t) => t.id === currentThemeId)?.name || "Botanical Tema 01"}
+              </strong>
+              .
             </span>
           </div>
-          {onUpgradeClick && (
-            <button
-              type="button"
-              onClick={onUpgradeClick}
-              className="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs shrink-0 transition-colors shadow-2xs"
-            >
-              Buka Semua Tema
-            </button>
-          )}
         </div>
       )}
 
@@ -64,7 +60,7 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {THEME_LIST.map((theme) => {
           const isSelected = currentThemeId === theme.id;
-          const isLockedForTier = (tier === "STARTER" || tier === "FREE") && theme.id !== "minimalist";
+          const isLockedForTier = false;
           const previewUrl = slug
             ? isSelected
               ? `/invitation/${slug}`
@@ -96,13 +92,16 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-black/20 to-transparent pointer-events-none" />
 
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-white font-semibold px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs border border-white/20">
+                  <span className="text-[10px] uppercase tracking-wider text-white font-semibold px-2 py-0.5 rounded-none bg-black/60 backdrop-blur-xs border border-white/20">
                     {theme.category}
                   </span>
-                  {isLockedForTier && (
-                    <span className="text-[10px] text-amber-200 font-semibold px-2 py-0.5 rounded-full bg-amber-950/80 backdrop-blur-xs border border-amber-500/40 flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-amber-300" />
-                      <span>Berbayar</span>
+                  {theme.tier === "PRO" ? (
+                    <span className="text-[10px] text-orange-200 font-semibold px-2 py-0.5 rounded-none bg-orange-950/80 backdrop-blur-xs border border-orange-500/40">
+                      PRO
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-emerald-200 font-semibold px-2 py-0.5 rounded-none bg-emerald-950/80 backdrop-blur-xs border border-emerald-500/40">
+                      FREE
                     </span>
                   )}
                 </div>
@@ -114,7 +113,7 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
                 </div>
 
                 {isSelected && (
-                  <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-[#F97316] text-white flex items-center justify-center shadow-xs z-10">
+                  <div className="absolute top-2.5 right-2.5 w-6 h-6 rounded-none bg-[#F97316] text-white flex items-center justify-center shadow-xs z-10">
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                 )}
@@ -150,11 +149,11 @@ export const ThemeSelectorTab: React.FC<ThemeSelectorTabProps> = ({
                     <button
                       type="button"
                       onClick={onUpgradeClick}
-                      className="py-2 px-2 rounded-lg text-xs font-semibold text-center flex items-center justify-center gap-1 transition-colors min-h-[40px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-xs"
+                      className="py-2 px-2 rounded-lg text-xs font-semibold text-center flex items-center justify-center gap-1 transition-colors min-h-[40px] bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs"
                       title="Upgrade paket untuk membuka tema ini"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
                       <span>Upgrade</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   ) : (
                     <button

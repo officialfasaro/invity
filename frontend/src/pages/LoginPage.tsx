@@ -14,6 +14,7 @@ import {
   Mail,
   User,
 } from "lucide-react";
+import PwaLoginInstallCard from "@/components/pwa/PwaLoginInstallCard";
 
 function GoogleIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
@@ -109,14 +110,20 @@ function LoginForm() {
         throw new Error(data.error || "Gagal masuk");
       }
 
+      let targetPath = "/dashboard";
       if (data.user?.role === "ADMIN") {
-        router.push("/admin");
+        targetPath = "/admin";
       } else if (data.user?.hasActivePackage) {
-        router.push(redirectTarget && redirectTarget !== "/login" ? redirectTarget : "/dashboard");
+        targetPath = redirectTarget && redirectTarget !== "/login" ? redirectTarget : "/dashboard";
+      } else if (
+        data.user?.latestTransaction &&
+        ["WAITING_VERIFICATION", "PENDING"].includes(data.user.latestTransaction.paymentStatus)
+      ) {
+        targetPath = `/payment-status?orderId=${data.user.latestTransaction.orderId}`;
       } else {
-        router.push("/order");
+        targetPath = "/order";
       }
-      router.refresh();
+      window.location.href = targetPath;
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Terjadi kesalahan");
     } finally {
@@ -141,20 +148,20 @@ function LoginForm() {
           href="/"
           className="text-xs font-bold text-slate-900 tracking-tight flex items-center gap-1.5 hover:opacity-80 transition-opacity"
         >
-          <div className="w-5 h-5 rounded-md bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-[10px] font-black shadow-2xs">
-            F
+          <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white text-[10px] font-black shadow-2xs">
+            I
           </div>
-          <span>Fasaro</span>
+          <span>Invity <span className="text-[10px] font-normal text-slate-500">by Fasaro</span></span>
         </Link>
       </div>
 
-      <div className="w-full p-8 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs">
+      <div className="w-full p-8 rounded-none bg-white border border-[#E2E8F0] shadow-xs">
         <div className="text-center mb-6">
-          <div className="inline-flex p-2.5 rounded-xl bg-orange-50 text-[#F97316] border border-orange-100 mb-3">
+          <div className="inline-flex p-2.5 rounded-full bg-orange-50 text-[#F97316] border border-orange-100 mb-3">
             <Heart className="w-5 h-5 fill-[#F97316]" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {isRegisterMode ? "Daftar Akun Baru" : "Masuk ke Fasaro"}
+            {isRegisterMode ? "Daftar Akun Baru" : "Masuk ke Invity"}
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {isRegisterMode
@@ -164,7 +171,7 @@ function LoginForm() {
         </div>
 
         {activeErrorMessage && (
-          <div className="mb-4 p-3.5 rounded-xl bg-rose-50 text-rose-700 text-xs border border-rose-200 space-y-2">
+          <div className="mb-4 p-3.5 rounded-none bg-rose-50 text-rose-700 text-xs border border-rose-200 space-y-2">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div className="flex-1 leading-relaxed">{activeErrorMessage}</div>
@@ -189,7 +196,7 @@ function LoginForm() {
         <div className="space-y-4">
           <a
             href={googleAuthHref}
-            className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors flex items-center justify-center gap-2.5 cursor-pointer no-underline"
+            className="w-full py-2.5 px-4 rounded-none text-xs font-semibold border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 shadow-2xs transition-colors flex items-center justify-center gap-2.5 cursor-pointer no-underline"
           >
             <GoogleIcon className="w-4 h-4" />
             <span>Lanjutkan dengan Akun Google</span>
@@ -219,7 +226,7 @@ function LoginForm() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Nama Anda..."
-                    className="w-full py-2.5 px-3.5 pl-10 rounded-lg text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
+                    className="w-full py-2.5 px-3.5 pl-10 rounded-none text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
                   />
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 </div>
@@ -239,7 +246,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setSelectedPlan("STARTER")}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-none border text-left transition-all cursor-pointer ${
                       selectedPlan === "STARTER"
                         ? "border-[#F97316] bg-orange-50/70 ring-1 ring-orange-300"
                         : "border-[#E2E8F0] hover:border-slate-300 bg-white"
@@ -253,7 +260,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setSelectedPlan("ELEGANT")}
-                    className={`p-2.5 rounded-xl border text-left transition-all relative cursor-pointer ${
+                    className={`p-2.5 rounded-none border text-left transition-all relative cursor-pointer ${
                       selectedPlan === "ELEGANT"
                         ? "border-[#F97316] bg-orange-50/70 ring-1 ring-orange-300"
                         : "border-[#E2E8F0] hover:border-slate-300 bg-white"
@@ -267,7 +274,7 @@ function LoginForm() {
                   <button
                     type="button"
                     onClick={() => setSelectedPlan("ULTIMATE")}
-                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-none border text-left transition-all cursor-pointer ${
                       selectedPlan === "ULTIMATE"
                         ? "border-[#F97316] bg-orange-50/70 ring-1 ring-orange-300"
                         : "border-[#E2E8F0] hover:border-slate-300 bg-white"
@@ -280,7 +287,7 @@ function LoginForm() {
                 </div>
 
                 {selectedPlan ? (
-                  <div className="p-2 rounded-lg bg-orange-50 border border-orange-200 text-slate-700 text-[11px] flex items-center justify-between">
+                  <div className="p-2 rounded-none bg-orange-50 border border-orange-200 text-slate-700 text-[11px] flex items-center justify-between">
                     <span>
                       Paket dipilih:{" "}
                       <strong className="text-[#F97316]">
@@ -316,7 +323,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
-                className="w-full py-2.5 px-3.5 pl-10 rounded-lg text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
+                className="w-full py-2.5 px-3.5 pl-10 rounded-none text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
               />
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
@@ -334,14 +341,14 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimal 6 karakter..."
-                className="w-full py-2.5 px-3.5 pl-10 pr-10 rounded-lg text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
+                className="w-full py-2.5 px-3.5 pl-10 pr-10 rounded-none text-sm border border-[#E2E8F0] bg-white text-slate-900 placeholder:text-slate-400 focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] focus:outline-none transition-colors"
               />
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded transition-colors"
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none p-1 rounded-none transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="w-4 h-4" />
@@ -355,7 +362,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-4 rounded-none text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             <span>
@@ -384,6 +391,9 @@ function LoginForm() {
         </div>
       </div>
 
+      {/* PWA Install Card khusus Pengantin */}
+      <PwaLoginInstallCard />
+
       {/* Footer Back Link */}
       <div className="text-center pt-1">
         <Link
@@ -391,7 +401,7 @@ function LoginForm() {
           className="text-[11px] text-slate-500 hover:text-[#F97316] inline-flex items-center gap-1.5 font-medium transition-colors"
         >
           <Home className="w-3.5 h-3.5" />
-          <span>Ke Beranda Utama Fasaro</span>
+          <span>Ke Beranda Utama Invity</span>
         </Link>
       </div>
     </div>

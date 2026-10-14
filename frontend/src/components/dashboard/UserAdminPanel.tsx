@@ -11,10 +11,12 @@ import {
   Lock,
   Palette,
   Save,
-  Sparkles,
   UserCheck,
   Users,
+  Heart,
   X,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import MobileTopBar from "./MobileTopBar";
 import MobileBottomNav, { AdminTabId } from "./MobileBottomNav";
@@ -23,6 +25,7 @@ import ThemeSelectorTab from "./tabs/ThemeSelectorTab";
 import GuestBookTab, { GuestItem } from "./tabs/GuestBookTab";
 import RsvpRecapTab, { RsvpRecapData, WishItem } from "./tabs/RsvpRecapTab";
 import BillingUpgradeTab from "./tabs/BillingUpgradeTab";
+import TestimonialTab from "./tabs/TestimonialTab";
 import { ThemeId } from "@/types/wedding";
 
 export default function UserAdminPanel() {
@@ -50,7 +53,7 @@ export default function UserAdminPanel() {
   const [invitationId, setInvitationId] = useState<string>("");
   const [title, setTitle] = useState("Pernikahan Mempelai");
   const [slug, setSlug] = useState("mempelai");
-  const [themeId, setThemeId] = useState<ThemeId>("minimalist");
+  const [themeId, setThemeId] = useState<ThemeId>("botanical");
   const [isActive, setIsActive] = useState(true);
   const [tier, setTier] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState<boolean>(false);
@@ -72,6 +75,11 @@ export default function UserAdminPanel() {
   const [greetingMessage, setGreetingMessage] = useState("");
   const [desktopCoverImage, setDesktopCoverImage] = useState("");
   const [useVideoAsDesktopCover, setUseVideoAsDesktopCover] = useState(false);
+  const [giftAddress, setGiftAddress] = useState("");
+  const [giftReceiver, setGiftReceiver] = useState("");
+  const [giftPhone, setGiftPhone] = useState("");
+  const [backgroundImage, setBackgroundImage] = useState("");
+  const [floralOrnament, setFloralOrnament] = useState("gold");
 
   // Schedules
   const [schedules, setSchedules] = useState<
@@ -91,7 +99,7 @@ export default function UserAdminPanel() {
   const [galleries, setGalleries] = useState<
     Array<{ imageUrl: string; caption: string; sortOrder: number }>
   >([]);
-  const [musicUrl, setMusicUrl] = useState<string>("");
+  const [musicUrl, setMusicUrl] = useState<string>("/music/wedding-romance.mp3");
   const [youtubeVideoUrl, setYoutubeVideoUrl] = useState<string>("");
 
   // Bank Accounts
@@ -143,7 +151,7 @@ export default function UserAdminPanel() {
           setInvitationId(data.id || "");
           setTitle(data.title || "Pernikahan Mempelai");
           setSlug(data.slug || "mempelai");
-          setThemeId((data.themeId as ThemeId) || "minimalist");
+          setThemeId((data.themeId as ThemeId) || "botanical");
           setIsActive(data.isActive !== undefined ? data.isActive : true);
           const incomingTier = (data.tier as string) || null;
           setTier(incomingTier);
@@ -170,9 +178,14 @@ export default function UserAdminPanel() {
           setGreetingMessage(c.greetingMessage || "");
           setDesktopCoverImage(c.desktopCoverImage || "");
           setUseVideoAsDesktopCover(Boolean(c.useVideoAsDesktopCover));
+          setGiftAddress((c.giftAddress as string) || "");
+          setGiftReceiver((c.giftReceiver as string) || "");
+          setGiftPhone((c.giftPhone as string) || "");
+          setBackgroundImage((c.backgroundImage as string) || "");
+          setFloralOrnament((c.floralOrnament as string) || "gold");
           setStories(Array.isArray(c.stories) ? c.stories : []);
 
-          setMusicUrl(data.musicUrl || c.musicUrl || "");
+          setMusicUrl(data.musicUrl || c.musicUrl || "/music/wedding-romance.mp3");
           setYoutubeVideoUrl(data.youtubeVideoUrl || c.youtubeVideoUrl || "");
 
           if (Array.isArray(data.eventSchedules)) {
@@ -316,6 +329,11 @@ export default function UserAdminPanel() {
         greetingMessage: greetingMessage || undefined,
         desktopCoverImage: desktopCoverImage || undefined,
         useVideoAsDesktopCover: Boolean(useVideoAsDesktopCover),
+        giftAddress: giftAddress || undefined,
+        giftReceiver: giftReceiver || undefined,
+        giftPhone: giftPhone || undefined,
+        backgroundImage: backgroundImage || undefined,
+        floralOrnament: floralOrnament || "gold",
         stories:
           stories.length > 0
             ? stories.map((s) => ({
@@ -560,11 +578,10 @@ export default function UserAdminPanel() {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/login");
-      router.refresh();
     } catch {
-      router.push("/login");
+      // ignore
     }
+    window.location.href = "/login";
   };
 
   const desktopTabs = [
@@ -572,6 +589,7 @@ export default function UserAdminPanel() {
     { id: "theme" as const, label: "Pilihan Tema", icon: Palette },
     { id: "guests" as const, label: `Buku Tamu (${guests.length})`, icon: Users },
     { id: "rsvp" as const, label: "Rekap RSVP", icon: UserCheck },
+    { id: "testimonial" as const, label: "Beri Testimoni", icon: Heart },
     { id: "billing" as const, label: "Langganan & Paket", icon: CreditCard },
   ];
 
@@ -597,7 +615,7 @@ export default function UserAdminPanel() {
         {tier && !isPaid && (
           <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
+              <CreditCard className="w-4 h-4 text-[#F97316] shrink-0" />
               <span>
                 Paket Anda: <strong className="text-amber-950">Paket {tier} (Menunggu Pembayaran)</strong>. Selesaikan pembayaran untuk mengaktifkan seluruh fitur dan masa aktif undangan.
               </span>
@@ -642,7 +660,7 @@ export default function UserAdminPanel() {
           <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4" />
+                <Zap className="w-4 h-4" />
               </div>
               <div>
                 <div className="font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
@@ -663,8 +681,8 @@ export default function UserAdminPanel() {
               onClick={() => setActiveTab("billing")}
               className="self-start sm:self-auto inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
               <span>Upgrade Paket</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         )}
@@ -770,6 +788,16 @@ export default function UserAdminPanel() {
             setYoutubeVideoUrl={setYoutubeVideoUrl}
             bankAccounts={bankAccounts}
             setBankAccounts={setBankAccounts}
+            giftAddress={giftAddress}
+            setGiftAddress={setGiftAddress}
+            giftReceiver={giftReceiver}
+            setGiftReceiver={setGiftReceiver}
+            giftPhone={giftPhone}
+            setGiftPhone={setGiftPhone}
+            backgroundImage={backgroundImage}
+            setBackgroundImage={setBackgroundImage}
+            floralOrnament={floralOrnament}
+            setFloralOrnament={setFloralOrnament}
             stories={stories}
             setStories={setStories}
             onSave={handleSaveInvitation}
@@ -792,10 +820,10 @@ export default function UserAdminPanel() {
                 setActiveTab("billing");
                 return;
               }
-              if ((tier === "STARTER" || tier === "FREE") && newThemeId !== "minimalist" && !isAdmin) {
+              if ((tier === "STARTER" || tier === "FREE") && newThemeId !== "botanical" && !isAdmin) {
                 setNotification({
                   type: "error",
-                  message: "Paket Starter hanya dapat menggunakan 1 pilihan tema (Clean Minimalist). Silakan upgrade ke Paket Elegant atau Ultimate untuk membuka seluruh koleksi tema.",
+                  message: "Paket Starter hanya dapat menggunakan tema Botanical Tema 01.",
                 });
                 setActiveTab("billing");
                 return;
@@ -861,6 +889,29 @@ export default function UserAdminPanel() {
             rsvpRecap={rsvpRecap}
             wishes={wishes}
             isLoading={isLoading}
+          />
+        )}
+
+        {activeTab === "testimonial" && (
+          <TestimonialTab
+            groomNickname={groomNickname}
+            brideNickname={brideNickname}
+            defaultDate={
+              schedules[0]?.date
+                ? new Date(schedules[0].date).toLocaleDateString("id-ID", {
+                    month: "long",
+                    year: "numeric",
+                  })
+                : "2026"
+            }
+            defaultCity={
+              schedules[0]?.address
+                ? schedules[0].address.split(",").slice(-2)[0]?.trim() || "Indonesia"
+                : "Indonesia"
+            }
+            onSuccessNotification={(msg) =>
+              setNotification({ type: "success", message: msg })
+            }
           />
         )}
 

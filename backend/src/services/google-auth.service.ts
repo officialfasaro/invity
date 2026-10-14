@@ -33,7 +33,7 @@ export function getBaseUrl(requestUrl?: string): string {
       // Fallback below
     }
   }
-  return "http://localhost:3000";
+  return "http://localhost:3001";
 }
 
 export function generateOAuthState(): string {

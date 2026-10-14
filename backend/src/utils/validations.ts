@@ -95,6 +95,19 @@ export const coupleInfoSchema = z.object({
     .nullable()
     .or(z.literal("")),
   useVideoAsDesktopCover: z.boolean().optional().nullable(),
+  backgroundImage: z
+    .string()
+    .refine(
+      (val) => !val || val.startsWith("/") || /^https?:\/\//.test(val) || val.startsWith("data:"),
+      "Format URL atau file background tidak valid"
+    )
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  floralOrnament: z.string().max(50).optional().nullable(),
+  giftAddress: z.string().max(500).optional().nullable(),
+  giftReceiver: z.string().max(100).optional().nullable(),
+  giftPhone: z.string().max(50).optional().nullable(),
   stories: z
     .array(
       z.object({
@@ -112,6 +125,12 @@ export const coupleInfoSchema = z.object({
           .or(z.literal("")),
       })
     )
+    .optional()
+    .nullable(),
+  receptionPin: z
+    .string()
+    .min(4, "PIN Meja Tamu minimal 4 karakter")
+    .max(12, "PIN Meja Tamu maksimal 12 karakter")
     .optional()
     .nullable(),
 });

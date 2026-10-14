@@ -5,11 +5,12 @@ import {
   CreditCard,
   Edit3,
   Palette,
+  Heart,
   UserCheck,
   Users,
 } from "lucide-react";
 
-export type AdminTabId = "editor" | "theme" | "guests" | "rsvp" | "billing";
+export type AdminTabId = "editor" | "theme" | "guests" | "rsvp" | "testimonial" | "billing";
 
 interface MobileBottomNavProps {
   activeTab: AdminTabId;
@@ -34,6 +35,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: "theme", label: "Tema", icon: Palette },
     { id: "guests", label: "Tamu", icon: Users, badge: guestCount },
     { id: "rsvp", label: "RSVP", icon: UserCheck, badge: rsvpCount },
+    { id: "testimonial", label: "Testimoni", icon: Heart },
     { id: "billing", label: "Paket", icon: CreditCard },
   ];
 
@@ -57,7 +59,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             <div className="relative">
               <Icon className={`w-5 h-5 transition-transform ${isActive ? "scale-110" : ""}`} />
               {typeof tab.badge === "number" && tab.badge > 0 && (
-                <span className="absolute -top-1 -right-2.5 px-1 min-w-[14px] h-[14px] rounded-full bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-2.5 px-1 min-w-[14px] h-[14px] rounded-none bg-[#F97316] text-white text-[9px] font-bold flex items-center justify-center">
                   {tab.badge > 99 ? "99+" : tab.badge}
                 </span>
               )}

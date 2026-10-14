@@ -141,7 +141,7 @@ export const AdminGatewayTab: React.FC<AdminGatewayTabProps> = ({
                 <span>Hanya Transfer Manual</span>
               </h3>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Paling cocok untuk saat ini. Menampilkan rekening Bank &amp; QRIS resmi Fasaro. Klien transfer lalu konfirmasi bukti via WhatsApp atau upload bukti.
+                Paling cocok untuk saat ini. Menampilkan rekening Bank &amp; QRIS resmi Invity by Fasaro. Klien transfer lalu konfirmasi bukti via WhatsApp atau upload bukti.
               </p>
             </div>
           </div>
@@ -296,11 +296,11 @@ export const AdminGatewayTab: React.FC<AdminGatewayTabProps> = ({
         {/* Direct Upload QRIS Image */}
         <div className="pt-2 border-t border-[#E2E8F0]">
           <ImageUploadField
-            label="Unggah Gambar Kode QRIS Resmi Fasaro"
+            label="Unggah Gambar Kode QRIS Resmi Invity by Fasaro"
             value={formData.manual_qris_image_url || ""}
             onChange={(url) => handleChange("manual_qris_image_url", url)}
             folder="qris"
-            helperText="Unggah gambar QRIS statis toko Fasaro. Pengguna tinggal scan kode QRIS ini menggunakan GoPay, OVO, Dana, ShopeePay, atau BCA Mobile."
+            helperText="Unggah gambar QRIS statis toko Invity. Pengguna tinggal scan kode QRIS ini menggunakan GoPay, OVO, Dana, ShopeePay, atau BCA Mobile."
           />
         </div>
       </div>

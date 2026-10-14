@@ -5,20 +5,17 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import {
   AlertCircle,
-  Camera,
   Check,
   CheckCircle2,
   Edit2,
   ExternalLink,
   LogIn,
   Plus,
-  QrCode,
   RefreshCw,
   Search,
   Trash2,
   X,
 } from "lucide-react";
-import GuestReceptionScannerModal from "@/components/dashboard/GuestReceptionScannerModal";
 import { AdminCmsContentTab, SettingItem } from "@/components/admin/tabs/AdminCmsContentTab";
 import { AdminPricingTab } from "@/components/admin/tabs/AdminPricingTab";
 import { AdminMaintenanceModeTab } from "@/components/admin/tabs/AdminMaintenanceModeTab";
@@ -31,12 +28,12 @@ import {
   TransactionItem,
 } from "@/components/admin/tabs/AdminOverviewTab";
 import { AdminUserRolesTab } from "@/components/admin/tabs/AdminUserRolesTab";
+import { ALL_FEATURES } from "@/types/wedding";
 
 export type AdminTab =
   | "overview"
   | "clients"
   | "themes"
-  | "scanner"
   | "cms"
   | "pricing"
   | "maintenance"
@@ -85,6 +82,7 @@ interface ThemeItem {
   previewUrl: string | null;
   isActive: boolean;
   isPremium: boolean;
+  features?: string[];
 }
 
 function MasterAdminContent() {
@@ -116,25 +114,33 @@ function MasterAdminContent() {
 
   // Client Edit Modal
   const [editingClient, setEditingClient] = useState<ClientData | null>(null);
-  const [editTier, setEditTier] = useState("STARTER");
+  const [editTier, setEditTier] = useState("ELEGANT");
   const [editAddDays, setEditAddDays] = useState(0);
+  const [editIsLifetime, setEditIsLifetime] = useState(false);
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editCustomDays, setEditCustomDays] = useState<string>("");
+  const [isSavingClient, setIsSavingClient] = useState(false);
 
   // Theme Add/Edit Modal
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
-  const [themeForm, setThemeForm] = useState({
+  const [themeForm, setThemeForm] = useState<{
+    themeKey: string;
+    name: string;
+    category: string;
+    thumbnail: string;
+    isPremium: boolean;
+    isActive: boolean;
+    features: string[];
+  }>({
     themeKey: "",
     name: "",
     category: "Modern Chic",
     thumbnail: "",
     isPremium: false,
     isActive: true,
+    features: ALL_FEATURES.map((f) => f.id),
   });
-
-  // Scanner Tab State
-  const [selectedScannerClientId, setSelectedScannerClientId] = useState<string>("");
-  const [isScannerModalOpen, setIsScannerModalOpen] = useState<boolean>(false);
 
   // Notification / Feedback
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -211,15 +217,21 @@ function MasterAdminContent() {
 
   // Save Client Edit
   const handleSaveClientEdit = async () => {
-    if (!editingClient?.invitation?.id) return;
+    if (!editingClient) return;
+    setIsSavingClient(true);
     try {
+      const parsedCustom = editCustomDays ? parseInt(editCustomDays, 10) : NaN;
+      const days = !isNaN(parsedCustom) ? parsedCustom : editAddDays;
+
       const res = await fetch("/api/admin/clients", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          invitationId: editingClient.invitation.id,
+          userId: editingClient.id,
+          invitationId: editingClient.invitation?.id,
           tier: editTier,
-          addDays: editAddDays,
+          addDays: editIsLifetime ? 36500 : days,
+          isLifetime: editIsLifetime,
           isActive: editIsActive,
         }),
       });
@@ -227,7 +239,7 @@ function MasterAdminContent() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal memperbarui klien");
 
-      setFeedback({ type: "success", msg: "Data klien berhasil diperbarui!" });
+      setFeedback({ type: "success", msg: "Hak akses dan paket langganan berhasil diperbarui!" });
       setEditingClient(null);
       fetchAllData();
     } catch (err) {
@@ -235,6 +247,8 @@ function MasterAdminContent() {
         type: "error",
         msg: err instanceof Error ? err.message : "Gagal memperbarui klien",
       });
+    } finally {
+      setIsSavingClient(false);
     }
   };
 
@@ -268,6 +282,7 @@ function MasterAdminContent() {
         thumbnail: "",
         isPremium: false,
         isActive: true,
+        features: ALL_FEATURES.map((f) => f.id),
       });
       fetchAllData();
     } catch (err) {
@@ -351,13 +366,15 @@ function MasterAdminContent() {
 
   // Filter clients
   const filteredClients = clients.filter((c) => {
+    const slug = c.invitation?.slug || "";
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.invitation?.slug.toLowerCase().includes(searchQuery.toLowerCase());
+      slug.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
     if (statusFilter === "ALL") return true;
+    if (statusFilter === "NO_INVITATION") return !c.invitation;
     return c.invitation?.status === statusFilter;
   });
 
@@ -392,8 +409,13 @@ function MasterAdminContent() {
           metrics={metrics}
           analytics={salesAnalytics}
           transactions={transactions}
+          clients={clients}
           isLoading={isLoading}
           onRefresh={() => void fetchAllData(true)}
+          onNavigateTab={(tab, filter) => {
+            setActiveTab(tab as AdminTab);
+            if (filter) setStatusFilter(filter);
+          }}
         />
       )}
 
@@ -431,6 +453,41 @@ function MasterAdminContent() {
       {/* TAB 1: MANAJEMEN KLIEN */}
       {activeTab === "clients" && (
         <div className="space-y-4">
+          {/* Quick Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+            <button
+              onClick={() => setStatusFilter("ALL")}
+              className={`px-3 py-1.5 rounded-lg border font-medium transition-all cursor-pointer ${
+                statusFilter === "ALL"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                  : "bg-white text-slate-600 border-[#E2E8F0] hover:bg-slate-50"
+              }`}
+            >
+              Semua Klien ({clients.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("ACTIVE")}
+              className={`px-3 py-1.5 rounded-lg border font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "ACTIVE"
+                  ? "bg-[#F97316] text-white border-[#F97316] shadow-2xs"
+                  : "bg-white text-slate-600 border-[#E2E8F0] hover:bg-slate-50"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${statusFilter === "ACTIVE" ? "bg-white" : "bg-emerald-500"}`}></span>
+              <span>Undangan Aktif ({clients.filter((c) => c.invitation?.status === "ACTIVE").length})</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter("NO_INVITATION")}
+              className={`px-3 py-1.5 rounded-lg border font-medium transition-all cursor-pointer ${
+                statusFilter === "NO_INVITATION"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                  : "bg-white text-slate-600 border-[#E2E8F0] hover:bg-slate-50"
+              }`}
+            >
+              Belum Buat Undangan ({clients.filter((c) => !c.invitation).length})
+            </button>
+          </div>
+
           {/* Controls: Search & Filter */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="relative w-full sm:w-80">
@@ -449,13 +506,13 @@ function MasterAdminContent() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="py-2 px-3 rounded-lg bg-white border border-[#E2E8F0] text-xs text-slate-700 focus:outline-none focus:border-[#F97316] shadow-xs"
+                className="py-2 px-3 rounded-lg bg-white border border-[#E2E8F0] text-xs text-slate-700 focus:outline-none focus:border-[#F97316] shadow-xs cursor-pointer"
               >
-                <option value="ALL">Semua Status</option>
-                <option value="ACTIVE">Aktif</option>
-                <option value="EXPIRED">Expired</option>
-                <option value="INACTIVE">Nonaktif</option>
-                <option value="NO_INVITATION">Belum Buat Undangan</option>
+                <option value="ALL">Semua Status ({clients.length})</option>
+                <option value="ACTIVE">Aktif &amp; Tayang ({clients.filter((c) => c.invitation?.status === "ACTIVE").length})</option>
+                <option value="EXPIRED">Expired ({clients.filter((c) => c.invitation?.status === "EXPIRED").length})</option>
+                <option value="INACTIVE">Nonaktif ({clients.filter((c) => c.invitation?.status === "INACTIVE").length})</option>
+                <option value="NO_INVITATION">Belum Buat Undangan ({clients.filter((c) => !c.invitation).length})</option>
               </select>
             </div>
           </div>
@@ -514,25 +571,45 @@ function MasterAdminContent() {
                                   inv.tier === "ULTIMATE"
                                     ? "bg-orange-50 text-[#F97316] border border-orange-200"
                                     : inv.tier === "ELEGANT"
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    : inv.tier === "STARTER"
                                     ? "bg-slate-100 text-slate-700 border border-[#E2E8F0]"
-                                    : "bg-slate-50 text-slate-600 border border-[#E2E8F0]"
+                                    : inv.tier === "FREE"
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-slate-50 text-slate-500 border border-[#E2E8F0]"
                                 }`}
                               >
                                 {inv.tier}
                               </span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-slate-400 text-[10px]">Belum Ada Undangan</span>
                             )}
                           </td>
 
                           <td className="py-3.5 px-4 text-[11px] text-slate-500">
-                            {inv?.activeUntil
-                              ? new Date(inv.activeUntil).toLocaleDateString("id-ID", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })
-                              : "Selamanya / Draft"}
+                            {(() => {
+                              if (!inv?.activeUntil) {
+                                return (
+                                  <span className="text-slate-400">
+                                    {inv?.status === "ACTIVE" ? "Aktif" : "Belum Berlangganan"}
+                                  </span>
+                                );
+                              }
+                              const d = new Date(inv.activeUntil);
+                              const now = new Date();
+                              if (d.getFullYear() - now.getFullYear() > 20) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 text-[10px]">
+                                    Selamanya (Lifetime)
+                                  </span>
+                                );
+                              }
+                              return d.toLocaleDateString("id-ID", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              });
+                            })()}
                           </td>
 
                           <td className="py-3.5 px-4">
@@ -554,20 +631,26 @@ function MasterAdminContent() {
                           </td>
 
                           <td className="py-3.5 px-4 text-right space-x-2">
-                            {inv && (
-                              <button
-                                onClick={() => {
-                                  setEditingClient(client);
-                                  setEditTier(inv.tier);
-                                  setEditIsActive(inv.isActive);
-                                  setEditAddDays(0);
-                                }}
-                                className="px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors shadow-xs"
-                                title="Edit Paket / Perpanjang"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                setEditingClient(client);
+                                const validTiers = ["FREE", "STARTER", "ELEGANT", "ULTIMATE"];
+                                const currentTier = inv?.tier;
+                                if (currentTier && validTiers.includes(currentTier)) {
+                                  setEditTier(currentTier);
+                                } else {
+                                  setEditTier("ELEGANT");
+                                }
+                                setEditIsActive(inv?.isActive ?? true);
+                                setEditAddDays(0);
+                                setEditIsLifetime(false);
+                                setEditCustomDays("");
+                              }}
+                              className="px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors shadow-xs"
+                              title={inv ? "Kelola Hak Akses & Paket" : "Beri Paket Langganan & Inisialisasi"}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
 
                             {client.role !== "ADMIN" && (
                               <button
@@ -608,6 +691,7 @@ function MasterAdminContent() {
                   thumbnail: "",
                   isPremium: false,
                   isActive: true,
+                  features: ALL_FEATURES.map((f) => f.id),
                 });
                 setIsThemeModalOpen(true);
               }}
@@ -651,7 +735,12 @@ function MasterAdminContent() {
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
                     <h3 className="font-sans font-semibold text-sm text-slate-900">{theme.name}</h3>
-                    <p className="text-xs font-mono text-slate-400 mt-0.5">Key: {theme.themeKey}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-mono text-slate-400">Key: {theme.themeKey}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
+                        {theme.features?.length ?? 10}/10 Fitur
+                      </span>
+                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-[#E2E8F0] flex items-center justify-between">
@@ -675,6 +764,7 @@ function MasterAdminContent() {
                             thumbnail: theme.thumbnail,
                             isPremium: theme.isPremium,
                             isActive: theme.isActive,
+                            features: theme.features || ALL_FEATURES.map((f) => f.id),
                           });
                           setIsThemeModalOpen(true);
                         }}
@@ -695,99 +785,6 @@ function MasterAdminContent() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* TAB SCANNER: SCANNER MEJA TAMU RESEPSI */}
-      {activeTab === "scanner" && (
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-xl border border-[#E2E8F0] shadow-xs">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center">
-                  <QrCode className="w-4 h-4" />
-                </div>
-                <h2 className="text-base font-bold text-slate-900">
-                  Meja Tamu Resepsi &amp; Scanner QR (Master Admin)
-                </h2>
-              </div>
-              <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-                Bantu pengantin dan wedding organizer (WO) memindai QR Code tiket tamu atau input slugCode langsung dari panel Master Admin.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-xs space-y-4">
-            <h3 className="font-bold text-sm text-slate-900">Pilih Acara Undangan Klien:</h3>
-            <div className="max-w-md">
-              <select
-                value={selectedScannerClientId}
-                onChange={(e) => setSelectedScannerClientId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] focus:ring-1 focus:ring-[#F97316] outline-none shadow-xs"
-              >
-                <option value="">-- Pilih Undangan Klien --</option>
-                {clients
-                  .filter((c) => c.invitation)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.invitation?.title} (fasaro.id/{c.invitation?.slug}) — {c.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {(() => {
-              const activeClient = clients.find((c) => c.id === selectedScannerClientId);
-              if (!activeClient || !activeClient.invitation) {
-                return (
-                  <div className="p-8 text-center border-2 border-dashed border-[#E2E8F0] rounded-xl space-y-2">
-                    <QrCode className="w-8 h-8 text-slate-300 mx-auto" />
-                    <p className="text-xs text-slate-500">
-                      Silakan pilih salah satu acara pernikahan klien di atas untuk memulai scanner meja tamu.
-                    </p>
-                  </div>
-                );
-              }
-
-              return (
-                <div className="p-5 rounded-xl bg-orange-50/50 border border-orange-200 space-y-4 animate-in fade-in">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#F97316]">
-                        Acara Terpilih
-                      </span>
-                      <h4 className="font-bold text-base text-slate-900">
-                        {activeClient.invitation.title}
-                      </h4>
-                      <p className="text-xs font-mono text-slate-600 mt-0.5">
-                        Tautan: fasaro.id/{activeClient.invitation.slug} • Klien: {activeClient.name}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsScannerModalOpen(true)}
-                      className="inline-flex items-center gap-2 py-2.5 px-4 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-bold shadow-xs transition-colors cursor-pointer shrink-0"
-                    >
-                      <Camera className="w-4 h-4" />
-                      <span>Buka Scanner Kamera Live</span>
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-slate-600">
-                    Klik tombol di atas untuk membuka layar kamera pemindai tamu real-time dengan counter statistik kehadiran (Pax).
-                  </p>
-
-                  <GuestReceptionScannerModal
-                    isOpen={isScannerModalOpen}
-                    onClose={() => setIsScannerModalOpen(false)}
-                    invitationSlug={activeClient.invitation.slug}
-                    weddingTitle={activeClient.invitation.title}
-                  />
-                </div>
-              );
-            })()}
           </div>
         </div>
       )}
@@ -853,63 +850,195 @@ function MasterAdminContent() {
         />
       )}
 
-      {/* MODAL: EDIT CLIENT / EXTEND VALIDITY */}
+      {/* MODAL: EDIT CLIENT / GRANT ACCESS & SUBSCRIPTION */}
       {editingClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-xl bg-white border border-[#E2E8F0] p-6 space-y-5 shadow-xl">
-            <div className="flex items-center justify-between">
+          <div className="w-full max-w-lg rounded-xl bg-white border border-[#E2E8F0] p-6 space-y-5 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
               <div>
-                <h3 className="font-sans font-bold text-base text-slate-900">Edit Paket &amp; Masa Aktif</h3>
-                <p className="text-xs text-slate-500">{editingClient.name} ({editingClient.email})</p>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-sans font-bold text-base text-slate-900">Kelola Langganan &amp; Hak Akses</h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-[#F97316] border border-orange-200">
+                    Super Admin Override
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {editingClient.name} &bull; {editingClient.email}
+                </p>
               </div>
-              <button onClick={() => setEditingClient(null)} className="p-1 text-slate-400 hover:text-slate-600">
+              <button
+                onClick={() => setEditingClient(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              {/* Tier Selection */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-slate-700">Tingkat Paket Langganan:</label>
-                <select
-                  value={editTier}
-                  onChange={(e) => setEditTier(e.target.value)}
-                  className="w-full py-2 px-3 rounded-lg bg-white border border-[#E2E8F0] text-slate-800 focus:outline-none focus:border-[#F97316]"
-                >
-                  <option value="STARTER">Starter (Rp 39.000)</option>
-                  <option value="ELEGANT">Elegant (Rp 149.000)</option>
-                  <option value="ULTIMATE">Ultimate (Rp 279.000)</option>
-                </select>
-              </div>
-
-              {/* Add Validity Days */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-slate-700">Perpanjang Masa Aktif:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: "Tetap (0 Hari)", days: 0 },
-                    { label: "+30 Hari", days: 30 },
-                    { label: "+365 Hari (1 Tahun)", days: 365 },
-                  ].map((btn) => (
-                    <button
-                      key={btn.days}
-                      type="button"
-                      onClick={() => setEditAddDays(btn.days)}
-                      className={`py-2 rounded-lg text-center font-medium border text-xs transition-colors ${
-                        editAddDays === btn.days
-                          ? "bg-orange-50 text-[#F97316] border-[#F97316]"
-                          : "bg-white border-[#E2E8F0] text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
+              {/* Status Saat Ini */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-[#E2E8F0] grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Paket Saat Ini</span>
+                  <span className="font-bold text-slate-800 text-[11px]">
+                    {editingClient.invitation?.tier || "Belum Ada"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Status Undangan</span>
+                  <span className={`font-bold text-[11px] ${editingClient.invitation?.status === "ACTIVE" ? "text-emerald-600" : "text-slate-600"}`}>
+                    {editingClient.invitation?.status || "NO_INVITATION"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Masa Aktif</span>
+                  <span className="font-semibold text-slate-700 text-[11px]">
+                    {editingClient.invitation?.activeUntil
+                      ? new Date(editingClient.invitation.activeUntil).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Belum Ada"}
+                  </span>
                 </div>
               </div>
 
+              {/* Tier Selection */}
+              <div className="space-y-2">
+                <label className="font-semibold text-slate-800 flex items-center justify-between">
+                  <span>Pilih Paket Langganan:</span>
+                  <span className="text-[11px] font-normal text-slate-500">Bebas diberikan oleh Super Admin</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    {
+                      id: "ULTIMATE",
+                      name: "Ultimate (VIP)",
+                      price: "Rp 279.000",
+                      badge: "Fitur Lengkap",
+                      desc: "Tamu tak terbatas & semua tema",
+                    },
+                    {
+                      id: "ELEGANT",
+                      name: "Elegant",
+                      price: "Rp 149.000",
+                      badge: "Populer",
+                      desc: "Musik, galeri, RSVP & story",
+                    },
+                    {
+                      id: "STARTER",
+                      name: "Starter",
+                      price: "Rp 39.000",
+                      badge: "Esensial",
+                      desc: "Undangan dasar standar",
+                    },
+                    {
+                      id: "FREE",
+                      name: "Free / Trial",
+                      price: "Rp 0",
+                      badge: "Trial",
+                      desc: "Akses uji coba gratis",
+                    },
+                  ].map((pkg) => (
+                    <button
+                      key={pkg.id}
+                      type="button"
+                      onClick={() => setEditTier(pkg.id)}
+                      className={`p-2.5 rounded-lg border text-left transition-all relative ${
+                        editTier === pkg.id
+                          ? "border-[#F97316] bg-orange-50/50 shadow-xs"
+                          : "border-[#E2E8F0] bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">{pkg.name}</span>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] text-slate-600">
+                          {pkg.badge}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 line-through mt-0.5">{pkg.price}</div>
+                      <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">Gratis (Super Admin Override)</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Reset Option */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditTier("RESET")}
+                    className={`w-full py-1.5 px-3 rounded-lg border text-xs font-medium transition-colors text-center ${
+                      editTier === "RESET"
+                        ? "bg-rose-50 border-rose-300 text-rose-700 font-bold"
+                        : "bg-white border-[#E2E8F0] text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Cabut / Reset Paket (Kembalikan ke Belum Berlangganan)
+                  </button>
+                </div>
+              </div>
+
+              {/* Add Validity Days / Lifetime */}
+              {editTier !== "RESET" && (
+                <div className="space-y-2">
+                  <label className="font-semibold text-slate-800 flex items-center justify-between">
+                    <span>Masa Aktif Undangan:</span>
+                    <span className="text-[11px] font-normal text-slate-500">Tentukan masa berlaku</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "Tetap (0 Hari)", days: 0, isLife: false },
+                      { label: "+30 Hari", days: 30, isLife: false },
+                      { label: "+90 Hari", days: 90, isLife: false },
+                      { label: "+365 Hari (1 Thn)", days: 365, isLife: false },
+                      { label: "👑 Selamanya (Lifetime)", days: 36500, isLife: true },
+                    ].map((btn) => {
+                      const isSelected = btn.isLife ? editIsLifetime : (!editIsLifetime && editAddDays === btn.days && !editCustomDays);
+                      return (
+                        <button
+                          key={btn.label}
+                          type="button"
+                          onClick={() => {
+                            setEditIsLifetime(btn.isLife);
+                            setEditAddDays(btn.days);
+                            setEditCustomDays("");
+                          }}
+                          className={`py-2 px-2 rounded-lg text-center font-medium border text-xs transition-colors ${
+                            isSelected
+                              ? "bg-orange-50 text-[#F97316] border-[#F97316] font-bold"
+                              : "bg-white border-[#E2E8F0] text-slate-600 hover:bg-slate-50"
+                          } ${btn.isLife ? "col-span-2" : ""}`}
+                        >
+                          {btn.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Days Input */}
+                  {!editIsLifetime && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-slate-500 text-[11px] whitespace-nowrap">Atau tambah kustom hari:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Contoh: 60"
+                        value={editCustomDays}
+                        onChange={(e) => {
+                          setEditCustomDays(e.target.value);
+                          setEditIsLifetime(false);
+                        }}
+                        className="w-24 py-1 px-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-800 text-xs focus:outline-none focus:border-[#F97316]"
+                      />
+                      <span className="text-slate-500 text-[11px]">hari tambahan</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Status Toggle */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-slate-700">Status Undangan:</label>
+              <div className="space-y-1.5 pt-1">
+                <label className="font-semibold text-slate-800">Status Undangan:</label>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer text-slate-700">
                     <input
@@ -917,8 +1046,9 @@ function MasterAdminContent() {
                       name="isActive"
                       checked={editIsActive}
                       onChange={() => setEditIsActive(true)}
+                      className="accent-[#F97316]"
                     />
-                    <span>Aktif</span>
+                    <span>Aktif &amp; Terbuka untuk Tamu</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer text-slate-700">
                     <input
@@ -926,28 +1056,36 @@ function MasterAdminContent() {
                       name="isActive"
                       checked={!editIsActive}
                       onChange={() => setEditIsActive(false)}
+                      className="accent-[#F97316]"
                     />
-                    <span>Nonaktifkan</span>
+                    <span>Nonaktifkan (Tutup Sementara)</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-[#E2E8F0] flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setEditingClient(null)}
-                className="px-4 py-2 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveClientEdit}
-                className="px-4 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs"
-              >
-                Simpan Perubahan
-              </button>
+            <div className="pt-4 border-t border-[#E2E8F0] flex items-center justify-between">
+              <p className="text-[11px] text-slate-400">
+                Akses diberikan gratis instan oleh Super Admin.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  disabled={isSavingClient}
+                  className="px-4 py-2 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveClientEdit}
+                  disabled={isSavingClient}
+                  className="px-4 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5"
+                >
+                  {isSavingClient ? "Menyimpan..." : "Simpan Hak Akses"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1006,10 +1144,11 @@ function MasterAdminContent() {
                   onChange={(e) => setThemeForm({ ...themeForm, category: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-white border border-[#E2E8F0] text-slate-800 focus:outline-none focus:border-[#F97316]"
                 >
-                  <option value="Minimalist">Minimalist</option>
-                  <option value="Floral & Rustic">Floral &amp; Rustic</option>
-                  <option value="Syar'i & Adat">Syar&apos;i &amp; Adat</option>
-                  <option value="Luxury Dark Gold">Luxury Dark Gold</option>
+                  <option value="Botanical">Botanical</option>
+                  <option value="Editorial">Editorial</option>
+                  <option value="Gothic">Gothic</option>
+                  <option value="Royal">Royal</option>
+                  <option value="3D">3D</option>
                   <option value="Modern Chic">Modern Chic</option>
                 </select>
               </div>
@@ -1046,6 +1185,66 @@ function MasterAdminContent() {
                   />
                   <span>Aktif di Katalog</span>
                 </label>
+              </div>
+
+              {/* Checklist 10 Fitur Tema */}
+              <div className="space-y-1.5 pt-2 border-t border-[#E2E8F0]">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-700">
+                    Fitur Aktif Template ({themeForm.features?.length ?? 0}/10):
+                  </label>
+                  <div className="flex gap-2 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setThemeForm({
+                          ...themeForm,
+                          features: ALL_FEATURES.map((f) => f.id),
+                        })
+                      }
+                      className="text-[#F97316] hover:underline"
+                    >
+                      Pilih Semua
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setThemeForm({ ...themeForm, features: [] })}
+                      className="text-slate-500 hover:underline"
+                    >
+                      Kosongkan
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5 p-2 rounded-lg border border-[#E2E8F0] bg-slate-50 max-h-44 overflow-y-auto">
+                  {ALL_FEATURES.map((f) => {
+                    const isChecked = themeForm.features?.includes(f.id);
+                    return (
+                      <label
+                        key={f.id}
+                        className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors text-[11px] ${
+                          isChecked
+                            ? "bg-white text-slate-800 font-medium shadow-2xs"
+                            : "text-slate-400"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const cur = themeForm.features || [];
+                            const next = e.target.checked
+                              ? [...cur, f.id]
+                              : cur.filter((id) => id !== f.id);
+                            setThemeForm({ ...themeForm, features: next });
+                          }}
+                          className="accent-[#F97316]"
+                        />
+                        <span className="truncate">{f.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

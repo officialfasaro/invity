@@ -1,0 +1,302 @@
+<!DOCTYPE html><html class="h-full" lang="id"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Acara - Mekar &amp; Versa Wedding</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Montserrat:wght@300;400;500;600&amp;family=Great+Vibes&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#f9f6f0',
+            'paper-card': '#fffdf9',
+            sepia: '#2a2421',
+            'sepia-muted': '#6b615b',
+            gold: '#c5a880',
+            'gold-light': '#e8dfd1',
+            burgundy: '#6c1d28',
+            'burgundy-dark': '#4e0514',
+          },
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'serif'],
+            sans: ['"Montserrat"', 'sans-serif'],
+            script: ['"Great Vibes"', 'cursive'],
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Deckled paper border aesthetic */
+    .deckle-frame {
+      box-shadow: 
+        0 0 0 1px rgba(197, 168, 128, 0.25),
+        0 15px 35px -10px rgba(42, 36, 33, 0.12),
+        inset 0 0 60px rgba(232, 223, 209, 0.45);
+      border-radius: 12px;
+    }
+    
+    .wax-seal {
+      background: radial-gradient(circle at 35% 30%, #872836, #581420 70%, #3a0a12 100%);
+      box-shadow: 
+        0 8px 18px rgba(78, 5, 20, 0.4),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.6);
+    }
+    
+    .card-glass {
+      background: rgba(255, 253, 249, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(197, 168, 128, 0.35);
+      box-shadow: 0 10px 25px -5px rgba(42, 36, 33, 0.06);
+    }
+  </style>
+<meta content="web_standard" name="shell-type"></head>
+<body class="h-screen w-screen overflow-hidden bg-[#ebe6dd] p-3 lg:p-4 select-none flex flex-col justify-center items-center font-sans antialiased text-sepia">
+<!-- Deckle Edge Paper Inner Container -->
+<div class="relative w-full h-full max-w-[1536px] bg-paper deckle-frame flex flex-col justify-between overflow-hidden p-4 lg:p-6">
+<!-- Subtle Botanical Watermark SVGs -->
+<svg class="absolute -top-10 -left-10 w-96 h-96 text-gold opacity-[0.07] pointer-events-none transform -rotate-12" fill="currentColor" viewBox="0 0 200 200">
+<path d="M100 20 C110 50 140 60 170 60 C140 70 130 100 130 130 C120 100 90 90 60 90 C90 80 100 50 100 20 Z"></path>
+<circle cx="100" cy="100" fill="none" r="18" stroke="currentColor" stroke-width="1.5"></circle>
+</svg>
+<svg class="absolute -bottom-12 -right-12 w-[420px] h-[420px] text-gold opacity-[0.06] pointer-events-none transform rotate-45" fill="currentColor" viewBox="0 0 200 200">
+<path d="M100 15 C115 55 155 70 190 70 C155 85 140 125 140 160 C125 125 85 110 50 110 C85 95 100 55 100 15 Z"></path>
+</svg>
+<!-- TOP NAVIGATION BAR -->
+<header class="w-full flex items-center justify-between shrink-0 relative z-20 pb-2">
+<!-- Left Indicators -->
+<div class="flex items-center gap-2">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f2ecdf] text-sepia-muted text-[11px] font-medium tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></span>
+<span class="">Sedang menggunakan data contoh</span>
+</div>
+<div class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/70 hover:bg-white text-sepia-muted text-[11px] font-medium border border-gold/30 cursor-pointer shadow-sm transition-all">
+<span class="material-symbols-outlined text-[14px] text-gold">translate</span>
+<span class="">Pilih Bahasa</span>
+<span class="material-symbols-outlined text-[13px] opacity-60">expand_more</span>
+</div>
+</div>
+<!-- Center Navigation Links -->
+<nav class="hidden md:flex items-center gap-1 px-3 py-1 rounded-full bg-[#f0eae0]/80 border border-gold/20 shadow-inner">
+<a class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-semibold bg-burgundy text-white shadow-sm" href="#">Kisah Kami</a>
+<a class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all" href="#">Acara</a>
+<a class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all" href="#">Galeri</a>
+<a class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all" href="#">Hadiah</a>
+<a class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all" href="#">Buku Tamu</a>
+</nav>
+<!-- Right Controls: Burgundy Wax Seal & Harp Icon -->
+<div class="flex items-center gap-3">
+<!-- Monogram Wax Seal -->
+<div class="wax-seal w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform duration-300 ring-2 ring-burgundy/20">
+<span class="font-serif italic font-bold text-[18px] text-[#f8d7da] tracking-tighter drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">MV</span>
+</div>
+<!-- Music Harp Button -->
+<button class="w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-burgundy border border-gold/30 shadow-sm transition-all hover:scale-105" title="Putar Musik Latar">
+<svg class="w-5 h-5 text-sepia" fill="currentColor" viewBox="0 0 24 24">
+<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path>
+</svg>
+</button>
+</div>
+</header>
+<!-- MAIN SECTION (Fits in 100vh) -->
+<main class="flex-1 w-full flex flex-col justify-center items-center my-auto py-1 relative z-10"><div class="flex flex-col w-full h-full justify-between items-center px-4 lg:px-8 py-2 relative">
+<!-- Subtle Architectural Blind Emboss Filigree Background -->
+<div class="absolute inset-0 pointer-events-none flex items-center justify-between opacity-30 px-6">
+<svg class="w-64 h-64 text-outline-variant -translate-x-12" fill="none" stroke="currentColor" stroke-width="0.6" viewBox="0 0 100 100">
+<path d="M10,90 Q50,10 90,90 M30,90 Q50,40 70,90 M50,10 L50,90"></path>
+<circle cx="50" cy="35" r="8"></circle>
+</svg>
+<svg class="w-64 h-64 text-outline-variant translate-x-12 transform scale-x-[-1]" fill="none" stroke="currentColor" stroke-width="0.6" viewBox="0 0 100 100">
+<path d="M10,90 Q50,10 90,90 M30,90 Q50,40 70,90 M50,10 L50,90"></path>
+<circle cx="50" cy="35" r="8"></circle>
+</svg>
+</div>
+<!-- SECTION 1: Editorial Header Section -->
+<div class="flex flex-col items-center text-center relative z-10 space-y-1 mt-1">
+<div class="flex items-center gap-3">
+<span class="w-8 h-[1px] bg-secondary opacity-40"></span>
+<p class="font-label-uppercase text-label-uppercase text-secondary tracking-[0.28em] uppercase">Perjalanan Cinta Kami</p>
+<span class="w-8 h-[1px] bg-secondary opacity-40"></span>
+</div>
+<h1 class="font-headline-display text-headline-lg text-primary tracking-normal leading-tight">
+      Bagaimana Cinta Kami Bermula
+    </h1>
+<p class="font-body-md text-body-md italic text-on-surface-variant max-w-xl font-serif">
+      “Sebuah perjalanan rasa, pertemuan yang bertumbuh menjadi janji selamanya.”
+    </p>
+</div>
+<!-- SECTION 2: 3 Chapters Editorial Timeline Mosaic -->
+<div class="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 my-auto relative z-10 py-1">
+<!-- Chapter 1 -->
+<div class="group relative bg-surface-container-lowest/80 backdrop-blur-sm rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-500 flex flex-col justify-between overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-secondary-fixed/20 rounded-full blur-2xl group-hover:bg-secondary-fixed/40 transition-colors"></div>
+<!-- Card Head & Monogram Seal Watermark -->
+<div class="flex items-start justify-between">
+<span class="font-label-uppercase text-label-uppercase text-secondary tracking-widest uppercase">Bab I • 2020</span>
+<span class="material-symbols-outlined text-secondary opacity-60 group-hover:rotate-12 transition-transform duration-300 text-lg">local_cafe</span>
+</div>
+<!-- Photo Thumbnail Accent -->
+<div class="my-3 overflow-hidden rounded-lg shadow-inner relative h-32 w-full">
+<div class="bg-cover bg-center w-full h-full transform group-hover:scale-105 transition-transform duration-700" data-alt="Intimate film photography of an Indonesian bride and groom having warm artisanal pour-over coffee at a sun-drenched minimalist wooden cafe in Bandung, soft morning daylight, quiet glances, creamy paper tone aesthetic, natural muted earth colors." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJqPWGyhbUshPS_vPEHd1aReCso6ttDJ8hbyfrBVb8B9iSpOPYa0JndcvMgXRKECqj36O0OpCTgGhahK3XMY29KB-OQ4kg_otf9g-gnNvZlzfXHrs9XxhQMqW7BIP8xMSKVk4V7GJdueOjhAFOJ6Z9beT8Z8XQ7wFqugHtF05iDD5Sq5p7lJkz19tTD2XOFfbDnJgFkcCfaSjKdrLqA49JtJANOpUZi-VnzCofUj00yRhBsNVb8pZiiA')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent"></div>
+<span class="absolute bottom-2 left-2 text-[10px] font-label-subtle text-surface bg-primary/70 backdrop-blur-sm px-2 py-0.5 rounded-full">Bandung, Jawa Barat</span>
+</div>
+<!-- Story Narrative -->
+<div class="space-y-1.5">
+<h2 class="font-headline-sm text-headline-sm text-primary leading-tight">
+          Ruang Temu &amp; Secangkir Kopi
+        </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed line-clamp-3">
+          Bermula dari sebuah proyek kolaborasi desain dan teknik arsitektur di Bandung. Di sela lembar sketsa dan diskusi gagasan, sebuah percakapan hangat membuka ruang bagi dua jiwa yang saling melengkapi.
+        </p>
+</div>
+<!-- Roman Quote Tag -->
+<div class="mt-3 pt-2.5 bg-surface-container/50 rounded-lg p-2.5">
+<p class="font-body-sm text-[12px] italic text-secondary leading-snug">
+          “Dari sekadar saling menyapa, hingga menyadari dunia terasa jauh lebih teduh bersama.”
+        </p>
+</div>
+</div>
+<!-- Chapter 2 -->
+<div class="group relative bg-surface-container-lowest/80 backdrop-blur-sm rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-500 flex flex-col justify-between overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-primary-fixed/20 rounded-full blur-2xl group-hover:bg-primary-fixed/30 transition-colors"></div>
+<!-- Card Head & Icon -->
+<div class="flex items-start justify-between">
+<span class="font-label-uppercase text-label-uppercase text-secondary tracking-widest uppercase">Bab II • 2023</span>
+<span class="material-symbols-outlined text-primary-container opacity-60 group-hover:scale-110 transition-transform duration-300 text-lg">favorite</span>
+</div>
+<!-- Photo Thumbnail Accent -->
+<div class="my-3 overflow-hidden rounded-lg shadow-inner relative h-32 w-full">
+<div class="bg-cover bg-center w-full h-full transform group-hover:scale-105 transition-transform duration-700" data-alt="Editorial candid photography of an elegant Indonesian couple walking peacefully through a pine forest hill in Lembang, holding hands under golden hour twilight, soft sepia warm palette, fine grain 35mm film photography." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBBSOAsR91ZElU9qiN-uxE-0Yr1Bk1tjzREoS5u5pa2XKYgQWZueyYIF1B9tHqlbUM-GY6hGNiz_G73U4L4WWkUg1MiJBsJOe_aGSHCSyU0SQ8gdKFyzesopXrZCp9ZK_1Fl1L9-pPeHqgvrqG7O_EMrRrnycKGJFgsgYOQlCHaX11Up3JhJPsOUvlaIV3RhuVj7bvouQtnkAngp4VBzL0B9nVdieJc3ZpZCzQcGQVcpW-xH1-PRsJpEA')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent"></div>
+<span class="absolute bottom-2 left-2 text-[10px] font-label-subtle text-surface bg-primary/70 backdrop-blur-sm px-2 py-0.5 rounded-full">Perjalanan Kedewasaan</span>
+</div>
+<!-- Story Narrative -->
+<div class="space-y-1.5">
+<h2 class="font-headline-sm text-headline-sm text-primary leading-tight">
+          Merajut Asa &amp; Bertumbuh
+        </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed line-clamp-3">
+          Melalui dinamika jarak, cita-cita, dan tawa yang senantiasa menguatkan. Belajar mendengarkan serta meneguhkan hati dalam setiap langkah karier dan pendewasaan diri bersama.
+        </p>
+</div>
+<!-- Roman Quote Tag -->
+<div class="mt-3 pt-2.5 bg-surface-container/50 rounded-lg p-2.5">
+<p class="font-body-sm text-[12px] italic text-secondary leading-snug">
+          “Dua langkah yang menyelaraskan ritme detak, berjalan beriringan menuju satu tujuan abadi.”
+        </p>
+</div>
+</div>
+<!-- Chapter 3 -->
+<div class="group relative bg-surface-container-lowest/80 backdrop-blur-sm rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-500 flex flex-col justify-between overflow-hidden">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-secondary-fixed/20 rounded-full blur-2xl group-hover:bg-secondary-fixed/40 transition-colors"></div>
+<!-- Card Head & Icon -->
+<div class="flex items-start justify-between">
+<span class="font-label-uppercase text-label-uppercase text-secondary tracking-widest uppercase">Bab III • 2025</span>
+<span class="material-symbols-outlined text-secondary opacity-70 group-hover:-translate-y-1 transition-transform duration-300 text-lg">auto_awesome</span>
+</div>
+<!-- Photo Thumbnail Accent -->
+<div class="my-3 overflow-hidden rounded-lg shadow-inner relative h-32 w-full">
+<div class="bg-cover bg-center w-full h-full transform group-hover:scale-105 transition-transform duration-700" data-alt="Cinematic macro photograph of a delicate rose gold heirloom diamond ring resting gently on vintage textured deckle paper with dried cream florals, romantic warm ambient light, fine art stationery still life." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDksnytXER52ZATJ3vz7WAA39fsyzwABZlGOctB1rhdIiO0-zotPJUyCJchqAP3PeEqVVSbGXC_7K_m5IX1-PC75JB3FVs4m5DXMLiB1cCcbTm8c7ALWVp_NjfX-s15NCHJJyWcLAE9xrsGNXHyTlJPF9lLY16r8RNz7UNUEGKMtaxI2c2Y4WaP3T7jKau4oFokaOLDFU8YExxTOIgEWvZ8xz02TSaOQvUa6LHHNZNcrooHtcK5eHQyCg')">
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent"></div>
+<span class="absolute bottom-2 left-2 text-[10px] font-label-subtle text-surface bg-primary/70 backdrop-blur-sm px-2 py-0.5 rounded-full">Lamaran &amp; Janji Suci</span>
+</div>
+<!-- Story Narrative -->
+<div class="space-y-1.5">
+<h2 class="font-headline-sm text-headline-sm text-primary leading-tight">
+          Satu Janji Selamanya
+        </h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed line-clamp-3">
+          Di bawah semburat hangat lembayung senja, sebuah cincin tersemat sebagai ikrar tulus untuk melangkah memasuki gerbang pernikahan suci, berpayung doa restu kedua orang tua tercinta.
+        </p>
+</div>
+<!-- Roman Quote Tag -->
+<div class="mt-3 pt-2.5 bg-surface-container/50 rounded-lg p-2.5">
+<p class="font-body-sm text-[12px] italic text-secondary leading-snug">
+          “Bismillah, dengan penuh kerendahan hati kami memilih satu sama lain untuk selamanya.”
+        </p>
+</div>
+</div>
+</div>
+<!-- SECTION 3: Bottom Embellished Quote & Actions -->
+<div class="w-full max-w-4xl flex flex-col md:flex-row items-center justify-between gap-4 py-2 px-6 bg-surface-container-low/70 backdrop-blur-sm rounded-xl relative z-10 shadow-sm mb-1">
+<!-- Spiritual Citation / Lineage Couple Identity -->
+<div class="flex items-center gap-3.5 text-left">
+<div class="w-9 h-9 rounded-full bg-secondary-fixed/50 flex items-center justify-center shrink-0">
+<span class="font-headline-sm text-primary italic font-semibold text-sm">M&amp;V</span>
+</div>
+<div>
+<p class="font-body-sm text-on-surface text-[12px] italic leading-tight">
+          “Dan di antara tanda-tanda kebesaran-Nya ialah Dia menciptakan pasangan-pasangan untukmu...”
+        </p>
+<span class="font-label-subtle text-[11px] text-secondary tracking-wider uppercase font-medium">
+          Mekar Anggraini, S.Ds. &amp; Versa Pratama, S.T. • QS. Ar-Rum: 21
+        </span>
+</div>
+</div>
+<!-- Quick Interaction Switchers -->
+<div class="flex items-center gap-2.5 shrink-0">
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface hover:bg-surface-container-lowest text-primary text-label-uppercase font-label-uppercase shadow-sm transition-all hover:scale-105 cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('open-gallery'))">
+<span class="material-symbols-outlined text-[15px] text-secondary">photo_library</span>
+<span class="">Galeri Kenangan</span>
+</button>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary text-on-primary hover:bg-primary-container text-label-uppercase font-label-uppercase shadow-sm transition-all hover:scale-105 cursor-pointer" onclick="window.dispatchEvent(new CustomEvent('open-events'))">
+<span class="">Rangkaian Acara</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div></main>
+<!-- BOTTOM PROGRESS & AUDIO BAR -->
+<footer class="w-full pt-2 flex flex-col items-center justify-center shrink-0 border-t border-gold/20 relative z-20">
+<div class="w-full max-w-xl flex flex-col gap-1.5">
+<div class="w-full h-1 bg-[#e5decf] rounded-full overflow-hidden">
+<div class="h-full w-1/3 bg-gold rounded-full"></div>
+</div>
+<div class="flex items-center justify-between text-[11px] text-sepia-muted">
+<span class="italic font-serif">Canon in D Major — Pachelbel (Acoustic Harp)</span>
+<span class="tracking-widest">01:42 / 04:15</span>
+</div>
+</div>
+</footer>
+</div>
+<!-- Countdown Script -->
+<script>
+    (function() {
+      const targetDate = new Date('2026-10-24T08:00:00+07:00').getTime();
+      function update() {
+        const now = new Date().getTime();
+        const diff = targetDate - now;
+        if (diff <= 0) return;
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const dEl = document.getElementById('cd-days');
+        const hEl = document.getElementById('cd-hours');
+        const mEl = document.getElementById('cd-mins');
+        const sEl = document.getElementById('cd-secs');
+
+        if (dEl) dEl.innerText = days;
+        if (hEl) hEl.innerText = hours < 10 ? '0' + hours : hours;
+        if (mEl) mEl.innerText = mins < 10 ? '0' + mins : mins;
+        if (sEl) sEl.innerText = secs < 10 ? '0' + secs : secs;
+      }
+      setInterval(update, 1000);
+      update();
+    })();
+  </script>
+
+
+</body></html>

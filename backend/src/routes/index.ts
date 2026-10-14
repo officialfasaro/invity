@@ -6,6 +6,7 @@ import dashboardRoutes from "./dashboard.routes";
 import adminRoutes from "./admin.routes";
 import uploadRoutes from "./upload.routes";
 import paymentRoutes from "./payment.routes";
+import receptionRoutes from "./reception.routes";
 import prisma from "../config/prisma";
 
 const apiRouter = Router();
@@ -39,6 +40,7 @@ apiRouter.use("/auth", authRoutes);
 apiRouter.use("/invitations", invitationRoutes);
 apiRouter.use("/public", publicRoutes);
 apiRouter.use("/dashboard", dashboardRoutes);
+apiRouter.use("/reception", receptionRoutes);
 apiRouter.use("/admin", adminRoutes);
 apiRouter.use("/upload", uploadRoutes);
 apiRouter.use("/payment", paymentRoutes);

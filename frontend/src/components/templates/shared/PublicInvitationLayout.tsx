@@ -61,30 +61,37 @@ export const PublicInvitationLayout: React.FC<PublicInvitationLayoutProps> = ({
     };
   }, []);
 
-  // Track active section on scroll
+  // Track active section on scroll (requestAnimationFrame throttled)
   useEffect(() => {
     const sectionIds = ["couple", "event", "gallery", "gift", "wishes"];
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
-      for (let i = sectionIds.length - 1; i >= 0; i--) {
-        const id = sectionIds[i];
-        const el =
-          document.getElementById(id) ||
-          (id === "couple" && (document.getElementById("home") || document.getElementById("mempelai"))) ||
-          (id === "event" && (document.getElementById("acara") || document.getElementById("undangan"))) ||
-          (id === "gallery" && document.getElementById("galeri")) ||
-          (id === "gift" && (document.getElementById("kado") || document.getElementById("amplop"))) ||
-          (id === "wishes" && (document.getElementById("doa") || document.getElementById("rsvp") || document.getElementById("ucapan")));
+    let ticking = false;
 
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          const top = rect.top + window.scrollY;
-          if (scrollPosition >= top) {
-            setActiveSection(id);
-            break;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const scrollPosition = window.scrollY + 200;
+        for (let i = sectionIds.length - 1; i >= 0; i--) {
+          const id = sectionIds[i];
+          const el =
+            document.getElementById(id) ||
+            (id === "couple" && (document.getElementById("home") || document.getElementById("mempelai"))) ||
+            (id === "event" && (document.getElementById("acara") || document.getElementById("undangan"))) ||
+            (id === "gallery" && document.getElementById("galeri")) ||
+            (id === "gift" && (document.getElementById("kado") || document.getElementById("amplop"))) ||
+            (id === "wishes" && (document.getElementById("doa") || document.getElementById("rsvp") || document.getElementById("ucapan")));
+
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const top = rect.top + window.scrollY;
+            if (scrollPosition >= top) {
+              setActiveSection((prev) => (prev === id ? prev : id));
+              break;
+            }
           }
         }
-      }
+      });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });

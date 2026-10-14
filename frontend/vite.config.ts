@@ -24,14 +24,14 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 3000,
+      port: Number(env.PORT || env.VITE_PORT || 3001),
       proxy: {
         "/api": {
-          target: "http://localhost:5001",
+          target: env.BACKEND_URL || "http://localhost:5001",
           changeOrigin: true,
         },
         "/uploads": {
-          target: "http://localhost:5001",
+          target: env.BACKEND_URL || "http://localhost:5001",
           changeOrigin: true,
         },
       },

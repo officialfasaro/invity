@@ -40,23 +40,49 @@ export async function createOrder(
       }
     }
 
-    const priceKey = `price_${tier.toLowerCase()}`;
-    const priceSetting = await prisma.systemSetting.findUnique({
-      where: { key: priceKey },
+    const singlePromoSetting = await prisma.systemSetting.findUnique({
+      where: { key: "single_promo_mode" },
     });
-    const defaultPrices: Record<string, number> = {
-      STARTER: 39000,
-      ELEGANT: 149000,
-      ULTIMATE: 279000,
-    };
-    const officialPrice = priceSetting
-      ? parseInt(priceSetting.value, 10) || defaultPrices[tier]
-      : defaultPrices[tier];
-    const verifiedAmount = officialPrice > 0 ? officialPrice : amount;
+    const isSinglePromo = singlePromoSetting ? singlePromoSetting.value !== "false" : true;
+
+    let verifiedAmount: number;
+    if (isSinglePromo) {
+      const promoPriceSetting = await prisma.systemSetting.findUnique({
+        where: { key: "promo_plan_price" },
+      });
+      verifiedAmount = promoPriceSetting ? parseInt(promoPriceSetting.value, 10) || 79000 : 79000;
+    } else {
+      const priceKey = `price_${tier.toLowerCase()}`;
+      const priceSetting = await prisma.systemSetting.findUnique({
+        where: { key: priceKey },
+      });
+      const defaultPrices: Record<string, number> = {
+        STARTER: 39000,
+        ELEGANT: 149000,
+        ULTIMATE: 279000,
+      };
+      const officialPrice = priceSetting
+        ? parseInt(priceSetting.value, 10) || defaultPrices[tier]
+        : defaultPrices[tier];
+      verifiedAmount = officialPrice > 0 ? officialPrice : amount;
+    }
 
     const orderId = `FSR-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const activeModeSetting = await prisma.systemSetting.findUnique({
+      where: { key: "payment_active_mode" },
+    });
+    const activeMode = activeModeSetting?.value || "MANUAL_ONLY";
+
     if (paymentType === "GATEWAY") {
+      if (activeMode === "MANUAL_ONLY") {
+        res.status(403).json({
+          error:
+            "Pembayaran otomatis via Midtrans sedang dinonaktifkan oleh platform. Silakan gunakan metode Transfer Bank / QRIS Manual.",
+        });
+        return;
+      }
+
       const midtransFlag = await prisma.systemSetting.findUnique({
         where: { key: "feature_midtrans_payment" },
       });
@@ -98,6 +124,14 @@ export async function createOrder(
     }
 
     // Manual Transfer
+    if (activeMode === "GATEWAY_ONLY") {
+      res.status(403).json({
+        error:
+          "Metode transfer manual sedang dinonaktifkan oleh platform. Silakan gunakan pembayaran otomatis Midtrans.",
+      });
+      return;
+    }
+
     const manualFlag = await prisma.systemSetting.findUnique({
       where: { key: "feature_manual_payment" },
     });
@@ -202,9 +236,36 @@ export async function midtransWebhook(
           },
         });
 
-        if (transaction.invitationId) {
+        let targetInvId = transaction.invitationId;
+        if (!targetInvId) {
+          let userInv = await tx.invitation.findFirst({
+            where: { userId: transaction.userId },
+          });
+          if (!userInv) {
+            userInv = await tx.invitation.create({
+              data: {
+                slug: `undangan-${transaction.userId.slice(-6)}`,
+                title: "Pernikahan Mempelai",
+                userId: transaction.userId,
+                themeId: "botanical",
+                isActive: true,
+                activeUntil: oneYearFromNow,
+                coupleInfo: {
+                  selectedTier: transaction.tier,
+                },
+              },
+            });
+          }
+          targetInvId = userInv.id;
+          await tx.paymentTransaction.update({
+            where: { orderId: order_id },
+            data: { invitationId: targetInvId },
+          });
+        }
+
+        if (targetInvId) {
           await tx.invitation.update({
-            where: { id: transaction.invitationId },
+            where: { id: targetInvId },
             data: {
               isActive: true,
               activeUntil: oneYearFromNow,
@@ -322,7 +383,7 @@ export async function onboardingSetup(
           userId: user.userId,
           slug: finalSlug,
           title,
-          themeId: "minimalist",
+          themeId: "botanical",
           coupleInfo: coupleInfo as Prisma.InputJsonValue,
           isActive: true,
         },
@@ -418,6 +479,141 @@ export async function getOnboardingState(
         location: firstSchedule?.address || firstSchedule?.venueName || coupleInfo.location || "",
         referralCode: coupleInfo.referralCode || "",
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getOrderStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const rawOrderId = Array.isArray(req.params.orderId)
+      ? req.params.orderId[0]
+      : req.params.orderId;
+
+    const whereClause: Prisma.PaymentTransactionWhereInput =
+      rawOrderId && rawOrderId !== "latest"
+        ? {
+            orderId: rawOrderId,
+            ...(user.role !== "ADMIN" ? { userId: user.userId } : {}),
+          }
+        : {
+            userId: user.userId,
+          };
+
+    const transaction = await prisma.paymentTransaction.findFirst({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      include: {
+        invitation: {
+          select: { id: true, title: true, slug: true, activeUntil: true },
+        },
+      },
+    });
+
+    if (!transaction) {
+      res.status(404).json({ error: "Pesanan tidak ditemukan" });
+      return;
+    }
+
+    let paymentMethodName = "Transfer Manual";
+    if (transaction.paymentType === "MANUAL_BANK") {
+      paymentMethodName = "Transfer Manual (BCA)";
+    } else if (transaction.paymentType === "MANUAL_QRIS") {
+      paymentMethodName = "Transfer Manual (QRIS)";
+    } else if (transaction.paymentType === "GATEWAY") {
+      paymentMethodName = "Otomatis (Midtrans)";
+    }
+
+    const planNames: Record<string, string> = {
+      STARTER: "Paket Promo All-In-One",
+      ELEGANT: "Paket Promo All-In-One",
+      ULTIMATE: "Paket Promo All-In-One",
+      FREE: "Paket General",
+    };
+
+    res.json({
+      success: true,
+      data: {
+        id: transaction.id,
+        orderId: transaction.orderId,
+        tier: transaction.tier,
+        planName: planNames[transaction.tier] || "Paket Promo All-In-One",
+        amount: Number(transaction.amount),
+        paymentType: transaction.paymentType,
+        paymentMethodName,
+        paymentStatus: transaction.paymentStatus,
+        proofImageUrl: transaction.proofImageUrl,
+        createdAt: transaction.createdAt,
+        verifiedAt: transaction.verifiedAt,
+        invitationSlug: transaction.invitation?.slug || null,
+        activeUntil: transaction.invitation?.activeUntil || null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMyNotifications(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = req.user!;
+    const transactions = await prisma.paymentTransaction.findMany({
+      where: { userId: user.userId },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    });
+
+    const notifications = [];
+    for (const tx of transactions) {
+      if (tx.paymentStatus === "WAITING_VERIFICATION") {
+        notifications.push({
+          id: `notif-wait-${tx.id}`,
+          type: "WAITING_VERIFICATION",
+          title: "Menunggu Verifikasi Pembayaran",
+          message: `Bukti transfer pesanan #${tx.orderId} telah kami terima dan sedang diverifikasi oleh Tim Invity.`,
+          status: "WAITING_VERIFICATION",
+          orderId: tx.orderId,
+          createdAt: tx.createdAt,
+          link: `/payment-status?orderId=${tx.orderId}`,
+        });
+      } else if (tx.paymentStatus === "SETTLEMENT") {
+        notifications.push({
+          id: `notif-settle-${tx.id}`,
+          type: "PAYMENT_VERIFIED",
+          title: "Pembayaran Terverifikasi!",
+          message: `Selamat! Pembayaran untuk pesanan #${tx.orderId} telah diverifikasi. Paket Anda kini telah aktif.`,
+          status: "SETTLEMENT",
+          orderId: tx.orderId,
+          createdAt: tx.verifiedAt || tx.createdAt,
+          link: "/dashboard",
+        });
+      } else if (tx.paymentStatus === "CANCELLED") {
+        notifications.push({
+          id: `notif-cancel-${tx.id}`,
+          type: "PAYMENT_CANCELLED",
+          title: "Pembayaran Ditolak",
+          message: `Bukti transfer pesanan #${tx.orderId} belum dapat disetujui. Silakan periksa kembali bukti Anda.`,
+          status: "CANCELLED",
+          orderId: tx.orderId,
+          createdAt: tx.createdAt,
+          link: `/payment-status?orderId=${tx.orderId}`,
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: notifications,
     });
   } catch (error) {
     next(error);

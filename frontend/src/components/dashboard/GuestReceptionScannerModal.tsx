@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Clock,
   RotateCcw,
-  Sparkles,
   Volume2,
   VolumeX,
   FlipHorizontal,
@@ -320,7 +319,7 @@ export const GuestReceptionScannerModal: React.FC<GuestReceptionScannerModalProp
                 <h3 className="font-bold text-sm sm:text-base text-slate-900">
                   Meja Tamu Resepsi &amp; QR Scanner
                 </h3>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-none text-[10px] font-bold bg-emerald-100 text-emerald-800">
                   Live Check-in
                 </span>
               </div>

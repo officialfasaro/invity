@@ -18,9 +18,13 @@ import {
   UserPlus,
   Users,
   X,
+  ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
 import GuestQrTicketModal from "../GuestQrTicketModal";
 import GuestReceptionScannerModal from "../GuestReceptionScannerModal";
+import GuestReceptionAccessModal from "../GuestReceptionAccessModal";
+import { shareGuestInvitationWithTicket } from "@/utils/ticketHelper";
 import {
   generateWhatsAppInvitationText,
   WeddingCoupleInfo,
@@ -68,12 +72,15 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
   const [isAddingBulk, setIsAddingBulk] = useState(false);
   const [selectedQrGuest, setSelectedQrGuest] = useState<GuestItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
 
   // WhatsApp Message Format State
   const [greetingStyle, setGreetingStyle] = useState<"universal" | "islamic" | "christian">("christian");
   const [copiedFormatId, setCopiedFormatId] = useState<string | null>(null);
   const [previewGuestMessage, setPreviewGuestMessage] = useState<GuestItem | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [sharingGuestId, setSharingGuestId] = useState<string | null>(null);
+  const [shareToast, setShareToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
 
   // Edit Modal State
   const [editingGuest, setEditingGuest] = useState<GuestItem | null>(null);
@@ -176,7 +183,8 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
     if (typeof window === "undefined") return "";
     const origin = window.location.origin;
     const guestParam = encodeURIComponent(guest.name);
-    return `${origin}/invitation/${slug}?to=${guestParam}`;
+    const codeParam = encodeURIComponent(guest.slugCode);
+    return `${origin}/invitation/${slug}?to=${guestParam}&code=${codeParam}`;
   };
 
   const getGeneralInvitationUrl = () => {
@@ -189,6 +197,8 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
     const url = getGuestInvitationUrl(guest);
     const message = generateWhatsAppInvitationText({
       guestName: guest.name,
+      ticketCode: guest.slugCode,
+      quota: guest.quota,
       invitationUrl: url,
       coupleInfo,
       schedules,
@@ -257,26 +267,52 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
     window.open(waUrl, "_blank");
   };
 
-  const openWhatsAppShare = (guest: GuestItem) => {
-    const url = getGuestInvitationUrl(guest);
-    const greeting = generateWhatsAppInvitationText({
-      guestName: guest.name,
-      invitationUrl: url,
-      coupleInfo,
-      schedules,
-      greetingType: greetingStyle,
-    });
+  const openWhatsAppShare = async (guest: GuestItem) => {
+    setSharingGuestId(guest.id);
+    try {
+      const url = getGuestInvitationUrl(guest);
+      const greeting = generateWhatsAppInvitationText({
+        guestName: guest.name,
+        ticketCode: guest.slugCode,
+        quota: guest.quota,
+        invitationUrl: url,
+        coupleInfo,
+        schedules,
+        greetingType: greetingStyle,
+      });
 
-    let waUrl = `https://wa.me/?text=${encodeURIComponent(greeting)}`;
-    if (guest.phoneNumber) {
-      let cleanPhone = guest.phoneNumber.replace(/[^0-9]/g, "");
-      if (cleanPhone.startsWith("08")) {
-        cleanPhone = "62" + cleanPhone.slice(1);
+      const effectiveTitle =
+        weddingTitle ||
+        (coupleInfo?.groomName && coupleInfo?.brideName
+          ? `${coupleInfo.groomName} & ${coupleInfo.brideName}`
+          : "Undangan Pernikahan");
+
+      const res = await shareGuestInvitationWithTicket({
+        guest: {
+          id: guest.id,
+          name: guest.name,
+          slugCode: guest.slugCode,
+          quota: guest.quota,
+          phoneNumber: guest.phoneNumber || undefined,
+        },
+        weddingTitle: effectiveTitle,
+        invitationSlug: slug,
+        invitationUrl: url,
+        greetingText: greeting,
+      });
+
+      if (res.message && res.method !== "web-share") {
+        setShareToast({
+          message: res.message,
+          type: res.method === "clipboard-wa" ? "info" : "success",
+        });
+        setTimeout(() => setShareToast(null), 6000);
       }
-      waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(greeting)}`;
+    } catch (err) {
+      console.error("Gagal share undangan WhatsApp:", err);
+    } finally {
+      setSharingGuestId(null);
     }
-
-    window.open(waUrl, "_blank");
   };
 
   return (
@@ -288,7 +324,7 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
             <h2 className="text-xl font-bold tracking-tight text-slate-900">
               Buku Tamu &amp; Generator WhatsApp
             </h2>
-            <span className="px-2 py-0.5 rounded-full bg-orange-50 text-[#F97316] font-semibold text-xs border border-orange-100">
+            <span className="px-2 py-0.5 rounded-none bg-orange-50 text-[#F97316] font-semibold text-xs border border-orange-100">
               {guests.length} Tamu
             </span>
           </div>
@@ -300,12 +336,12 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <button
             type="button"
-            onClick={() => setIsScannerOpen(true)}
+            onClick={() => setIsAccessModalOpen(true)}
             className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg border border-orange-300 bg-orange-50 hover:bg-orange-100 text-[#F97316] text-xs font-bold shadow-2xs min-h-[40px] transition-colors cursor-pointer"
-            title="Buka Layar Scanner Meja Tamu Resepsi"
+            title="Kelola & Bagikan Akses Meja Tamu Pagar Ayu Tanpa Memberikan Rekening Bank"
           >
-            <QrCode className="w-4 h-4 text-[#F97316]" />
-            <span>Meja Tamu (QR Scanner)</span>
+            <ShieldCheck className="w-4 h-4 text-[#F97316]" />
+            <span>Akses Pagar Ayu (Meja Tamu)</span>
           </button>
 
           <button
@@ -598,7 +634,7 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
                         {guest.quota} Pax
                       </span>
                       {guest.checkedInAt ? (
-                        <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
+                        <span className="shrink-0 px-2 py-0.5 rounded-none bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 flex items-center gap-1">
                           <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
                           <span>
                             Hadir (
@@ -663,15 +699,25 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
                       </button>
                     )}
 
-                    {/* Kirim WhatsApp dengan Teks Resmi */}
+                    {/* Kirim WhatsApp dengan Teks Resmi & Tiket QR */}
                     <button
                       type="button"
+                      disabled={sharingGuestId === guest.id}
                       onClick={() => openWhatsAppShare(guest)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold min-h-[42px] transition-colors shadow-xs cursor-pointer"
-                      title="Buka WhatsApp & bagikan undangan resmi lengkap"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white text-xs font-semibold min-h-[42px] transition-colors shadow-xs cursor-pointer"
+                      title="Kirim undangan WhatsApp lengkap dengan Gambar Tiket QR langsung"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Kirim WA</span>
+                      {sharingGuestId === guest.id ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menyiapkan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Kirim WA</span>
+                        </>
+                      )}
                     </button>
 
                     {/* Salin Pesan WA Lengkap */}
@@ -920,6 +966,14 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
             <div className="flex-1 overflow-y-auto min-h-[220px] max-h-[360px] p-3.5 sm:p-4 rounded-xl bg-slate-50 border border-[#E2E8F0] font-sans text-xs sm:text-[13px] leading-relaxed text-slate-800 whitespace-pre-wrap select-text">
               {generateWhatsAppInvitationText({
                 guestName: previewGuestMessage?.name || "Bapak/Ibu/Saudara/i & Rekan Sekalian",
+                ticketCode:
+                  previewGuestMessage && previewGuestMessage.id !== "preview-general"
+                    ? previewGuestMessage.slugCode
+                    : undefined,
+                quota:
+                  previewGuestMessage && previewGuestMessage.id !== "preview-general"
+                    ? previewGuestMessage.quota
+                    : undefined,
                 invitationUrl:
                   previewGuestMessage && previewGuestMessage.id !== "preview-general"
                     ? getGuestInvitationUrl(previewGuestMessage)
@@ -948,6 +1002,14 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
                 onClick={async () => {
                   const txt = generateWhatsAppInvitationText({
                     guestName: previewGuestMessage?.name || "Bapak/Ibu/Saudara/i & Rekan Sekalian",
+                    ticketCode:
+                      previewGuestMessage && previewGuestMessage.id !== "preview-general"
+                        ? previewGuestMessage.slugCode
+                        : undefined,
+                    quota:
+                      previewGuestMessage && previewGuestMessage.id !== "preview-general"
+                        ? previewGuestMessage.quota
+                        : undefined,
                     invitationUrl:
                       previewGuestMessage && previewGuestMessage.id !== "preview-general"
                         ? getGuestInvitationUrl(previewGuestMessage)
@@ -1007,7 +1069,7 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
         invitationSlug={slug}
       />
 
-      {/* Reception Desk QR & Barcode Scanner Modal */}
+      {/* Reception Desk QR & Barcode Scanner Modal (Internal Quick Test) */}
       <GuestReceptionScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
@@ -1017,6 +1079,35 @@ export const GuestBookTab: React.FC<GuestBookTabProps> = ({
           if (onGuestUpdated) onGuestUpdated(updatedGuest);
         }}
       />
+
+      {/* Pagar Ayu & Reception Access Modal */}
+      <GuestReceptionAccessModal
+        isOpen={isAccessModalOpen}
+        onClose={() => setIsAccessModalOpen(false)}
+        slug={slug}
+        weddingTitle={weddingTitle}
+        onOpenInternalScanner={() => setIsScannerOpen(true)}
+      />
+
+      {/* Toast Feedback Pengiriman Tiket QR */}
+      {shareToast && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm sm:max-w-md p-4 rounded-xl bg-slate-900 text-white shadow-2xl border border-slate-700 flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2">
+          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+            <Check className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex-1 text-xs">
+            <p className="font-semibold text-white">Tiket QR &amp; Undangan WhatsApp</p>
+            <p className="text-slate-300 mt-0.5 leading-relaxed">{shareToast.message}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShareToast(null)}
+            className="text-slate-400 hover:text-white p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

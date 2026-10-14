@@ -183,7 +183,7 @@ export const RsvpRecapTab: React.FC<RsvpRecapTabProps> = ({
                       {r.attendeeCount} Pax
                     </span>
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
+                      className={`px-2.5 py-1 rounded-none text-[10px] font-semibold border ${
                         isHadir
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : isTidakHadir

@@ -3,37 +3,58 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  Heart,
   LogIn,
   Menu,
   X,
 } from "lucide-react";
 import GoogleTranslateWidget from "../shared/GoogleTranslateWidget";
+import NotificationBell from "../shared/NotificationBell";
+import BrandLogo from "../shared/BrandLogo";
 
 export const MarketingNavbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasTestimonials, setHasTestimonials] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    role: string;
+    hasActivePackage?: boolean;
+    latestTransaction?: { orderId: string; paymentStatus: string } | null;
+  } | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/public/testimonials")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (j?.success && Array.isArray(j.data) && j.data.length >= 5) {
+          setHasTestimonials(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const navLinks = [
-    { label: "Home", href: "#home" },
-    { label: "Tema Undangan", href: "#tema" },
-    { label: "Fitur", href: "#fitur" },
-    { label: "Harga", href: "#harga" },
-    { label: "Testimoni", href: "#testimoni" },
-    { label: "FAQ", href: "#faq" },
+    { label: "Home", href: "/" },
+    { label: "Tema Undangan", href: "/themes" },
+    { label: "Fitur", href: "/#fitur" },
+    { label: "Harga", href: "/#harga" },
+    ...(hasTestimonials ? [{ label: "Testimoni", href: "/#testimoni" }] : []),
+    { label: "FAQ", href: "/#faq" },
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#E2E8F0] bg-white/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-[#F97316] flex items-center justify-center text-white shadow-xs transition-transform group-hover:scale-105">
-            <Heart className="w-4 h-4 fill-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-900">
-            Fasaro<span className="text-[#F97316]">.</span>
-          </span>
-        </Link>
+        <BrandLogo />
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-600">
@@ -51,23 +72,65 @@ export const MarketingNavbar: React.FC = () => {
         {/* Action Button & Language Switcher */}
         <div className="hidden md:flex items-center gap-3">
           <GoogleTranslateWidget />
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 py-2 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Login</span>
-          </Link>
+
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              {currentUser.role === "ADMIN" ? (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-colors"
+                >
+                  <span>Portal Admin</span>
+                </Link>
+              ) : currentUser.hasActivePackage ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors"
+                >
+                  <span>Buka Dashboard</span>
+                </Link>
+              ) : currentUser.latestTransaction &&
+                ["WAITING_VERIFICATION", "PENDING"].includes(
+                  currentUser.latestTransaction.paymentStatus
+                ) ? (
+                <Link
+                  href={`/payment-status?orderId=${currentUser.latestTransaction.orderId}`}
+                  className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-colors"
+                >
+                  <span>Status Pembayaran</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/order"
+                  className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors"
+                >
+                  <span>Pilih Paket</span>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 py-2 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Login</span>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Buka Menu"
-          className="md:hidden p-2 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
-        >
-          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2 md:hidden">
+          {currentUser && <NotificationBell />}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Buka Menu"
+            className="p-2 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+          >
+            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
@@ -91,14 +154,45 @@ export const MarketingNavbar: React.FC = () => {
               <span className="text-xs text-slate-500 font-medium">Bahasa:</span>
               <GoogleTranslateWidget />
             </div>
-            <Link
-              href="/login"
-              onClick={() => setIsOpen(false)}
-              className="inline-flex items-center justify-center gap-1.5 w-full text-center py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Login</span>
-            </Link>
+            {currentUser ? (
+              currentUser.hasActivePackage ? (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="inline-flex items-center justify-center gap-1.5 w-full text-center py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs"
+                >
+                  <span>Buka Dashboard</span>
+                </Link>
+              ) : currentUser.latestTransaction &&
+                ["WAITING_VERIFICATION", "PENDING"].includes(
+                  currentUser.latestTransaction.paymentStatus
+                ) ? (
+                <Link
+                  href={`/payment-status?orderId=${currentUser.latestTransaction.orderId}`}
+                  onClick={() => setIsOpen(false)}
+                  className="inline-flex items-center justify-center gap-1.5 w-full text-center py-2.5 px-4 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                >
+                  <span>Status Pembayaran</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/order"
+                  onClick={() => setIsOpen(false)}
+                  className="inline-flex items-center justify-center gap-1.5 w-full text-center py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs"
+                >
+                  <span>Pilih Paket</span>
+                </Link>
+              )
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex items-center justify-center gap-1.5 w-full text-center py-2.5 px-4 rounded-lg text-xs font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white shadow-xs"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Login</span>
+              </Link>
+            )}
           </div>
         </div>
       )}

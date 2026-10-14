@@ -12,6 +12,10 @@ import {
   getGuestCheckinStats,
   getRsvpRecap,
   getDashboardPayments,
+  getUserTestimonial,
+  submitUserTestimonial,
+  getReceptionAccess,
+  updateReceptionPin,
 } from "../controllers/dashboard.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
@@ -31,7 +35,13 @@ router.post("/guests/checkin", toggleGuestCheckin);
 router.post("/guests/scan", scanGuestQr);
 router.get("/guests/checkin-stats", getGuestCheckinStats);
 
+router.get("/reception-access", getReceptionAccess);
+router.post("/reception-pin", updateReceptionPin);
+
 router.get("/rsvp-recap", getRsvpRecap);
 router.get("/payments", getDashboardPayments);
+
+router.get("/testimonial", getUserTestimonial);
+router.post("/testimonial", submitUserTestimonial);
 
 export default router;

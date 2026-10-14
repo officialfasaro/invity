@@ -42,7 +42,8 @@ async function main() {
       slug: "rian-sinta",
       title: "Pernikahan Rian & Sinta",
       userId: client.id,
-      themeId: "adirara",
+      themeId: "botanical",
+      musicUrl: "/music/wedding-romance.mp3",
       activeUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       isActive: true,
       coupleInfo: {
@@ -153,55 +154,50 @@ async function main() {
   });
   console.log(`✓ Invitation seeded: ${invitation.slug}`);
 
-  // 4. Seed Theme Catalog
+  // 4. Seed Theme Catalog (1 Active Theme)
   const themes = [
     {
-      themeKey: "adirara",
-      name: "Adi & Rara (WebNikah Edition)",
-      category: "Modern Chic",
-      thumbnail:
-        "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=600&q=80",
-      previewUrl: "/invitation/rian-sinta?themeId=adirara",
-      isPremium: true,
-      isActive: true,
-    },
-    {
-      themeKey: "minimalist",
-      name: "Clean Minimalist",
-      category: "Minimalist",
-      thumbnail:
-        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80",
-      previewUrl: "/invitation/rian-sinta?themeId=minimalist",
+      themeKey: "botanical",
+      name: "Botanical Tema 01",
+      category: "Botanical",
+      thumbnail: "/templates/botanical/cover.jpg",
+      previewUrl: "/invitation/demo-botanical",
       isPremium: false,
       isActive: true,
     },
     {
-      themeKey: "rustic",
-      name: "Rustic Floral Bloom",
-      category: "Floral & Rustic",
-      thumbnail:
-        "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=600&q=80",
-      previewUrl: "/invitation/rian-sinta?themeId=rustic",
+      themeKey: "editorial",
+      name: "Editorial Tema 01",
+      category: "Editorial",
+      thumbnail: "/templates/editorial/cover.jpg",
+      previewUrl: "/invitation/demo-editorial",
       isPremium: false,
       isActive: true,
     },
     {
-      themeKey: "royal",
-      name: "Luxury Dark Gold",
-      category: "Luxury Dark Gold",
-      thumbnail:
-        "https://images.unsplash.com/photo-1544078751-58fee2d8a03b?auto=format&fit=crop&w=600&q=80",
-      previewUrl: "/invitation/rian-sinta?themeId=royal",
-      isPremium: true,
+      themeKey: "gothic",
+      name: "Gothic Tema 01",
+      category: "Gothic",
+      thumbnail: "/templates/gothic/cover.jpg",
+      previewUrl: "/invitation/demo-gothic",
+      isPremium: false,
       isActive: true,
     },
     {
-      themeKey: "syari",
-      name: "Syar'i Islamic & Adat",
-      category: "Syar'i & Adat",
-      thumbnail:
-        "https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&w=600&q=80",
-      previewUrl: "/invitation/rian-sinta?themeId=syari",
+      themeKey: "raka-ayu",
+      name: "Royal Tema 01",
+      category: "Royal",
+      thumbnail: "/templates/raka-ayu/cover.jpg",
+      previewUrl: "/invitation/demo-raka-ayu",
+      isPremium: false,
+      isActive: true,
+    },
+    {
+      themeKey: "wedding-3d",
+      name: "3D Tema 01",
+      category: "3D",
+      thumbnail: "/templates/wedding-3d/cover.jpg",
+      previewUrl: "/invitation/demo-wedding-3d",
       isPremium: false,
       isActive: true,
     },
@@ -248,24 +244,6 @@ async function main() {
     });
   }
   console.log(`✓ ${defaultSettings.length} system settings seeded`);
-
-  // 6. Seed a sample Payment Transaction for testing approval
-  await prisma.paymentTransaction.upsert({
-    where: { orderId: "FASARO-DEMO-001" },
-    update: {},
-    create: {
-      orderId: "FASARO-DEMO-001",
-      userId: client.id,
-      invitationId: invitation.id,
-      tier: SubscriptionTier.ELEGANT,
-      amount: 149000,
-      paymentType: "MANUAL_QRIS",
-      paymentStatus: "WAITING_VERIFICATION",
-      proofImageUrl:
-        "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=600&q=80",
-    },
-  });
-  console.log("✓ Sample WAITING_VERIFICATION transaction seeded");
 
   console.log("Database seed completed successfully! 🎉");
 }

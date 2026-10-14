@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Check,
   ChevronDown,
@@ -16,12 +16,17 @@ import {
   CreditCard,
   Building2,
   Copy,
+  Download,
   CheckCircle2,
   AlertCircle,
   UploadCloud,
+  Upload,
   LogOut,
-  Sparkles,
+  Eye,
 } from "lucide-react";
+import GoogleTranslateWidget from "@/components/shared/GoogleTranslateWidget";
+import NotificationBell from "@/components/shared/NotificationBell";
+import { downloadImageFile } from "@/utils/downloadHelper";
 
 declare global {
   interface Window {
@@ -95,7 +100,7 @@ export default function OrderPage() {
   const [isPackageDetailsOpen, setIsPackageDetailsOpen] = useState(false);
 
   // Payment method: "GATEWAY" (Midtrans) or "MANUAL" (Manual Transfer / QRIS)
-  const [paymentMethod, setPaymentMethod] = useState<"GATEWAY" | "MANUAL">("GATEWAY");
+  const [paymentMethod, setPaymentMethod] = useState<"GATEWAY" | "MANUAL">("MANUAL");
   const [manualProofUrl, setManualProofUrl] = useState("");
   const [isUploadingProof, setIsUploadingProof] = useState(false);
   const [copiedBank, setCopiedBank] = useState(false);
@@ -119,6 +124,33 @@ export default function OrderPage() {
   const oneTreeId = useId();
 
   // Price calculations
+  const isSinglePromo = settings.single_promo_mode !== "false";
+  const promoPlanName = settings.promo_plan_name || "Paket Promo All-In-One";
+  const promoPlanPrice = parseInt(settings.promo_plan_price || "79000", 10) || 79000;
+  const promoPlanOriginalPrice = parseInt(settings.promo_plan_original_price || "249000", 10) || 249000;
+  const promoPlanDesc =
+    settings.promo_plan_desc ||
+    "Satu penawaran spesial untuk seluruh kebutuhan pernikahan Anda dengan semua fitur terbuka tanpa batasan.";
+  const promoPlanPeriod = settings.promo_plan_period || "Masa Aktif 1 Tahun Penuh";
+  const promoPlanBadge = settings.promo_plan_badge || "PROMO SPESIAL LAUNCHING • ALL FEATURES UNLOCKED";
+  const promoPlanFeaturesRaw = settings.promo_plan_features || "";
+  const promoPlanFeatures = promoPlanFeaturesRaw
+    ? promoPlanFeaturesRaw.split("\n").map((s) => s.trim()).filter(Boolean)
+    : [
+        "Akses Semua Desain & Tema (Termasuk Tema Premium)",
+        "Ganti Tema 1-Klik Kapan Saja",
+        "Masa Aktif 1 Tahun Penuh (365 Hari)",
+        "Galeri Foto HD Tanpa Batas & Video",
+        "Musik Latar Autoplay & Playlist Kustom",
+        "Amplop Digital Multi Rekening & QRIS Dinamis",
+        "Buku Tamu RSVP Realtime & Ucapan Doa",
+        "Navigasi Google Maps Presisi & Panduan Arah",
+        "Countdown Timer Menuju Hari Bahagia",
+        "Love Story & Timeline Perjalanan Cinta",
+        "QR Code Check-in Resepsi & Tiket Tamu",
+        "Kirim Kado Fisik & Alamat Pengiriman",
+      ];
+
   const priceStarter = parseInt(settings.price_starter || "39000", 10);
   const priceStarterOriginal = parseInt(settings.price_starter_original || "89000", 10);
   const priceElegant = parseInt(settings.price_elegant || "149000", 10);
@@ -140,8 +172,26 @@ export default function OrderPage() {
 
   const customDomainFee = useCustomDomain ? 150000 : 0;
   const treeDonationFee = joinOneTree ? 10000 : 0;
-  const basePackageFee = tierPrices[selectedTier] || 149000;
+  const basePackageFee = isSinglePromo ? promoPlanPrice : (tierPrices[selectedTier] || 149000);
   const totalPayment = Math.max(0, basePackageFee + customDomainFee + treeDonationFee - referralDiscount);
+
+  // Active payment mode settings from platform
+  const paymentMode = settings.payment_active_mode || "MANUAL_ONLY";
+  const isGatewayEnabled =
+    paymentMode === "GATEWAY_ONLY" ||
+    (paymentMode === "BOTH" && settings.feature_midtrans_payment !== "false");
+  const isManualEnabled =
+    paymentMode === "MANUAL_ONLY" ||
+    (paymentMode === "BOTH" && settings.feature_manual_payment !== "false");
+
+  // Keep payment method synchronized with enabled modes
+  useEffect(() => {
+    if (isManualEnabled && !isGatewayEnabled) {
+      setPaymentMethod("MANUAL");
+    } else if (isGatewayEnabled && !isManualEnabled) {
+      setPaymentMethod("GATEWAY");
+    }
+  }, [isGatewayEnabled, isManualEnabled]);
 
   // Midtrans Client Key & script loading
   const clientKey =
@@ -153,6 +203,7 @@ export default function OrderPage() {
   const isRealKey = Boolean(clientKey) && !clientKey.includes("YOUR_SANDBOX");
 
   useEffect(() => {
+    if (!isGatewayEnabled) return;
     const scriptId = "midtrans-snap-script";
     const scriptUrl = isProduction
       ? "https://app.midtrans.com/snap/snap.js"
@@ -166,7 +217,7 @@ export default function OrderPage() {
       script.async = true;
       document.body.appendChild(script);
     }
-  }, [isProduction, clientKey, isRealKey]);
+  }, [isProduction, clientKey, isRealKey, isGatewayEnabled]);
 
   // Load public settings and existing onboarding draft
   useEffect(() => {
@@ -181,8 +232,24 @@ export default function OrderPage() {
         ]);
 
         if (resSettings.ok) {
-          const jsonSettings = await resSettings.json();
-          if (isMounted) setSettings(jsonSettings);
+          const rawSettings = await resSettings.json();
+          const jsonSettings = rawSettings?.data || rawSettings;
+          if (isMounted) {
+            setSettings(jsonSettings);
+            const activeMode = jsonSettings.payment_active_mode || "MANUAL_ONLY";
+            const gwActive =
+              activeMode === "GATEWAY_ONLY" ||
+              (activeMode === "BOTH" && jsonSettings.feature_midtrans_payment !== "false");
+            const manActive =
+              activeMode === "MANUAL_ONLY" ||
+              (activeMode === "BOTH" && jsonSettings.feature_manual_payment !== "false");
+
+            if (manActive && !gwActive) {
+              setPaymentMethod("MANUAL");
+            } else if (gwActive && !manActive) {
+              setPaymentMethod("GATEWAY");
+            }
+          }
         }
 
         if (resMe.ok) {
@@ -353,6 +420,16 @@ export default function OrderPage() {
       return;
     }
 
+    if (paymentMethod === "GATEWAY" && !isGatewayEnabled) {
+      setErrorMsg("Metode pembayaran otomatis Midtrans sedang dinonaktifkan. Silakan gunakan Transfer Manual / QRIS.");
+      return;
+    }
+
+    if (paymentMethod === "MANUAL" && !isManualEnabled) {
+      setErrorMsg("Metode transfer manual sedang dinonaktifkan. Silakan gunakan pembayaran otomatis Midtrans.");
+      return;
+    }
+
     if (paymentMethod === "MANUAL" && !manualProofUrl) {
       setErrorMsg("Mohon unggah bukti transfer pembayaran manual terlebih dahulu.");
       return;
@@ -361,12 +438,14 @@ export default function OrderPage() {
     setIsLoading(true);
 
     try {
+      const effectiveTier: Tier = isSinglePromo ? "ELEGANT" : selectedTier;
+
       // 1. Save onboarding personal data
       const setupRes = await fetch("/api/payment/onboarding-setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tier: selectedTier,
+          tier: effectiveTier,
           groomName: cleanGroomNickname,
           brideName: cleanBrideNickname,
           phoneNumber: `+62${cleanPhoneDigits}`,
@@ -392,7 +471,7 @@ export default function OrderPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             invitationId,
-            tier: selectedTier,
+            tier: effectiveTier,
             amount: totalPayment,
             paymentType: "GATEWAY",
           }),
@@ -412,7 +491,7 @@ export default function OrderPage() {
           setDevSimulation({
             orderId,
             amount: totalPayment,
-            tier: selectedTier,
+            tier: effectiveTier,
           });
         }
 
@@ -444,7 +523,7 @@ export default function OrderPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             invitationId,
-            tier: selectedTier,
+            tier: effectiveTier,
             amount: totalPayment,
             paymentType: "MANUAL_BANK",
             proofImageUrl: manualProofUrl,
@@ -458,8 +537,11 @@ export default function OrderPage() {
 
         const orderId = manualJson.data?.orderId || "FSR-ORDER";
         setSuccessMsg(
-          `Pesanan #${orderId} berhasil dikirim! Bukti transfer sedang diverifikasi oleh Tim Fasaro. Anda dapat memeriksa statusnya secara berkala.`
+          `Pesanan #${orderId} berhasil dikirim! Bukti transfer sedang diverifikasi oleh Tim Invity. Anda dapat memeriksa statusnya secara berkala.`
         );
+        // Alihkan langsung ke halaman status pembayaran
+        navigate(`/payment-status?orderId=${orderId}`);
+        return;
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Terjadi kesalahan saat memproses pesanan.");
@@ -568,17 +650,24 @@ export default function OrderPage() {
       {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-xl font-bold tracking-tight text-slate-900 font-serif">
-              Fasaro<span className="text-orange-500">.</span>
-            </span>
-            <span className="hidden sm:inline-block h-4 w-px bg-slate-200" />
+          <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-baseline gap-1.5 group">
+              <span className="text-xl font-bold tracking-tight text-slate-900 font-serif notranslate">
+                Invity<span className="text-orange-500">.</span>
+              </span>
+              <span className="text-[10px] font-medium text-slate-400 notranslate">
+                by Fasaro
+              </span>
+            </Link>
+            <span className="hidden sm:inline-block h-4 w-px bg-slate-200 ml-1.5" />
             <span className="hidden sm:inline-block text-xs font-medium text-slate-500">
               Pemesanan & Aktivasi Paket
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <GoogleTranslateWidget />
+            <NotificationBell />
             {currentUser && (
               <div className="text-right hidden md:block">
                 <p className="text-xs font-semibold text-slate-800 leading-tight">
@@ -589,10 +678,10 @@ export default function OrderPage() {
             )}
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span>Keluar</span>
+              <span className="hidden sm:inline">Keluar</span>
             </button>
           </div>
         </div>
@@ -614,7 +703,7 @@ export default function OrderPage() {
               className="relative z-10 flex items-center gap-2 bg-white px-2 cursor-pointer group focus:outline-none"
             >
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`w-7 h-7 rounded-none flex items-center justify-center text-xs font-bold transition-all ${
                   step === "data"
                     ? "bg-orange-500 text-white"
                     : "bg-orange-500 text-white ring-4 ring-orange-100"
@@ -634,7 +723,7 @@ export default function OrderPage() {
             {/* Step 2 Indicator */}
             <div className="relative z-10 flex items-center gap-2 bg-white px-2">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                className={`w-7 h-7 rounded-none flex items-center justify-center text-xs font-bold transition-all ${
                   step === "data"
                     ? "bg-orange-500 text-white ring-4 ring-orange-100"
                     : "bg-slate-100 text-slate-400 border border-slate-200"
@@ -680,180 +769,270 @@ export default function OrderPage() {
         {/* STEP 1: SELECT PACKAGE */}
         {step === "package" && (
           <div className="space-y-8 max-w-5xl mx-auto">
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-                Pilih Paket Undangan Digital Anda
-              </h1>
-              <p className="text-sm text-slate-600 max-w-xl mx-auto">
-                Silakan pilih paket yang sesuai kebutuhan resepsi Anda. Setelah memilih, Anda dapat
-                langsung mengisi ringkasan data mempelai dan menyelesaikan pembayaran.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-              {/* Card Starter */}
-              <div
-                className={`bg-white rounded-2xl p-6 border transition-all flex flex-col justify-between ${
-                  selectedTier === "STARTER"
-                    ? "border-orange-500 ring-2 ring-orange-500/20 shadow-sm"
-                    : "border-slate-200 hover:border-slate-300 shadow-sm"
-                }`}
-              >
-                <div>
-                  <div className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-slate-100 text-slate-700 mb-3">
-                    Entry Tier
+            {isSinglePromo ? (
+              <div className="space-y-8 max-w-4xl mx-auto">
+                <div className="text-center space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-orange-100 text-orange-700 text-xs font-bold tracking-wide uppercase">
+                    <Tag className="w-3.5 h-3.5 text-orange-600" />
+                    <span>{promoPlanBadge}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">Paket Starter</h3>
-                  <p className="text-xs text-slate-500 mt-1">Untuk syukuran intim & keluarga.</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 font-serif">
+                    {promoPlanName}
+                  </h1>
+                  <p className="text-sm text-slate-600 max-w-xl mx-auto">
+                    {promoPlanDesc}
+                  </p>
+                </div>
 
-                  <div className="mt-4 pb-4 border-b border-slate-100">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-extrabold text-slate-900">
-                        Rp {priceStarter.toLocaleString("id-ID")}
-                      </span>
-                      {priceStarterOriginal > priceStarter && (
-                        <span className="text-xs text-slate-400 line-through">
-                          Rp {priceStarterOriginal.toLocaleString("id-ID")}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-orange-500 shadow-md relative overflow-hidden">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    {/* Left side: Price & Action */}
+                    <div className="lg:col-span-5 space-y-5 pb-6 lg:pb-0 lg:border-r border-slate-100 lg:pr-8">
+                      <div className="space-y-2">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          Biaya Aktivasi Sekali Bayar
                         </span>
-                      )}
+                        <div className="flex items-baseline gap-2.5">
+                          <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-sans">
+                            Rp {promoPlanPrice.toLocaleString("id-ID")}
+                          </span>
+                          {promoPlanOriginalPrice > promoPlanPrice && (
+                            <div className="flex flex-col">
+                              <span className="text-xs text-slate-400 line-through">
+                                Rp {promoPlanOriginalPrice.toLocaleString("id-ID")}
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-block self-start">
+                                Hemat {Math.round(((promoPlanOriginalPrice - promoPlanPrice) / promoPlanOriginalPrice) * 100)}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-orange-600">
+                          ✓ {promoPlanPeriod} • Tanpa Biaya Tersembunyi
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Satu paket promo terpadu untuk membuka seluruh fitur digital premium. Bebas ganti tema, navigasi maps, galeri foto, hingga amplop QRIS.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTier("ELEGANT");
+                          setStep("data");
+                        }}
+                        className="w-full py-3.5 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                      >
+                        <span>Lanjut ke Pengisian Data Mempelai</span>
+                        <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                      </button>
+
+                      <p className="text-[11px] text-center text-slate-400">
+                        Aktivasi instan • Dapat diedit kembali setelah pesanan dibuat
+                      </p>
                     </div>
-                    <span className="text-[11px] text-slate-500 font-medium">Masa Aktif 90 Hari</span>
-                  </div>
 
-                  <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
-                    {starterFeatures.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedTier("STARTER");
-                    setStep("data");
-                  }}
-                  className={`mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                    selectedTier === "STARTER"
-                      ? "bg-orange-500 hover:bg-orange-600 text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-800"
-                  }`}
-                >
-                  Pilih Paket Starter
-                </button>
-              </div>
-
-              {/* Card Elegant (Recommended) */}
-              <div
-                className={`bg-white rounded-2xl p-6 border-2 relative transition-all flex flex-col justify-between shadow-md ${
-                  selectedTier === "ELEGANT"
-                    ? "border-orange-500 ring-4 ring-orange-500/10"
-                    : "border-orange-400 hover:border-orange-500"
-                }`}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  <span>Paling Diminati</span>
-                </div>
-
-                <div>
-                  <div className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-orange-100 text-orange-700 mb-3 mt-1">
-                    Best Value
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900">Paket Elegant</h3>
-                  <p className="text-xs text-slate-500 mt-1">Pilihan favorit untuk resepsi lengkap.</p>
-
-                  <div className="mt-4 pb-4 border-b border-slate-100">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-extrabold text-orange-600">
-                        Rp {priceElegant.toLocaleString("id-ID")}
-                      </span>
-                      {priceElegantOriginal > priceElegant && (
-                        <span className="text-xs text-slate-400 line-through">
-                          Rp {priceElegantOriginal.toLocaleString("id-ID")}
+                    {/* Right side: All Features Unlocked */}
+                    <div className="lg:col-span-7 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                          Semua Fitur Terbuka (All Features Included)
                         </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-medium">Masa Aktif 365 Hari (1 Tahun Penuh)</span>
-                  </div>
-
-                  <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
-                    {elegantFeatures.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-                        <span className="font-medium text-slate-700">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedTier("ELEGANT");
-                    setStep("data");
-                  }}
-                  className="mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition-all cursor-pointer"
-                >
-                  Pilih Paket Elegant
-                </button>
-              </div>
-
-              {/* Card Ultimate */}
-              <div
-                className={`bg-white rounded-2xl p-6 border transition-all flex flex-col justify-between ${
-                  selectedTier === "ULTIMATE"
-                    ? "border-orange-500 ring-2 ring-orange-500/20 shadow-sm"
-                    : "border-slate-200 hover:border-slate-300 shadow-sm"
-                }`}
-              >
-                <div>
-                  <div className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-amber-100 text-amber-800 mb-3">
-                    VIP Hari-H
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900">Paket Ultimate</h3>
-                  <p className="text-xs text-slate-500 mt-1">Fitur terlengkap & masa aktif selamanya.</p>
-
-                  <div className="mt-4 pb-4 border-b border-slate-100">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-extrabold text-slate-900">
-                        Rp {priceUltimate.toLocaleString("id-ID")}
-                      </span>
-                      {priceUltimateOriginal > priceUltimate && (
-                        <span className="text-xs text-slate-400 line-through">
-                          Rp {priceUltimateOriginal.toLocaleString("id-ID")}
+                        <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-none border border-emerald-200">
+                          100% Full Access
                         </span>
-                      )}
-                    </div>
-                    <span className="text-[11px] text-slate-500 font-medium">Masa Aktif Selamanya (Lifetime)</span>
-                  </div>
+                      </div>
 
-                  <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
-                    {ultimateFeatures.map((feat, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {promoPlanFeatures.map((feat, idx) => (
+                          <div key={idx} className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50/70 border border-slate-100 text-xs text-slate-700">
+                            <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                            <span className="leading-snug">{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-center space-y-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+                    Pilih Paket Undangan Digital Anda
+                  </h1>
+                  <p className="text-sm text-slate-600 max-w-xl mx-auto">
+                    Silakan pilih paket yang sesuai kebutuhan resepsi Anda. Setelah memilih, Anda dapat
+                    langsung mengisi ringkasan data mempelai dan menyelesaikan pembayaran.
+                  </p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setSelectedTier("ULTIMATE");
-                    setStep("data");
-                  }}
-                  className={`mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                    selectedTier === "ULTIMATE"
-                      ? "bg-orange-500 hover:bg-orange-600 text-white"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-800"
-                  }`}
-                >
-                  Pilih Paket Ultimate
-                </button>
-              </div>
-            </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                  {/* Card Starter */}
+                  <div
+                    className={`bg-white rounded-2xl p-6 border transition-all flex flex-col justify-between ${
+                      selectedTier === "STARTER"
+                        ? "border-orange-500 ring-2 ring-orange-500/20 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300 shadow-sm"
+                    }`}
+                  >
+                    <div>
+                      <div className="inline-block px-2.5 py-0.5 rounded-none text-[11px] font-bold tracking-wider uppercase bg-slate-100 text-slate-700 mb-3">
+                        Entry Tier
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900">Paket Starter</h3>
+                      <p className="text-xs text-slate-500 mt-1">Untuk syukuran intim & keluarga.</p>
+
+                      <div className="mt-4 pb-4 border-b border-slate-100">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-extrabold text-slate-900">
+                            Rp {priceStarter.toLocaleString("id-ID")}
+                          </span>
+                          {priceStarterOriginal > priceStarter && (
+                            <span className="text-xs text-slate-400 line-through">
+                              Rp {priceStarterOriginal.toLocaleString("id-ID")}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-medium">Masa Aktif 90 Hari</span>
+                      </div>
+
+                      <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
+                        {starterFeatures.map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedTier("STARTER");
+                        setStep("data");
+                      }}
+                      className={`mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                        selectedTier === "STARTER"
+                          ? "bg-orange-500 hover:bg-orange-600 text-white"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-800"
+                      }`}
+                    >
+                      Pilih Paket Starter
+                    </button>
+                  </div>
+
+                  {/* Card Elegant (Recommended) */}
+                  <div
+                    className={`bg-white rounded-2xl p-6 border-2 relative transition-all flex flex-col justify-between shadow-md ${
+                      selectedTier === "ELEGANT"
+                        ? "border-orange-500 ring-4 ring-orange-500/10"
+                        : "border-orange-400 hover:border-orange-500"
+                    }`}
+                  >
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-none shadow-sm flex items-center gap-1">
+                      <span>Paling Diminati</span>
+                    </div>
+
+                    <div>
+                      <div className="inline-block px-2.5 py-0.5 rounded-none text-[11px] font-bold tracking-wider uppercase bg-orange-100 text-orange-700 mb-3 mt-1">
+                        Best Value
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900">Paket Elegant</h3>
+                      <p className="text-xs text-slate-500 mt-1">Pilihan favorit untuk resepsi lengkap.</p>
+
+                      <div className="mt-4 pb-4 border-b border-slate-100">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-extrabold text-orange-600">
+                            Rp {priceElegant.toLocaleString("id-ID")}
+                          </span>
+                          {priceElegantOriginal > priceElegant && (
+                            <span className="text-xs text-slate-400 line-through">
+                              Rp {priceElegantOriginal.toLocaleString("id-ID")}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-medium">Masa Aktif 365 Hari (1 Tahun Penuh)</span>
+                      </div>
+
+                      <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
+                        {elegantFeatures.map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                            <span className="font-medium text-slate-700">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedTier("ELEGANT");
+                        setStep("data");
+                      }}
+                      className="mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition-all cursor-pointer"
+                    >
+                      Pilih Paket Elegant
+                    </button>
+                  </div>
+
+                  {/* Card Ultimate */}
+                  <div
+                    className={`bg-white rounded-2xl p-6 border transition-all flex flex-col justify-between ${
+                      selectedTier === "ULTIMATE"
+                        ? "border-orange-500 ring-2 ring-orange-500/20 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300 shadow-sm"
+                    }`}
+                  >
+                    <div>
+                      <div className="inline-block px-2.5 py-0.5 rounded-none text-[11px] font-bold tracking-wider uppercase bg-amber-100 text-amber-800 mb-3">
+                        VIP Hari-H
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900">Paket Ultimate</h3>
+                      <p className="text-xs text-slate-500 mt-1">Fitur terlengkap & masa aktif selamanya.</p>
+
+                      <div className="mt-4 pb-4 border-b border-slate-100">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-extrabold text-slate-900">
+                            Rp {priceUltimate.toLocaleString("id-ID")}
+                          </span>
+                          {priceUltimateOriginal > priceUltimate && (
+                            <span className="text-xs text-slate-400 line-through">
+                              Rp {priceUltimateOriginal.toLocaleString("id-ID")}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-medium">Masa Aktif Selamanya (Lifetime)</span>
+                      </div>
+
+                      <ul className="mt-4 space-y-2.5 text-xs text-slate-600">
+                        {ultimateFeatures.map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedTier("ULTIMATE");
+                        setStep("data");
+                      }}
+                      className={`mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                        selectedTier === "ULTIMATE"
+                          ? "bg-orange-500 hover:bg-orange-600 text-white"
+                          : "bg-slate-100 hover:bg-slate-200 text-slate-800"
+                      }`}
+                    >
+                      Pilih Paket Ultimate
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -913,7 +1092,7 @@ export default function OrderPage() {
                     Phone Number
                   </label>
                   <div className="flex gap-2">
-                    <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 select-none shrink-0">
+                    <div className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 select-none shrink-0 notranslate">
                       <span>🇮🇩</span>
                       <span>+62</span>
                     </div>
@@ -1014,7 +1193,7 @@ export default function OrderPage() {
                     </div>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    You can request to change the domain once from Fasaro Admin
+                    You can request to change the domain once from Invity Admin
                   </p>
 
                   <div className="flex items-center gap-2 pt-1">
@@ -1140,7 +1319,7 @@ export default function OrderPage() {
                       <h4 className="text-xs font-bold text-slate-900">One Wedding One Tree</h4>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed max-w-lg">
-                      Join Fasaro to support LindungiHutan. Your contribution helps preserve the environment through the &ldquo;One Wedding One Tree&rdquo; program.
+                      Join Invity by Fasaro to support LindungiHutan. Your contribution helps preserve the environment through the &ldquo;One Wedding One Tree&rdquo; program.
                     </p>
                     <div className="pt-2 flex items-center gap-2">
                       <input
@@ -1182,19 +1361,34 @@ export default function OrderPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-slate-500">Undangan Digital</p>
-                      <p className="text-base font-bold text-orange-600 capitalize">
-                        {selectedTier.toLowerCase()}
+                      <p className="text-base font-bold text-orange-600">
+                        {isSinglePromo ? promoPlanName : `Paket ${selectedTier.toLowerCase()}`}
                       </p>
                     </div>
                     <div className="text-right">
-                      {tierOriginalPrices[selectedTier] > tierPrices[selectedTier] && (
-                        <p className="text-[11px] text-slate-400 line-through">
-                          Rp {tierOriginalPrices[selectedTier].toLocaleString("id-ID")}
-                        </p>
+                      {isSinglePromo ? (
+                        <>
+                          {promoPlanOriginalPrice > promoPlanPrice && (
+                            <p className="text-[11px] text-slate-400 line-through">
+                              Rp {promoPlanOriginalPrice.toLocaleString("id-ID")}
+                            </p>
+                          )}
+                          <p className="text-base font-bold text-slate-900">
+                            Rp {promoPlanPrice.toLocaleString("id-ID")}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          {tierOriginalPrices[selectedTier] > tierPrices[selectedTier] && (
+                            <p className="text-[11px] text-slate-400 line-through">
+                              Rp {tierOriginalPrices[selectedTier].toLocaleString("id-ID")}
+                            </p>
+                          )}
+                          <p className="text-base font-bold text-slate-900">
+                            Rp {tierPrices[selectedTier].toLocaleString("id-ID")}
+                          </p>
+                        </>
                       )}
-                      <p className="text-base font-bold text-slate-900">
-                        Rp {tierPrices[selectedTier].toLocaleString("id-ID")}
-                      </p>
                     </div>
                   </div>
 
@@ -1205,7 +1399,7 @@ export default function OrderPage() {
                       onClick={() => setIsPackageDetailsOpen(!isPackageDetailsOpen)}
                       className="text-[11px] font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <span>See Package Details {selectedTier.toLowerCase()}</span>
+                      <span>Lihat Fitur {isSinglePromo ? promoPlanName : selectedTier.toLowerCase()}</span>
                       {isPackageDetailsOpen ? (
                         <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
                       ) : (
@@ -1214,8 +1408,8 @@ export default function OrderPage() {
                     </button>
 
                     {isPackageDetailsOpen && (
-                      <ul className="mt-2.5 p-3 rounded-xl bg-slate-50 space-y-1.5 text-[11px] text-slate-600 border border-slate-100">
-                        {tierFeatureMap[selectedTier].map((f, i) => (
+                      <ul className="mt-2.5 p-3 rounded-xl bg-slate-50 space-y-1.5 text-[11px] text-slate-600 border border-slate-100 max-h-60 overflow-y-auto">
+                        {(isSinglePromo ? promoPlanFeatures : tierFeatureMap[selectedTier]).map((f, i) => (
                           <li key={i} className="flex items-start gap-1.5">
                             <Check className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
                             <span>{f}</span>
@@ -1231,8 +1425,8 @@ export default function OrderPage() {
                   <h4 className="text-xs font-bold text-slate-800">Payment Detail</h4>
                   <div className="space-y-1.5 text-xs text-slate-600">
                     <div className="flex justify-between">
-                      <span>Package</span>
-                      <span>Rp {tierPrices[selectedTier].toLocaleString("id-ID")}</span>
+                      <span>{isSinglePromo ? promoPlanName : "Package"}</span>
+                      <span>Rp {basePackageFee.toLocaleString("id-ID")}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Custom Domain</span>
@@ -1262,32 +1456,56 @@ export default function OrderPage() {
                 {/* Payment Method Selector */}
                 <div className="pt-2 border-t border-slate-100 space-y-3">
                   <h4 className="text-xs font-bold text-slate-800">Metode Pembayaran</h4>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("GATEWAY")}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                        paymentMethod === "GATEWAY"
-                          ? "border-orange-500 bg-orange-50 text-orange-700"
-                          : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      Otomatis (Midtrans)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("MANUAL")}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
-                        paymentMethod === "MANUAL"
-                          ? "border-orange-500 bg-orange-50 text-orange-700"
-                          : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      Transfer Manual / QRIS
-                    </button>
-                  </div>
+                  
+                  {isGatewayEnabled && isManualEnabled ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("GATEWAY")}
+                        className={`py-2 px-3 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
+                          paymentMethod === "GATEWAY"
+                            ? "border-orange-500 bg-orange-50 text-orange-700"
+                            : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        Otomatis (Midtrans)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("MANUAL")}
+                        className={`py-2 px-3 rounded-xl text-xs font-semibold border text-center transition-all cursor-pointer ${
+                          paymentMethod === "MANUAL"
+                            ? "border-orange-500 bg-orange-50 text-orange-700"
+                            : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        Transfer Manual / QRIS
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-orange-50/60 border border-orange-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#F97316]" />
+                        <span className="text-xs font-bold text-slate-900">
+                          {isManualEnabled ? "Transfer Manual / QRIS" : "Otomatis (Midtrans)"}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-[#F97316] bg-orange-100 px-2 py-0.5 rounded-full">
+                        Metode Aktif
+                      </span>
+                    </div>
+                  )}
 
-                  {paymentMethod === "MANUAL" && (
+                  {paymentMethod === "GATEWAY" && isGatewayEnabled && isManualEnabled && (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-xs">
+                      <p className="font-semibold text-slate-700">Pembayaran Instan via Midtrans</p>
+                      <p className="text-[11px] text-slate-500">
+                        Pop-up Midtrans (GoPay, QRIS, Virtual Account BCA/Mandiri/BRI/BNI, Kartu Kredit) akan otomatis muncul saat Anda menekan tombol Order Now.
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === "MANUAL" && isManualEnabled && (
                     <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-xs">
                       <div className="space-y-1">
                         <p className="text-[11px] text-slate-500">Rekening Tujuan:</p>
@@ -1316,38 +1534,88 @@ export default function OrderPage() {
                       </div>
 
                       {settings.manual_qris_image_url && (
-                        <div className="text-center p-2 bg-white rounded-lg border border-slate-200">
-                          <p className="text-[11px] font-semibold text-slate-700 mb-1">Scan QRIS Fasaro</p>
+                        <div className="text-center p-2.5 bg-white rounded-lg border border-slate-200 space-y-2">
+                          <p className="text-[11px] font-semibold text-slate-700">Scan QRIS Invity by Fasaro</p>
                           <img
                             src={settings.manual_qris_image_url}
-                            alt="QRIS Fasaro"
+                            alt="QRIS Invity by Fasaro"
                             className="w-32 h-32 mx-auto object-contain"
                           />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (settings.manual_qris_image_url) {
+                                downloadImageFile(
+                                  settings.manual_qris_image_url,
+                                  "QRIS-Invity-Official.jpg"
+                                );
+                              }
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-orange-50 hover:bg-orange-100 text-[#F97316] font-semibold text-xs border border-orange-200 transition-colors cursor-pointer w-full"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Unduh QRIS Pembayaran</span>
+                          </button>
                         </div>
                       )}
 
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <label className="block text-[11px] font-semibold text-slate-700">
                           Unggah Bukti Transfer
                         </label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleUploadProof}
-                          disabled={isUploadingProof}
-                          className="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer"
-                        />
-                        {isUploadingProof && (
-                          <p className="text-[11px] text-orange-600 animate-pulse">Mengunggah file...</p>
-                        )}
-                        {manualProofUrl && (
-                          <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Bukti transfer terlampir
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <label
+                            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none ${
+                              isUploadingProof
+                                ? "bg-slate-100 text-slate-400 border-slate-200 cursor-wait"
+                                : "bg-white hover:bg-orange-50 text-[#F97316] border-orange-200 hover:border-[#F97316] active:scale-95"
+                            }`}
+                          >
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadProof}
+                              disabled={isUploadingProof}
+                              className="sr-only"
+                            />
+                            {isUploadingProof ? (
+                              <>
+                                <div className="w-3.5 h-3.5 border-2 border-[#F97316] border-t-transparent rounded-full animate-spin" />
+                                <span>Mengunggah file...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3.5 h-3.5" />
+                                <span>Upload File</span>
+                              </>
+                            )}
+                          </label>
+
+                          {manualProofUrl ? (
+                            <span className="text-[11px] text-emerald-700 font-medium inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Bukti transfer terlampir</span>
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-slate-400">
+                              Belum ada file dipilih (JPG, PNG, WebP)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Non-refundable Disclaimer / Informasi Penting */}
+                <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 space-y-1.5 text-xs text-amber-900">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Informasi Penting Sebelum Membayar</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-800/95">
+                    Pembayaran yang telah diselesaikan <strong>tidak dapat dikembalikan (non-refundable)</strong>. Mohon pastikan kembali pilihan paket dan keputusan Anda sebelum melanjutkan transaksi.
+                  </p>
                 </div>
 
                 {/* Primary & Secondary Action Buttons */}
@@ -1403,7 +1671,7 @@ export default function OrderPage() {
               <div className="bg-white rounded-2xl p-4 border border-slate-200 flex items-center gap-3 text-xs text-slate-500">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                 <p className="text-[11px] leading-relaxed">
-                  Transaksi aman & terverifikasi. Seluruh data mempelai dapat diubah dan diperbarui kapan saja melalui Dashboard Fasaro.
+                  Transaksi aman & terverifikasi. Seluruh data mempelai dapat diubah dan diperbarui kapan saja melalui Dashboard Invity.
                 </p>
               </div>
             </div>

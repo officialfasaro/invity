@@ -86,7 +86,7 @@ export const MaintenanceNotice: React.FC<MaintenanceNoticeProps> = ({
 
           {cleanWaNumber && (
             <a
-              href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20Fasaro,%20saya%20butuh%20bantuan%20mengenai%20undangan%20saya`}
+              href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20Invity,%20saya%20butuh%20bantuan%20mengenai%20undangan%20saya`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-2.5 px-5 rounded-xl text-xs font-semibold border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-xs"
@@ -99,7 +99,7 @@ export const MaintenanceNotice: React.FC<MaintenanceNoticeProps> = ({
 
         {/* Footer info */}
         <p className="text-[11px] text-slate-400 pt-2 border-t border-[#E2E8F0]">
-          © {new Date().getFullYear()} Fasaro Digital Invitation. Semua hak dilindungi.
+          © {new Date().getFullYear()} Invity by Fasaro. Semua hak dilindungi.
         </p>
       </div>
     </div>

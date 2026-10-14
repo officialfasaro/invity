@@ -22,12 +22,36 @@
   --color-primary: var(--primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --radius-xs: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius: 0px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Style Tegas & Sharp Global Aesthetic (Kecuali elemen lingkaran) */
+button:not(.rounded-full),
+input,
+select,
+textarea {
+  border-radius: 0px;
+}
+
+/* Elemen lingkaran & spinner rotasi tetap lingkaran sempurna */
+.rounded-full,
+.animate-spin {
+  border-radius: 9999px !important;
 }
 
 ::selection {
@@ -47,8 +71,52 @@ body {
   font-family: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
 }
 
+.font-serif-eb {
+  font-family: "EB Garamond", Georgia, serif;
+}
+
+.font-sans-montserrat {
+  font-family: "Montserrat", sans-serif;
+}
+
+.font-sans-manrope {
+  font-family: "Manrope", sans-serif;
+}
+
 .font-sans-jakarta {
   font-family: var(--font-plus-jakarta), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.font-script-pinyon {
+  font-family: "Pinyon Script", "Great Vibes", cursive;
+}
+
+.font-sans-jost {
+  font-family: "Jost", "Plus Jakarta Sans", sans-serif;
+}
+
+/* Botanical Stationery Styles */
+.deckle-frame {
+  box-shadow: 
+    0 0 0 1px rgba(197, 168, 128, 0.25),
+    0 15px 35px -10px rgba(42, 36, 33, 0.12),
+    inset 0 0 60px rgba(232, 223, 209, 0.45);
+  border-radius: 0px;
+}
+
+.wax-seal {
+  background: radial-gradient(circle at 35% 30%, #872836, #581420 70%, #3a0a12 100%);
+  box-shadow: 
+    0 8px 18px rgba(78, 5, 20, 0.4),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+    inset -2px -2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.card-glass {
+  background: rgba(255, 253, 249, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(197, 168, 128, 0.35);
+  box-shadow: 0 10px 25px -5px rgba(42, 36, 33, 0.06);
 }
 
 /* Velvet & Wax Seal Theme Styles */
@@ -86,12 +154,22 @@ body {
 }
 
 /* Hide scrollbar UI completely while preserving smooth scroll interaction */
-.no-scrollbar {
+.no-scrollbar,
+.custom-scrollbar,
+.theme-wrapper,
+.theme-wrapper *,
+.theme-invitation,
+.theme-invitation * {
   -ms-overflow-style: none !important; /* IE and Edge */
   scrollbar-width: none !important; /* Firefox */
 }
 
-.no-scrollbar::-webkit-scrollbar {
+.no-scrollbar::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar,
+.theme-wrapper::-webkit-scrollbar,
+.theme-wrapper *::-webkit-scrollbar,
+.theme-invitation::-webkit-scrollbar,
+.theme-invitation *::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
@@ -169,7 +247,7 @@ body {
 .goog-te-gadget .goog-te-combo {
   margin: 0 !important;
   padding: 4px 8px !important;
-  border-radius: 6px !important;
+  border-radius: 0px !important;
   border: 1px solid #E2E8F0 !important;
   background-color: #ffffff !important;
   color: #1e293b !important;
@@ -199,3 +277,289 @@ body {
   font-size: 0 !important;
   visibility: hidden !important;
 }
+
+/* ========================================================= */
+/* KISAH KAMI VERTICAL SCROLL STAGE                          */
+/* ========================================================= */
+
+.story-vertical-stage {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  position: relative;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.story-vertical-stage::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* ========================================================= */
+/* 3D PERSPECTIVE CORRIDOR SCROLL (GALERI)                   */
+/* ========================================================= */
+
+.story-3d-stage {
+  perspective: 600px;
+  perspective-origin: center center;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  display: grid;
+  justify-items: center;
+  position: relative;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.story-3d-stage::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Left 3D Flap (.box) */
+.story-3d-box {
+  background: linear-gradient(to right, #ffffff 65%, #fbf8f2 85%, #dfd3c0 100%);
+  width: 90%;
+  max-width: 580px;
+  transform-style: preserve-3d;
+  transform: translateX(-50%) rotateY(40deg);
+  transform-origin: right center;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, background 0.3s ease;
+  cursor: pointer;
+  will-change: transform;
+  border: none;
+  box-shadow: 0 10px 30px -8px rgba(42, 36, 33, 0.08);
+}
+
+.story-3d-box:hover,
+.story-3d-box.is-unfolded {
+  transform: translateX(0%) rotateY(0deg) translateZ(40px) scale(1.02);
+  background: #ffffff;
+  box-shadow: 0 20px 45px -10px rgba(42, 36, 33, 0.16);
+  z-index: 40;
+}
+
+/* Right 3D Flap (.box2) */
+.story-3d-box2 {
+  background: linear-gradient(to left, #ffffff 65%, #fbf8f2 85%, #dfd3c0 100%);
+  width: 90%;
+  max-width: 580px;
+  transform-style: preserve-3d;
+  transform: translateX(50%) rotateY(-40deg);
+  transform-origin: left center;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, background 0.3s ease;
+  cursor: pointer;
+  will-change: transform;
+  border: none;
+  box-shadow: 0 10px 30px -8px rgba(42, 36, 33, 0.08);
+}
+
+.story-3d-box2:hover,
+.story-3d-box2.is-unfolded {
+  transform: translateX(0%) rotateY(0deg) translateZ(40px) scale(1.02);
+  background: #ffffff;
+  box-shadow: 0 20px 45px -10px rgba(42, 36, 33, 0.16);
+  z-index: 40;
+}
+
+/* Google Translate Borderless Clean Styling */
+.google-translate-wrapper {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#google_translate_element .goog-te-gadget-simple {
+  border: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+}
+
+#google_translate_element .goog-te-gadget-simple .goog-te-menu-value {
+  color: #334155 !important;
+}
+
+/* Elegant Botanical Scroll Reveal (Hardware-Accelerated & Lightweight) */
+.scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translate3d(-20px, 0, 0);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal-left.revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.scroll-reveal-right {
+  opacity: 0;
+  transform: translate3d(20px, 0, 0);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal-right.revealed {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Editorial Luxury Theme Styles */
+.arch-mask {
+  border-top-left-radius: 9999px;
+  border-top-right-radius: 9999px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.monogram-ring {
+  box-shadow: 0 0 0 1px #E2DDD4, 0 0 0 5px #FAF8F5, 0 0 0 6px #E2DDD4;
+}
+
+.bg-linen-pattern {
+  background-color: #F5F2EB;
+  background-image: radial-gradient(rgba(184, 146, 106, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Dark Vintage-Gothic & Archival (inviSimple L08) */
+.font-serif-bodoni {
+  font-family: "Bodoni Moda", "Playfair Display", Georgia, serif;
+}
+
+.font-sans-space {
+  font-family: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
+}
+
+@keyframes slideOutPhoto {
+  from {
+    transform: translateY(35px) scale(0.95);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-out-photo {
+  animation: slideOutPhoto 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes cardFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-fade-up {
+  animation: cardFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes scrollDot {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(12px);
+    opacity: 0.2;
+  }
+}
+
+.animate-scroll-dot {
+  animation: scrollDot 1.8s ease-in-out infinite;
+}
+
+@keyframes vinylSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-vinyl-spin {
+  animation: vinylSpin 6s linear infinite;
+}
+
+/* 3D Wedding Theme (Tema 5) Styles */
+.font-cormorant {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+.font-pinyon {
+  font-family: 'Pinyon Script', cursive;
+}
+.font-jost {
+  font-family: 'Jost', system-ui, sans-serif;
+}
+
+.perspective-900 {
+  perspective: 900px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+@keyframes letterRise3d {
+  from {
+    opacity: 0;
+    transform: translateY(45px) rotateX(70deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-letter-rise {
+  animation: letterRise3d 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes floatBob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-float-bob {
+  animation: floatBob 2.4s ease-in-out infinite;
+}
+
+/* Sembunyikan semua scrollbar pada tema */
+.no-scrollbar::-webkit-scrollbar,
+.theme-invitation::-webkit-scrollbar,
+.theme-wrapper::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
+}
+
+.no-scrollbar,
+.theme-invitation,
+.theme-wrapper {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+

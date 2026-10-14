@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Copy, Gift, QrCode, X } from "lucide-react";
+import { Check, Copy, Download, Gift, QrCode, X } from "lucide-react";
 import { BankAccountItem } from "@/types/wedding";
+import { downloadImageFile } from "@/utils/downloadHelper";
 
 interface DigitalGiftBoxProps {
   bankAccounts: BankAccountItem[];
@@ -29,6 +30,16 @@ export const DigitalGiftBox: React.FC<DigitalGiftBoxProps> = ({
   const [selectedQris, setSelectedQris] = useState<{ url: string; bank: string } | null>(
     null
   );
+
+  const handleDownloadQris = async (url: string, bank: string) => {
+    try {
+      const cleanFileName = `QRIS-${bank.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_")}.jpg`;
+      await downloadImageFile(url, cleanFileName);
+    } catch (err) {
+      console.error("Gagal mengunduh QRIS:", err);
+      window.open(url, "_blank");
+    }
+  };
 
   if (!bankAccounts || bankAccounts.length === 0) {
     return null;
@@ -193,6 +204,14 @@ export const DigitalGiftBox: React.FC<DigitalGiftBoxProps> = ({
             <p className="text-xs text-stone-600 font-medium mt-4">
               Buka aplikasi e-wallet / mobile banking Anda dan scan kode QR di atas.
             </p>
+            <button
+              type="button"
+              onClick={() => handleDownloadQris(selectedQris.url, selectedQris.bank)}
+              className="mt-3 w-full py-2.5 px-4 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs active:scale-[0.99]"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Unduh Gambar QRIS</span>
+            </button>
           </div>
         </div>
       )}

@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Architecture & Relational Schema — Fasaro Invity</title>
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border: #E2E8F0;
+      --primary: #F97316;
+      --primary-dark: #EA580C;
+      --primary-light: #FFF7ED;
+      --navy: #0F172A;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+      --badge-pk-bg: #FEF3C7;
+      --badge-pk-text: #D97706;
+      --badge-fk-bg: #E0F2FE;
+      --badge-fk-text: #0284C7;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: "Consolas", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Top Global Header */
+    header {
+      background: var(--navy);
+      border-bottom: 3px solid var(--primary);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-tag {
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .slide-counter {
+      font-size: 13px;
+      color: #94A3B8;
+      font-weight: 600;
+    }
+
+    .btn {
+      background: #1E293B;
+      color: #F8FAFC;
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: #475569;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary-dark);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Slide Stage */
+    .stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .slide {
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      left: 24px;
+      right: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide-header {
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #FAFAFC;
+    }
+
+    .slide-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .slide-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #F1F5F9;
+      color: var(--navy);
+      border: 1px solid var(--border);
+    }
+
+    .slide-body {
+      padding: 28px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* Cover Slide Layout */
+    .cover-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100%;
+      padding: 40px 60px;
+    }
+
+    .cover-tag {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border: 1px solid #FFEDD5;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .cover-title {
+      font-size: 38px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      max-width: 900px;
+    }
+
+    .cover-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 800px;
+      margin-bottom: 36px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .stat-card {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* 3 Column Layout */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .panel-card {
+      background: #FAFAFC;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .panel-card .sub {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 16px;
+    }
+
+    .panel-card ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .panel-card li {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .panel-card li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    /* Table Specification Layout (2 Col) */
+    .spec-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
+    .spec-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    table.data-table th {
+      background: var(--navy);
+      color: white;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    table.data-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    table.data-table tr:nth-child(even) td {
+      background: #F8FAFC;
+    }
+
+    table.data-table td.field-name {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    table.data-table td.type-name {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: #334155;
+    }
+
+    .tag-pk {
+      display: inline-block;
+      background: var(--badge-pk-bg);
+      color: var(--badge-pk-text);
+      font-weight: 700;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .tag-fk {
+      display: inline-block;
+      background: var(--badge-fk-bg);
+      color: var(--badge-fk-text);
+      font-weight: 700;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .side-box {
+      background: #FAFAFC;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+
+    .side-box h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .side-box ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .side-box li {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .side-box li::before {
+      content: "✔";
+      position: absolute;
+      left: 0;
+      color: var(--primary);
+      font-size: 11px;
+    }
+
+    /* ERD Image Slide */
+    .erd-container {
+      display: grid;
+      grid-template-columns: 3fr 1fr;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .erd-img-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #F8FAFC;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-in;
+    }
+
+    .erd-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Bottom Controller */
+    footer {
+      background: white;
+      border-top: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .nav-btn.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary-dark);
+    }
+
+    .nav-btn.primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    /* Print View */
+    @media print {
+      body {
+        height: auto;
+        overflow: visible;
+      }
+      header, footer {
+        display: none !important;
+      }
+      .stage {
+        padding: 0;
+        display: block;
+      }
+      .slide {
+        display: flex !important;
+        position: relative;
+        top: auto;
+        bottom: auto;
+        left: auto;
+        right: auto;
+        page-break-after: always;
+        box-shadow: none;
+        border: none;
+        margin-bottom: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Global Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-tag">POSTGRESQL + PRISMA</span>
+      <span class="brand-title">Fasaro Invity — Database Architecture</span>
+    </div>
+    <div class="header-actions">
+      <span class="slide-counter" id="slideIndicator">Slide 1 / 16</span>
+      <button class="btn" onclick="window.print()">Cetak / Simpan PDF</button>
+      <a class="btn btn-primary" href="Database_Presentation_Fasaro_Invity.pptx" download>Unduh File PPTX</a>
+    </div>
+  </header>
+
+  <!-- Stage Container -->
+  <main class="stage">
+
+    <!-- SLIDE 1: COVER -->
+    <section class="slide active" id="slide-1">
+      <div class="cover-container">
+        <span class="cover-tag">DOKUMENTASI LENGKAP SKEMA & PENGGUNAAN TABEL</span>
+        <h1 class="cover-title">Arsitektur Database & Pemodelan Relasional Skema</h1>
+        <p class="cover-desc">
+          Panduan teknis dan analisis menyeluruh basis data relasional PostgreSQL dengan Prisma ORM untuk platform SaaS Undangan Pernikahan Digital <strong>Fasaro Invity</strong>.
+        </p>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val" style="color: var(--primary);">11 TABEL UTAMA</div>
+            <div class="stat-label">Struktur domain modular lengkap</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" style="color: #0284C7;">4 ENUM GLOBAL</div>
+            <div class="stat-label">Integritas data & type-safety</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" style="color: #16A34A;">POSTGRESQL</div>
+            <div class="stat-label">Relational database engine tangguh</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" style="color: #6366F1;">PRISMA ORM</div>
+            <div class="stat-label">Migrasi deklaratif & strict client</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: EXECUTIVE SUMMARY -->
+    <section class="slide" id="slide-2">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Ringkasan Eksekutif</div>
+          <div class="slide-title">Arsitektur & Gambaran Umum Database</div>
+        </div>
+        <span class="badge-pill">Overview</span>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="panel-card">
+            <h3>1. Core Architecture</h3>
+            <div class="sub">PostgreSQL & Prisma ORM</div>
+            <ul>
+              <li><strong>RDBMS Utama:</strong> Menggunakan PostgreSQL dengan relasi foreign key dan aturan cascade delete yang teruji.</li>
+              <li><strong>Type-safe ORM:</strong> Prisma menyediakan auto-generated client TypeScript dengan nol toleransi tipe 'any'.</li>
+              <li><strong>CUID Identifiers:</strong> Seluruh Primary Key mengadopsi standar CUID yang anti-collision dan aman dari ID enumeration.</li>
+              <li><strong>Multi-tenant Model:</strong> Satu user dapat memiliki beberapa undangan dan mengelola mutasi transaksi secara independen.</li>
+            </ul>
+          </div>
+          <div class="panel-card">
+            <h3>2. Klasterisasi Domain</h3>
+            <div class="sub">11 Tabel dalam 4 Modul</div>
+            <ul>
+              <li><strong>Modul Akun & Auth:</strong> <code>users</code> untuk mengelola kredensial dan hak akses (USER/ADMIN).</li>
+              <li><strong>Modul Undangan Inti:</strong> <code>invitations</code> sebagai pusat data pengantin, link slug, dan konfigurasi tema.</li>
+              <li><strong>Modul Fitur Resepsi:</strong> <code>event_schedules</code>, <code>galleries</code>, <code>bank_accounts</code>, <code>guests</code>, <code>rsvps</code>, <code>wishes</code>.</li>
+              <li><strong>Modul Transaksi & Sistem:</strong> <code>payment_transactions</code>, <code>theme_catalogs</code>, <code>system_settings</code>.</li>
+            </ul>
+          </div>
+          <div class="panel-card">
+            <h3>3. Kebijakan Integritas</h3>
+            <div class="sub">Keamanan & Audit Trail</div>
+            <ul>
+              <li><strong>Cascade Delete:</strong> Penghapusan undangan otomatis membersihkan jadwal, galeri, buku tamu, RSVP, dan doa restu.</li>
+              <li><strong>SetNull Policy:</strong> Transaksi pembayaran tetap disimpan meski undangan dihapus untuk audit finansial akuntansi.</li>
+              <li><strong>Composite Constraint:</strong> <code>guests(invitationId, slugCode)</code> menjamin tautan nama tamu tidak saling tumpang tindih.</li>
+              <li><strong>Enums Terstandar:</strong> UserRole, SubscriptionTier, PaymentType, PaymentStatus.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: ERD DIAGRAM -->
+    <section class="slide" id="slide-3">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Diagram Visual</div>
+          <div class="slide-title">Entity Relationship Diagram (ERD) Fasaro Invity</div>
+        </div>
+        <a class="btn btn-primary" href="ERD_Diagram_Fasaro_Invity.png" download>Download Gambar ERD (PNG)</a>
+      </div>
+      <div class="slide-body">
+        <div class="erd-container">
+          <div class="erd-img-box" onclick="window.open('ERD_Diagram_Fasaro_Invity.png', '_blank')">
+            <img src="ERD_Diagram_Fasaro_Invity.png" alt="ERD Diagram Fasaro Invity" />
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Induk Akun (users)</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Menyimpan akun terotentikasi dan memiliki relasi 1:N ke <code>invitations</code> dan <code>payment_transactions</code>.</p>
+            </div>
+            <div class="side-box">
+              <h4>Jantung Sistem (invitations)</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Pusat dari seluruh fitur wedding. Memiliki relasi 1:N (Cascade Delete) ke 6 tabel fitur anak.</p>
+            </div>
+            <div class="side-box">
+              <h4>Audit Transaksi (payment)</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Menggunakan kebijakan <code>SetNull</code> saat undangan dihapus agar bukti transfer dan mutasi kas tetap utuh.</p>
+            </div>
+            <div class="side-box">
+              <h4>Katalog Tema & Pengaturan</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;"><code>theme_catalogs</code> dan <code>system_settings</code> menjadi pusat konfigurasi aplikasi tanpa butuh re-deploy.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: TABLE USERS -->
+    <section class="slide" id="slide-4">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel users — Pengelolaan Akun & Otorisasi</div>
+        </div>
+        <span class="badge-pill">AUTH & ACCOUNT</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Menyimpan identitas akun pengguna (calon pengantin dan administrator sistem). Mengatur autentikasi JWT, password hashing via Bcrypt, dan hak akses Role-Based Access Control (RBAC).</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik primary key akun</td></tr>
+                <tr><td class="field-name">email</td><td class="type-name">String</td><td>UNIQUE</td><td>Alamat surel untuk login pengguna</td></tr>
+                <tr><td class="field-name">passwordHash</td><td class="type-name">String</td><td>NOT NULL</td><td>Hash kata sandi aman via Bcrypt</td></tr>
+                <tr><td class="field-name">name</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama lengkap pengguna / mempelai</td></tr>
+                <tr><td class="field-name">role</td><td class="type-name">UserRole</td><td>def: USER</td><td>Hak akses: USER atau ADMIN</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Timestamp akun didaftarkan</td></tr>
+                <tr><td class="field-name">updatedAt</td><td class="type-name">DateTime</td><td>UPDATED_AT</td><td>Timestamp profil terakhir diperbarui</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Relasi Antar Tabel</h4>
+              <ul>
+                <li>1 : N ke invitations: Seorang user dapat membuat beberapa proyek undangan pernikahan.</li>
+                <li>1 : N ke payment_transactions: Mencatat riwayat pembelian langganan paket.</li>
+                <li>OnDelete: Cascade: Penghapusan user otomatis menghapus undangan miliknya.</li>
+              </ul>
+            </div>
+            <div class="side-box">
+              <h4>Aturan Bisnis</h4>
+              <ul>
+                <li>Validasi input menggunakan Zod Schema di boundary controller.</li>
+                <li>Password wajib melalui proses hashing sebelum disimpan ke database.</li>
+                <li>Role ADMIN memiliki akses ke dashboard verifikasi transaksi manual.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: TABLE INVITATIONS -->
+    <section class="slide" id="slide-5">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel invitations — Jantung Undangan Pernikahan</div>
+        </div>
+        <span class="badge-pill">CORE DOMAIN ENTITY</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Entitas inti dari platform Fasaro Invity. Mewakili proyek undangan pernikahan digital unik yang dapat diakses publik via URL slug khusus serta menampung seluruh fitur modular resepsi.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik primary key undangan</td></tr>
+                <tr><td class="field-name">slug</td><td class="type-name">String</td><td>UNIQUE</td><td>URL publik unik (/invitation/:slug)</td></tr>
+                <tr><td class="field-name">userId</td><td class="type-name">String</td><td><span class="tag-fk">FK -> users</span></td><td>ID pemilik akun pengantin</td></tr>
+                <tr><td class="field-name">title</td><td class="type-name">String</td><td>NOT NULL</td><td>Judul undangan (The Wedding of ...)</td></tr>
+                <tr><td class="field-name">themeId</td><td class="type-name">String</td><td>Ref: themeKey</td><td>Tema visual template yang dipilih</td></tr>
+                <tr><td class="field-name">activeUntil</td><td class="type-name">DateTime?</td><td>NULLABLE</td><td>Batas waktu masa aktif tayang</td></tr>
+                <tr><td class="field-name">isActive</td><td class="type-name">Boolean</td><td>def: true</td><td>Switch aktif/nonaktif akses link publik</td></tr>
+                <tr><td class="field-name">coupleInfo</td><td class="type-name">Json</td><td>NOT NULL</td><td>Data mempelai pria & wanita</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Waktu pembuatan proyek undangan</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Struktur JSON coupleInfo</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Menyimpan struktur fleksibel: nama lengkap mempelai pria/wanita, nama panggilan, ayah, ibu, anak ke-n, dan foto profil mempelai tanpa alter tabel.</p>
+            </div>
+            <div class="side-box">
+              <h4>Relasi Cascade Delete</h4>
+              <ul>
+                <li>Menghubungkan 6 tabel fitur (Jadwal, Galeri, Bank, Tamu, RSVP, Doa).</li>
+                <li>Jika undangan dihapus, seluruh 6 tabel fitur terkait terhapus otomatis.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: TABLE EVENT_SCHEDULES -->
+    <section class="slide" id="slide-6">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel event_schedules — Rangkaian Agenda & Lokasi</div>
+        </div>
+        <span class="badge-pill">SCHEDULE & MAPS</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Menyimpan agenda acara pernikahan. Mendukung multi-acara dalam satu undangan (misal: Akad Nikah, Pemberkatan, Resepsi Siang, Resepsi Malam) lengkap dengan navigasi Google Maps.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik agenda acara</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan pemilik jadwal</td></tr>
+                <tr><td class="field-name">eventName</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama acara (Akad / Resepsi)</td></tr>
+                <tr><td class="field-name">date</td><td class="type-name">DateTime</td><td>NOT NULL</td><td>Tanggal pelaksanaan acara</td></tr>
+                <tr><td class="field-name">startTime</td><td class="type-name">String</td><td>NOT NULL</td><td>Waktu mulai (contoh: '08:00 WIB')</td></tr>
+                <tr><td class="field-name">endTime</td><td class="type-name">String?</td><td>NULLABLE</td><td>Waktu selesai ('11:00' / Selesai)</td></tr>
+                <tr><td class="field-name">venueName</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama gedung / masjid / kediaman</td></tr>
+                <tr><td class="field-name">address</td><td class="type-name">String</td><td>NOT NULL</td><td>Alamat lengkap lokasi acara</td></tr>
+                <tr><td class="field-name">mapsUrl</td><td class="type-name">String?</td><td>NULLABLE</td><td>Tautan navigasi Google Maps</td></tr>
+                <tr><td class="field-name">latitude</td><td class="type-name">Float?</td><td>NULLABLE</td><td>Titik GPS Lintang untuk peta</td></tr>
+                <tr><td class="field-name">longitude</td><td class="type-name">Float?</td><td>NULLABLE</td><td>Titik GPS Bujur untuk peta</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Integrasi Navigasi & Kalender</h4>
+              <ul>
+                <li>mapsUrl digunakan pada tombol 'Buka di Google Maps'.</li>
+                <li>Mendukung integrasi tombol 'Add to Google Calendar' pada frontend.</li>
+                <li>Format waktu string fleksibel untuk mengakomodasi zona WIB/WITA/WIT.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: TABLE GALLERIES -->
+    <section class="slide" id="slide-7">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel galleries — Album Foto Pre-wedding</div>
+        </div>
+        <span class="badge-pill">MEDIA & ALBUM</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Menyimpan koleksi dokumentasi foto pre-wedding, momen spesial, dan visual album pengantin dengan pengaturan urutan kustom yang dinamis.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik rekaman foto</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan pemilik foto</td></tr>
+                <tr><td class="field-name">imageUrl</td><td class="type-name">String</td><td>NOT NULL</td><td>URL path foto di storage / CDN</td></tr>
+                <tr><td class="field-name">caption</td><td class="type-name">String?</td><td>NULLABLE</td><td>Kutipan kata mutiara / deskripsi</td></tr>
+                <tr><td class="field-name">sortOrder</td><td class="type-name">Int</td><td>def: 0</td><td>Urutan tampil pada carousel/grid</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Fitur Album Foto</h4>
+              <ul>
+                <li>sortOrder memungkinkan fitur drag-and-drop urutan foto di dasbor pengantin.</li>
+                <li>Frontend menampilkan layout masonry grid dan lightbox zoom.</li>
+                <li>Mendukung penyimpanan lokal maupun cloud storage (S3 / CDN).</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: TABLE BANK_ACCOUNTS -->
+    <section class="slide" id="slide-8">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel bank_accounts — Amplop Digital & QRIS</div>
+        </div>
+        <span class="badge-pill">CASH GIFT / QRIS</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Memfasilitasi amplop digital bagi tamu yang ingin mengirimkan hadiah uang secara cashless melalui transfer bank atau scan QRIS statis pengantin.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik rekening kado</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan pemilik rekening</td></tr>
+                <tr><td class="field-name">bankName</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama bank / e-wallet (BCA, GoPay, QRIS)</td></tr>
+                <tr><td class="field-name">accountNumber</td><td class="type-name">String</td><td>NOT NULL</td><td>Nomor rekening atau nomor telepon</td></tr>
+                <tr><td class="field-name">accountHolder</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama pemilik rekening tabungan</td></tr>
+                <tr><td class="field-name">qrisImageUrl</td><td class="type-name">String?</td><td>NULLABLE</td><td>Gambar barcode QRIS statis</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Fitur Amplop Digital</h4>
+              <ul>
+                <li>Mendukung banyak rekening sekaligus (contoh: BCA Pria, Mandiri Wanita, QRIS).</li>
+                <li>Tombol 1-click salin nomor rekening untuk mempermudah transfer tamu.</li>
+                <li>Gambar QRIS dapat diunduh atau dipindai langsung dari aplikasi bank.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: TABLE GUESTS -->
+    <section class="slide" id="slide-9">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel guests — Buku Tamu & QR Check-in</div>
+        </div>
+        <span class="badge-pill">GUEST LIST & CHECK-IN</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Mengelola daftar tamu undangan khusus. Memungkinkan pembuatan tautan personal (?to=Nama+Tamu), blast WhatsApp, alokasi kuota kursi, serta sistem QR Code Check-in pada hari H.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik tamu undangan</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan pemilik tamu</td></tr>
+                <tr><td class="field-name">name</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama lengkap tamu / keluarga</td></tr>
+                <tr><td class="field-name">slugCode</td><td class="type-name">String</td><td>UNIQUE (inv, slug)</td><td>Kode URL unik tamu (misal: 'bapak-joko')</td></tr>
+                <tr><td class="field-name">quota</td><td class="type-name">Int</td><td>def: 1</td><td>Jatah kursi / porsi katering</td></tr>
+                <tr><td class="field-name">phoneNumber</td><td class="type-name">String?</td><td>NULLABLE</td><td>Nomor WhatsApp untuk blast link</td></tr>
+                <tr><td class="field-name">checkedInAt</td><td class="type-name">DateTime?</td><td>NULLABLE</td><td>Waktu scan kehadiran di resepsi</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Composite Constraint</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;"><code>@@unique([invitationId, slugCode])</code> menjamin bahwa kode tautan tamu tidak akan bentrok dalam 1 undangan yang sama.</p>
+            </div>
+            <div class="side-box">
+              <h4>Buku Tamu Digital</h4>
+              <ul>
+                <li>Panitia resepsi memindai QR Code tamu untuk mengisi checkedInAt secara instan.</li>
+                <li>Mendukung ekspor daftar kehadiran tamu ke Excel / CSV untuk evaluasi WO.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: TABLE RSVPS -->
+    <section class="slide" id="slide-10">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel rsvps — Konfirmasi Kehadiran Real-time</div>
+        </div>
+        <span class="badge-pill">ATTENDANCE RSVP</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Mencatat formulir konfirmasi kehadiran tamu secara langsung. Sangat penting untuk membantu calon pengantin dan wedding organizer mengestimasi jumlah porsi katering dan kapasitas kursi.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik konfirmasi RSVP</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan penerima respon</td></tr>
+                <tr><td class="field-name">guestName</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama pengisi formulir RSVP</td></tr>
+                <tr><td class="field-name">status</td><td class="type-name">String</td><td>NOT NULL</td><td>Status: Hadir / Tidak Hadir / Ragu</td></tr>
+                <tr><td class="field-name">attendeeCount</td><td class="type-name">Int</td><td>def: 1</td><td>Jumlah orang yang akan datang</td></tr>
+                <tr><td class="field-name">sessionChosen</td><td class="type-name">String?</td><td>NULLABLE</td><td>Pilihan sesi acara (jika bergelombang)</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Waktu pengisian formulir RSVP</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Analisis Katering & Sesi</h4>
+              <ul>
+                <li>Total tamu hadir langsung terakumulasi di analitik dashboard pengantin.</li>
+                <li>sessionChosen memfasilitasi resepsi bergelombang untuk mencegah kepadatan gedung.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: TABLE WISHES -->
+    <section class="slide" id="slide-11">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel wishes — Buku Ucapan & Doa Restu</div>
+        </div>
+        <span class="badge-pill">GUESTBOOK & PRAYERS</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Menampung pesan doa restu dan ucapan selamat dari para tamu undangan secara virtual. Dilengkapi fitur moderasi konten untuk menjaga etika dan privasi pengantin.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik rekaman ucapan</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String</td><td><span class="tag-fk">FK (Cascade)</span></td><td>ID undangan penerima ucapan</td></tr>
+                <tr><td class="field-name">senderName</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama pengirim ucapan selamat</td></tr>
+                <tr><td class="field-name">message</td><td class="type-name">String</td><td>NOT NULL (Text)</td><td>Isi teks doa dan ucapan selamat</td></tr>
+                <tr><td class="field-name">reaction</td><td class="type-name">String?</td><td>NULLABLE</td><td>Emoji reaksi yang dipilih (❤️, 💍, 🎉)</td></tr>
+                <tr><td class="field-name">isHidden</td><td class="type-name">Boolean</td><td>def: false</td><td>Moderasi: sembunyikan komentar spam</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Waktu pesan dikirimkan</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Fitur Moderasi Mandiri</h4>
+              <ul>
+                <li>Jika terdapat komentar spam/tidak pantas, pengantin dapat menekan tombol sembunyikan (isHidden = true).</li>
+                <li>Semua teks pesan disanitasi dari script XSS sebelum disimpan ke database.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: TABLE PAYMENT_TRANSACTIONS -->
+    <section class="slide" id="slide-12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel payment_transactions — Monetisasi SaaS</div>
+        </div>
+        <span class="badge-pill">BILLING & TRANSACTIONS</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Mencatat seluruh transaksi finansial platform SaaS. Mendukung aktivasi tier otomatis via payment gateway maupun verifikasi manual transfer admin.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik primary key transaksi</td></tr>
+                <tr><td class="field-name">orderId</td><td class="type-name">String</td><td>UNIQUE</td><td>Nomor invoice unik (INV-2026-XXXX)</td></tr>
+                <tr><td class="field-name">userId</td><td class="type-name">String</td><td><span class="tag-fk">FK -> users</span></td><td>ID akun pembeli paket</td></tr>
+                <tr><td class="field-name">invitationId</td><td class="type-name">String?</td><td><span class="tag-fk">FK (SetNull)</span></td><td>ID undangan yang di-upgrade</td></tr>
+                <tr><td class="field-name">tier</td><td class="type-name">SubscriptionTier</td><td>ENUM</td><td>FREE / STARTER / ELEGANT / ULTIMATE</td></tr>
+                <tr><td class="field-name">amount</td><td class="type-name">Decimal(12,2)</td><td>NOT NULL</td><td>Nominal pembayaran dalam IDR</td></tr>
+                <tr><td class="field-name">paymentType</td><td class="type-name">PaymentType</td><td>ENUM</td><td>GATEWAY / MANUAL_QRIS / MANUAL_BANK</td></tr>
+                <tr><td class="field-name">paymentStatus</td><td class="type-name">PaymentStatus</td><td>def: PENDING</td><td>PENDING / WAITING_VERIFICATION / SETTLEMENT</td></tr>
+                <tr><td class="field-name">proofImageUrl</td><td class="type-name">String?</td><td>NULLABLE</td><td>Foto bukti transfer jika metode manual</td></tr>
+                <tr><td class="field-name">verifiedBy</td><td class="type-name">String?</td><td>NULLABLE</td><td>Admin ID yang memvalidasi transfer</td></tr>
+                <tr><td class="field-name">verifiedAt</td><td class="type-name">DateTime?</td><td>NULLABLE</td><td>Timestamp verifikasi sukses</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Waktu order pesanan dibuat</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Kebijakan onDelete: SetNull</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Menjaga integritas riwayat keuangan! Jika pengguna menghapus undangannya, relasi transaksi diset NULL tanpa menghapus data bukti uang masuk untuk audit akuntansi.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 13: TABLE THEME_CATALOGS -->
+    <section class="slide" id="slide-13">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel theme_catalogs — Katalog Template Desain</div>
+        </div>
+        <span class="badge-pill">THEME ENGINE</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Direktori tema undangan dinamis. Mengatur tema yang tersedia, kategori gaya, status aktif, dan batasan tema premium bagi pelanggan berbayar.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik katalog tema</td></tr>
+                <tr><td class="field-name">themeKey</td><td class="type-name">String</td><td>UNIQUE</td><td>Slug tema frontend ('editorial', 'rustic')</td></tr>
+                <tr><td class="field-name">name</td><td class="type-name">String</td><td>NOT NULL</td><td>Nama komersial template desain</td></tr>
+                <tr><td class="field-name">category</td><td class="type-name">String</td><td>def: Minimalist</td><td>Kategori (Minimalist, Floral, Luxury)</td></tr>
+                <tr><td class="field-name">thumbnail</td><td class="type-name">String</td><td>NOT NULL</td><td>URL gambar kartu pratinjau tema</td></tr>
+                <tr><td class="field-name">previewUrl</td><td class="type-name">String?</td><td>NULLABLE</td><td>Tautan live demo langsung tema</td></tr>
+                <tr><td class="field-name">isActive</td><td class="type-name">Boolean</td><td>def: true</td><td>Status ketersediaan untuk dipilih</td></tr>
+                <tr><td class="field-name">isPremium</td><td class="type-name">Boolean</td><td>def: false</td><td>Tanda tema memerlukan tier berbayar</td></tr>
+                <tr><td class="field-name">createdAt</td><td class="type-name">DateTime</td><td>NOW()</td><td>Waktu tema ditambahkan</td></tr>
+                <tr><td class="field-name">updatedAt</td><td class="type-name">DateTime</td><td>UPDATED_AT</td><td>Waktu modifikasi terakhir</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Komponen Dinamis</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.5;">Frontend React/Next.js me-render template secara modular berdasarkan themeKey yang terpasang di tabel invitations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 14: TABLE SYSTEM_SETTINGS -->
+    <section class="slide" id="slide-14">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Spesifikasi Tabel</div>
+          <div class="slide-title">Tabel system_settings — Konfigurasi Global</div>
+        </div>
+        <span class="badge-pill">GLOBAL CONFIG</span>
+      </div>
+      <div class="slide-body">
+        <div class="spec-grid">
+          <div>
+            <p class="spec-desc">Penyimpanan konfigurasi global platform berbasis Key-Value store fleksibel. Memungkinkan perubahan parameter sistem oleh Super Admin secara instan tanpa perlu re-deploy aplikasi.</p>
+            <table class="data-table">
+              <thead>
+                <tr><th>Nama Field</th><th>Tipe Data</th><th>Constraint</th><th>Keterangan / Fungsi</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="field-name">id</td><td class="type-name">String (cuid)</td><td><span class="tag-pk">PK</span></td><td>ID unik setting konfigurasi</td></tr>
+                <tr><td class="field-name">key</td><td class="type-name">String</td><td>UNIQUE</td><td>Kunci parameter sistem unik</td></tr>
+                <tr><td class="field-name">value</td><td class="type-name">String</td><td>NOT NULL</td><td>Nilai setting (Plain Text atau JSON)</td></tr>
+                <tr><td class="field-name">description</td><td class="type-name">String?</td><td>NULLABLE</td><td>Dokumentasi fungsi setting</td></tr>
+                <tr><td class="field-name">updatedAt</td><td class="type-name">DateTime</td><td>UPDATED_AT</td><td>Timestamp perubahan terakhir</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="side-panel">
+            <div class="side-box">
+              <h4>Contoh Parameter Kunci</h4>
+              <ul>
+                <li><code>app_name</code>: 'Fasaro Invity Wedding SaaS'</li>
+                <li><code>bank_manual_accounts</code>: JSON daftar rekening platform untuk transfer manual</li>
+                <li><code>whatsapp_cs_number</code>: Nomor CS WhatsApp resmi</li>
+                <li><code>tier_pricing</code>: JSON struktur harga & masa aktif tier</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 15: REFERENTIAL MATRIX -->
+    <section class="slide" id="slide-15">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Integritas Relasional</div>
+          <div class="slide-title">Matriks Relasi & Integritas Referensial Database</div>
+        </div>
+        <span class="badge-pill">RELATIONAL MATRIX</span>
+      </div>
+      <div class="slide-body">
+        <table class="data-table">
+          <thead>
+            <tr><th>Tabel Parent</th><th>Tabel Child</th><th>Foreign Key</th><th>Kardinalitas</th><th>Aksi OnDelete</th><th>Kebijakan Bisnis</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="field-name">users</td><td class="field-name">invitations</td><td class="type-name">userId -> users.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus akun user otomatis menghapus seluruh undangannya.</td></tr>
+            <tr><td class="field-name">users</td><td class="field-name">payment_transactions</td><td class="type-name">userId -> users.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus user membersihkan histori pesanan transaksi miliknya.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">payment_transactions</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-fk">SET NULL</span></td><td>Hapus undangan TIDAK menghapus invoice mutasi kas akuntansi.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">event_schedules</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan seluruh agenda acara.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">galleries</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan seluruh foto galeri album.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">bank_accounts</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan data rekening kado online.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">guests</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan seluruh daftar tamu undangan.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">rsvps</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan seluruh konfirmasi kehadiran.</td></tr>
+            <tr><td class="field-name">invitations</td><td class="field-name">wishes</td><td class="type-name">invitationId -> invitations.id</td><td>1 : N</td><td><span class="tag-pk">CASCADE</span></td><td>Hapus undangan membersihkan seluruh ucapan dan doa restu.</td></tr>
+            <tr><td class="field-name">theme_catalogs</td><td class="field-name">invitations</td><td class="type-name">themeId ~ themeKey</td><td>1 : N</td><td>LOGICAL</td><td>Invitations menyimpan themeKey yang aktif di frontend.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SLIDE 16: BEST PRACTICES & DOWNLOAD -->
+    <section class="slide" id="slide-16">
+      <div class="slide-header">
+        <div>
+          <div class="slide-subtitle">Panduan & Kesimpulan</div>
+          <div class="slide-title">Praktik Terbaik & Panduan Mengunduh Aset</div>
+        </div>
+        <span class="badge-pill">ASSETS & DOWNLOAD</span>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="panel-card">
+            <h3>1. Keamanan & Performa</h3>
+            <div class="sub">Best Practices Database</div>
+            <ul>
+              <li><strong>Indexing Efisien:</strong> Indeks unik pada email, slug, dan orderId menjamin kecepatan respon lookup sub-millisecond O(log N).</li>
+              <li><strong>SQL Injection Shield:</strong> Prisma ORM melindungi semua query via parameterized prepared statements secara otomatis.</li>
+              <li><strong>Sanitasi XSS:</strong> Input teks ucapan doa dan data JSON selalu divalidasi dan disanitasi dari script injeksi.</li>
+            </ul>
+          </div>
+          <div class="panel-card">
+            <h3>2. File yang Disediakan</h3>
+            <div class="sub">Tersedia di Workspace Proyek</div>
+            <ul>
+              <li><strong>File Presentasi (.pptx):</strong> <code>Database_Presentation_Fasaro_Invity.pptx</code> (Slide 16:9 siap dipresentasikan di PowerPoint / Google Slides).</li>
+              <li><strong>Diagram ERD (.png):</strong> <code>ERD_Diagram_Fasaro_Invity.png</code> (Resolusi tinggi 3400x2350 px jernih).</li>
+              <li><strong>Slide Web (.html):</strong> <code>Database_Presentation_Fasaro_Invity.html</code> (Buka langsung di browser tanpa Microsoft Office).</li>
+            </ul>
+          </div>
+          <div class="panel-card">
+            <h3>3. Cara Akses & Ekspor</h3>
+            <div class="sub">Download & Print to PDF</div>
+            <ul>
+              <li><strong>Buka File PPTX:</strong> Buka file langsung dari explorer atau klik tombol unduh di bagian atas untuk dipresentasikan.</li>
+              <li><strong>Cetak ke PDF:</strong> Tekan <code>Ctrl + P</code> pada halaman ini untuk menyimpan seluruh 16 slide sebagai dokumen PDF yang rapi.</li>
+              <li><strong>Navigasi Cepat:</strong> Gunakan tombol panah kiri/kanan keyboard untuk berpindah slide.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation Controller -->
+  <footer>
+    <div style="font-size: 13px; color: var(--text-muted);">
+      Gunakan tombol <strong>Panah Kiri (&larr;)</strong> dan <strong>Panah Kanan (&rarr;)</strong> di keyboard untuk navigasi slide
+    </div>
+    <div class="nav-buttons">
+      <button class="nav-btn" id="prevBtn" onclick="prevSlide()" disabled>&larr; Sebelumnya</button>
+      <button class="nav-btn primary" id="nextBtn" onclick="nextSlide()">Berikutnya &rarr;</button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 16;
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > totalSlides) n = totalSlides;
+      currentSlide = n;
+
+      for (let i = 1; i <= totalSlides; i++) {
+        const el = document.getElementById('slide-' + i);
+        if (el) el.classList.remove('active');
+      }
+
+      const activeEl = document.getElementById('slide-' + currentSlide);
+      if (activeEl) activeEl.classList.add('active');
+
+      document.getElementById('slideIndicator').innerText = 'Slide ' + currentSlide + ' / ' + totalSlides;
+      document.getElementById('prevBtn').disabled = (currentSlide === 1);
+      document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) showSlide(currentSlide - 1);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        prevSlide();
+      }
+    });
+  </script>
+</body>
+</html>

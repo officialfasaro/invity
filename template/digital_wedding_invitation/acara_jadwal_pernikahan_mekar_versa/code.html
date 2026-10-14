@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acara - Mekar & Versa Wedding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Montserrat:wght@300;400;500;600&family=Great+Vibes&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#f9f6f0',
+            'paper-card': '#fffdf9',
+            sepia: '#2a2421',
+            'sepia-muted': '#6b615b',
+            gold: '#c5a880',
+            'gold-light': '#e8dfd1',
+            burgundy: '#6c1d28',
+            'burgundy-dark': '#4e0514',
+          },
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'serif'],
+            sans: ['"Montserrat"', 'sans-serif'],
+            script: ['"Great Vibes"', 'cursive'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Deckled paper border aesthetic */
+    .deckle-frame {
+      box-shadow: 
+        0 0 0 1px rgba(197, 168, 128, 0.25),
+        0 15px 35px -10px rgba(42, 36, 33, 0.12),
+        inset 0 0 60px rgba(232, 223, 209, 0.45);
+      border-radius: 12px;
+    }
+    
+    .wax-seal {
+      background: radial-gradient(circle at 35% 30%, #872836, #581420 70%, #3a0a12 100%);
+      box-shadow: 
+        0 8px 18px rgba(78, 5, 20, 0.4),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.35),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.6);
+    }
+    
+    .card-glass {
+      background: rgba(255, 253, 249, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(197, 168, 128, 0.35);
+      box-shadow: 0 10px 25px -5px rgba(42, 36, 33, 0.06);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-[#ebe6dd] p-3 lg:p-4 select-none flex flex-col justify-center items-center font-sans antialiased text-sepia">
+
+  <!-- Deckle Edge Paper Inner Container -->
+  <div class="relative w-full h-full max-w-[1536px] bg-paper deckle-frame flex flex-col justify-between overflow-hidden p-4 lg:p-6">
+    
+    <!-- Subtle Botanical Watermark SVGs -->
+    <svg class="absolute -top-10 -left-10 w-96 h-96 text-gold opacity-[0.07] pointer-events-none transform -rotate-12" fill="currentColor" viewBox="0 0 200 200">
+      <path d="M100 20 C110 50 140 60 170 60 C140 70 130 100 130 130 C120 100 90 90 60 90 C90 80 100 50 100 20 Z" />
+      <circle cx="100" cy="100" r="18" fill="none" stroke="currentColor" stroke-width="1.5" />
+    </svg>
+    <svg class="absolute -bottom-12 -right-12 w-[420px] h-[420px] text-gold opacity-[0.06] pointer-events-none transform rotate-45" fill="currentColor" viewBox="0 0 200 200">
+      <path d="M100 15 C115 55 155 70 190 70 C155 85 140 125 140 160 C125 125 85 110 50 110 C85 95 100 55 100 15 Z" />
+    </svg>
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="w-full flex items-center justify-between shrink-0 relative z-20 pb-2">
+      <!-- Left Indicators -->
+      <div class="flex items-center gap-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f2ecdf] text-sepia-muted text-[11px] font-medium tracking-wide">
+          <span class="w-1.5 h-1.5 rounded-full bg-gold animate-pulse"></span>
+          <span>Sedang menggunakan data contoh</span>
+        </div>
+        <div class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/70 hover:bg-white text-sepia-muted text-[11px] font-medium border border-gold/30 cursor-pointer shadow-sm transition-all">
+          <span class="material-symbols-outlined text-[14px] text-gold">translate</span>
+          <span>Pilih Bahasa</span>
+          <span class="material-symbols-outlined text-[13px] opacity-60">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Center Navigation Links -->
+      <nav class="hidden md:flex items-center gap-1 px-3 py-1 rounded-full bg-[#f0eae0]/80 border border-gold/20 shadow-inner">
+        <a href="#" class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all">Kisah Kami</a>
+        <a href="#" class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-semibold bg-burgundy text-white shadow-sm">Acara</a>
+        <a href="#" class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all">Galeri</a>
+        <a href="#" class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all">Hadiah</a>
+        <a href="#" class="px-4 py-1.5 rounded-full text-[11px] tracking-[0.2em] uppercase font-medium text-sepia-muted hover:text-sepia transition-all">Buku Tamu</a>
+      </nav>
+
+      <!-- Right Controls: Burgundy Wax Seal & Harp Icon -->
+      <div class="flex items-center gap-3">
+        <!-- Monogram Wax Seal -->
+        <div class="wax-seal w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transform hover:scale-105 transition-transform duration-300 ring-2 ring-burgundy/20">
+          <span class="font-serif italic font-bold text-[18px] text-[#f8d7da] tracking-tighter drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">MV</span>
+        </div>
+        <!-- Music Harp Button -->
+        <button class="w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-burgundy border border-gold/30 shadow-sm transition-all hover:scale-105" title="Putar Musik Latar">
+          <svg class="w-5 h-5 text-sepia" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN SECTION (Fits in 100vh) -->
+    <main class="flex-1 w-full flex flex-col justify-center items-center my-auto py-1 relative z-10">
+      
+      <!-- Screen Headline Block -->
+      <div class="text-center mb-4 lg:mb-6">
+        <div class="inline-flex items-center gap-2 mb-1.5">
+          <span class="w-8 h-[1px] bg-gold"></span>
+          <span class="text-[11px] tracking-[0.3em] uppercase font-medium text-gold">RANGKAIAN HARI BAHAGIA</span>
+          <span class="w-8 h-[1px] bg-gold"></span>
+        </div>
+        <h1 class="font-serif text-3xl lg:text-4xl text-sepia font-normal tracking-wide">
+          Jadwal Akad & Resepsi
+        </h1>
+        <p class="font-serif italic text-sepia-muted text-base lg:text-lg mt-0.5">
+          The Wedding Celebration of Mekar & Versa
+        </p>
+      </div>
+
+      <!-- Symmetrical 2-Column Grid with Center Countdown -->
+      <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-stretch">
+        
+        <!-- LEFT CARD: AKAD NIKAH -->
+        <div class="lg:col-span-5 card-glass rounded-2xl p-6 lg:p-7 flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative group">
+          <!-- Subtle Top Border Accent -->
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[2px] bg-gold"></div>
+          
+          <div>
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-gold/25">
+              <span class="text-[10px] tracking-[0.25em] uppercase font-semibold text-gold">SESI 01 &bull; SACRED UNION</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#f4ece0] text-[10px] font-medium text-sepia-muted">Ijab Qabul</span>
+            </div>
+            
+            <h2 class="font-serif text-2xl lg:text-3xl text-burgundy font-normal tracking-wide mb-1">
+              Akad Nikah
+            </h2>
+            <p class="text-xs text-sepia-muted uppercase tracking-wider mb-5">
+              Sabtu, 24 Oktober 2026
+            </p>
+
+            <!-- Time & Venue -->
+            <div class="space-y-3.5 mb-5">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-[#f2ebe0] flex items-center justify-center shrink-0 text-burgundy">
+                  <span class="material-symbols-outlined text-[17px]">schedule</span>
+                </div>
+                <div>
+                  <div class="text-[13px] font-semibold text-sepia">Pukul 08.00 — 10.00 WIB</div>
+                  <div class="text-[11px] text-sepia-muted">Harap hadir 15 menit sebelum prosesi</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-[#f2ebe0] flex items-center justify-center shrink-0 text-burgundy mt-0.5">
+                  <span class="material-symbols-outlined text-[17px]">mosque</span>
+                </div>
+                <div>
+                  <div class="text-[13px] font-semibold text-sepia">Masjid Agung Al-Azhar, Jakarta</div>
+                  <div class="text-[11px] text-sepia-muted leading-relaxed">
+                    Jl. Sisingamangaraja No.1, Selong, Kebayoran Baru, Jakarta Selatan
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action & Dresscode -->
+          <div class="pt-4 border-t border-gold/25 flex flex-col gap-3">
+            <div class="flex items-center gap-2 text-[11px] text-sepia-muted italic bg-paper/60 px-3 py-1.5 rounded-lg border border-gold/20">
+              <span class="material-symbols-outlined text-[14px] text-gold">checkroom</span>
+              <span>Busana: Formal / Sopan Bernuansa Netral & Pastel</span>
+            </div>
+            <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer"
+               class="w-full py-2.5 px-4 rounded-full border border-gold hover:border-burgundy bg-transparent hover:bg-burgundy text-sepia hover:text-white font-medium text-xs tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+              <span class="material-symbols-outlined text-[16px] text-gold group-hover:text-white transition-colors">location_on</span>
+              <span>Google Maps</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- CENTER COMPONENT: LUXURY COUNTDOWN TIMER -->
+        <div class="lg:col-span-2 flex flex-col items-center justify-center text-center px-2">
+          <!-- Monogram Emblem -->
+          <div class="w-10 h-10 rounded-full bg-[#f0e8dc] border border-gold/40 flex items-center justify-center mb-2 shadow-inner">
+            <span class="font-serif italic font-bold text-burgundy text-sm">M&V</span>
+          </div>
+
+          <span class="text-[9px] tracking-[0.25em] uppercase font-semibold text-gold mb-1">
+            HITUNG MUNDUR
+          </span>
+          <h3 class="font-serif italic text-lg text-sepia mb-3">Menuju Bahagia</h3>
+          
+          <!-- 4 Compact Counter Blocks -->
+          <div class="w-full grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-white/80 border border-gold/30 rounded-xl p-2 shadow-xs flex flex-col items-center">
+              <span class="font-serif text-2xl font-bold text-burgundy leading-none" id="cd-days">240</span>
+              <span class="text-[9px] uppercase tracking-wider text-sepia-muted mt-1">Hari</span>
+            </div>
+            <div class="bg-white/80 border border-gold/30 rounded-xl p-2 shadow-xs flex flex-col items-center">
+              <span class="font-serif text-2xl font-bold text-burgundy leading-none" id="cd-hours">14</span>
+              <span class="text-[9px] uppercase tracking-wider text-sepia-muted mt-1">Jam</span>
+            </div>
+            <div class="bg-white/80 border border-gold/30 rounded-xl p-2 shadow-xs flex flex-col items-center">
+              <span class="font-serif text-2xl font-bold text-burgundy leading-none" id="cd-mins">35</span>
+              <span class="text-[9px] uppercase tracking-wider text-sepia-muted mt-1">Menit</span>
+            </div>
+            <div class="bg-white/80 border border-gold/30 rounded-xl p-2 shadow-xs flex flex-col items-center">
+              <span class="font-serif text-2xl font-bold text-gold leading-none" id="cd-secs">50</span>
+              <span class="text-[9px] uppercase tracking-wider text-sepia-muted mt-1">Detik</span>
+            </div>
+          </div>
+
+          <!-- Save to Calendar Button -->
+          <button class="w-full py-2 px-3 rounded-full bg-burgundy hover:bg-burgundy-dark text-white text-[10px] tracking-wider uppercase font-medium flex items-center justify-center gap-1.5 shadow-sm transition-all transform active:scale-95" type="button">
+            <span class="material-symbols-outlined text-[13px]">event</span>
+            <span>Simpan Kalender</span>
+          </button>
+        </div>
+
+        <!-- RIGHT CARD: RESEPSI PERNIKAHAN -->
+        <div class="lg:col-span-5 card-glass rounded-2xl p-6 lg:p-7 flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative group">
+          <!-- Subtle Top Border Accent -->
+          <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[2px] bg-gold"></div>
+
+          <div>
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-gold/25">
+              <span class="text-[10px] tracking-[0.25em] uppercase font-semibold text-gold">SESI 02 &bull; CELEBRATION</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-[#f4ece0] text-[10px] font-medium text-sepia-muted">Jamuan Kasih</span>
+            </div>
+            
+            <h2 class="font-serif text-2xl lg:text-3xl text-burgundy font-normal tracking-wide mb-1">
+              Resepsi Pernikahan
+            </h2>
+            <p class="text-xs text-sepia-muted uppercase tracking-wider mb-5">
+              Sabtu, 24 Oktober 2026
+            </p>
+
+            <!-- Time & Venue -->
+            <div class="space-y-3.5 mb-5">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-[#f2ebe0] flex items-center justify-center shrink-0 text-burgundy">
+                  <span class="material-symbols-outlined text-[17px]">schedule</span>
+                </div>
+                <div>
+                  <div class="text-[13px] font-semibold text-sepia">Pukul 11.00 — 14.00 WIB</div>
+                  <div class="text-[11px] text-sepia-muted">Sesi ramah tamah & santap siang bersama</div>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-[#f2ebe0] flex items-center justify-center shrink-0 text-burgundy mt-0.5">
+                  <span class="material-symbols-outlined text-[17px]">apartment</span>
+                </div>
+                <div>
+                  <div class="text-[13px] font-semibold text-sepia">Grand Ballroom Hotel Mulia</div>
+                  <div class="text-[11px] text-sepia-muted leading-relaxed">
+                    Jl. Asia Afrika Senayan, Gelora, Tanah Abang, Jakarta Pusat
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action & Dresscode -->
+          <div class="pt-4 border-t border-gold/25 flex flex-col gap-3">
+            <div class="flex items-center gap-2 text-[11px] text-sepia-muted italic bg-paper/60 px-3 py-1.5 rounded-lg border border-gold/20">
+              <span class="material-symbols-outlined text-[14px] text-gold">styler</span>
+              <span>Busana: Formal / Batik Elegan & Gaun Malam</span>
+            </div>
+            <a href="https://maps.google.com" target="_blank" rel="noopener noreferrer"
+               class="w-full py-2.5 px-4 rounded-full border border-gold hover:border-burgundy bg-transparent hover:bg-burgundy text-sepia hover:text-white font-medium text-xs tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+              <span class="material-symbols-outlined text-[16px] text-gold group-hover:text-white transition-colors">location_on</span>
+              <span>Google Maps</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- BOTTOM PROGRESS & AUDIO BAR -->
+    <footer class="w-full pt-2 flex flex-col items-center justify-center shrink-0 border-t border-gold/20 relative z-20">
+      <div class="w-full max-w-xl flex flex-col gap-1.5">
+        <div class="w-full h-1 bg-[#e5decf] rounded-full overflow-hidden">
+          <div class="h-full w-1/3 bg-gold rounded-full"></div>
+        </div>
+        <div class="flex items-center justify-between text-[11px] text-sepia-muted">
+          <span class="italic font-serif">Canon in D Major &mdash; Pachelbel (Acoustic Harp)</span>
+          <span class="tracking-widest">01:42 / 04:15</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Countdown Script -->
+  <script>
+    (function() {
+      const targetDate = new Date('2026-10-24T08:00:00+07:00').getTime();
+      function update() {
+        const now = new Date().getTime();
+        const diff = targetDate - now;
+        if (diff <= 0) return;
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const dEl = document.getElementById('cd-days');
+        const hEl = document.getElementById('cd-hours');
+        const mEl = document.getElementById('cd-mins');
+        const sEl = document.getElementById('cd-secs');
+
+        if (dEl) dEl.innerText = days;
+        if (hEl) hEl.innerText = hours < 10 ? '0' + hours : hours;
+        if (mEl) mEl.innerText = mins < 10 ? '0' + mins : mins;
+        if (sEl) sEl.innerText = secs < 10 ? '0' + secs : secs;
+      }
+      setInterval(update, 1000);
+      update();
+    })();
+  </script>
+</body>
+</html>

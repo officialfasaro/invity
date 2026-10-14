@@ -156,7 +156,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     <UploadCloud className="w-4 h-4" />
                   </div>
                   <div className="text-xs">
-                    <span className="font-semibold text-[#F97316]">Pilih file gambar</span>
+                    <span className="font-semibold text-[#F97316]">Upload file gambar</span>
                     <span className="text-slate-500"> atau klik di sini</span>
                   </div>
                   <p className="text-[10px] text-slate-400">JPG, PNG, WebP hingga 5MB</p>

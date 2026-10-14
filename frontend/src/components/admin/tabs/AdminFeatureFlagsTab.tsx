@@ -8,7 +8,7 @@ import {
   QrCode,
   Radio,
   Smartphone,
-  Sparkles,
+  MessageSquareHeart,
   Users,
   Zap,
 } from "lucide-react";
@@ -68,7 +68,7 @@ export const AdminFeatureFlagsTab: React.FC<AdminFeatureFlagsTabProps> = ({
     {
       key: "feature_manual_payment",
       label: "Transfer Manual Bank & Upload QRIS",
-      desc: "Aktifkan opsi transfer rekening Fasaro & upload bukti bayar",
+      desc: "Aktifkan opsi transfer rekening Invity & upload bukti bayar",
       icon: <QrCode className="w-4 h-4 text-slate-700" />,
     },
     {
@@ -87,7 +87,7 @@ export const AdminFeatureFlagsTab: React.FC<AdminFeatureFlagsTabProps> = ({
       key: "feature_wishes",
       label: "Buku Tamu & Doa Ucapan Selamat",
       desc: "Tampilkan dinding ucapan doa dan reaksi emoji pada undangan",
-      icon: <Sparkles className="w-4 h-4 text-slate-700" />,
+      icon: <MessageSquareHeart className="w-4 h-4 text-slate-700" />,
     },
     {
       key: "feature_music",

@@ -6,13 +6,15 @@ import {
   Check,
   Copy,
   ExternalLink,
-  Heart,
   LogOut,
   MoreVertical,
   RefreshCw,
   Shield,
-  Sparkles,
+  CreditCard,
+  Zap,
 } from "lucide-react";
+import NotificationBell from "../shared/NotificationBell";
+import BrandLogo from "../shared/BrandLogo";
 
 interface MobileTopBarProps {
   title: string;
@@ -74,13 +76,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Left: Brand & Title */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <Link
-            href="/"
-            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-[#F97316] text-white shadow-xs hover:bg-[#EA580C] transition-colors"
-            title="Ke Beranda Fasaro"
-          >
-            <Heart className="w-4 h-4 fill-white" />
-          </Link>
+          <BrandLogo href="/" showText={false} />
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -151,17 +147,17 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
               onClick={onUpgradeClick}
               className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold min-h-[38px] transition-all shadow-xs cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+              <CreditCard className="w-3.5 h-3.5 text-white" />
               <span>Bayar &amp; Aktifkan</span>
             </button>
           ) : tier !== "ULTIMATE" && onUpgradeClick ? (
             <button
               type="button"
               onClick={onUpgradeClick}
-              className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-semibold min-h-[38px] transition-all shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold min-h-[38px] transition-all shadow-xs cursor-pointer"
               title="Upgrade ke Paket Lebih Lengkap"
             >
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+              <Zap className="w-3.5 h-3.5 text-white" />
               <span>Upgrade Paket</span>
             </button>
           ) : null}
@@ -198,6 +194,9 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
             <span>Buka Undangan</span>
           </a>
 
+          {/* Notifikasi Lonceng */}
+          <NotificationBell />
+
           {/* Logout */}
           <button
             type="button"
@@ -210,7 +209,10 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
         </div>
 
         {/* Right Actions: MOBILE (< md) — Clean, uncluttered, 2-button layout */}
-        <div className="flex md:hidden items-center gap-2 shrink-0" ref={menuRef}>
+        <div className="flex md:hidden items-center gap-1.5 shrink-0" ref={menuRef}>
+          {/* Notifikasi Lonceng */}
+          <NotificationBell />
+
           {/* 1. Primary Action Button */}
           <a
             href={`/invitation/${slug}`}
@@ -293,7 +295,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
                     }}
                     className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 flex items-center gap-2.5 transition-colors cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
+                    <CreditCard className="w-4 h-4 text-[#F97316] shrink-0" />
                     <span>Bayar &amp; Aktifkan Paket</span>
                   </button>
                 ) : tier !== "ULTIMATE" && onUpgradeClick ? (
@@ -305,7 +307,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
                     }}
                     className="w-full px-3.5 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                   >
-                    <Sparkles className="w-4 h-4 text-[#F97316] shrink-0" />
+                    <Zap className="w-4 h-4 text-[#F97316] shrink-0" />
                     <span>Upgrade Paket</span>
                   </button>
                 ) : null}

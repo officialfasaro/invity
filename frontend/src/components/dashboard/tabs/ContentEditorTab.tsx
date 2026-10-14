@@ -11,16 +11,20 @@ import {
   ExternalLink,
   Heart,
   Image as ImageIcon,
+  Copy,
   Loader2,
   Lock,
+  MapPin,
   Monitor,
   Music,
+  Package,
   Pause,
   Play,
   Plus,
   BookOpen,
   QrCode,
-  Sparkles,
+  Palette,
+  Check,
   Trash2,
   Upload,
   User,
@@ -28,6 +32,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { WEDDING_QUOTES } from "@/lib/weddingQuotes";
+import { getGoogleMapsEmbedUrl } from "@/components/templates/shared/GoogleMapEmbed";
 
 interface MusicPreset {
   title: string;
@@ -36,6 +41,16 @@ interface MusicPreset {
 }
 
 const MUSIC_PRESETS: MusicPreset[] = [
+  {
+    title: "Lagu Pernikahan Impian (Instrumental Romantis)",
+    category: "Melow Romantis",
+    url: "/music/wedding-romance.mp3",
+  },
+  {
+    title: "Beautiful In White (Akustik Hangat)",
+    category: "Akustik Hangat",
+    url: "/music/wedding-song.mp3",
+  },
   {
     title: "Janji Suci (Instrumental Romantis)",
     category: "Melow Romantis",
@@ -99,6 +114,79 @@ const PRESET_BANKS = [
   "Dana",
   "GoPay",
   "OVO",
+];
+
+interface BackgroundPreset {
+  id: string;
+  label: string;
+  description: string;
+  url: string;
+  previewBg: string;
+}
+
+const BACKGROUND_PRESETS: BackgroundPreset[] = [
+  {
+    id: "botanical-cream",
+    label: "Kertas Alami Botanical",
+    description: "Default tema: Tekstur kertas ivory hangat khas botanical garden",
+    url: "",
+    previewBg: "bg-[#f9f6f0] border-[#c5a880]/50",
+  },
+  {
+    id: "champagne-watercolor",
+    label: "Champagne Watercolor",
+    description: "Sapuan cat air keemasan lembut dan berkelas",
+    url: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1600&q=80",
+    previewBg: "bg-amber-50/80 border-amber-300",
+  },
+  {
+    id: "vintage-floral-damask",
+    label: "Vintage Floral Damask",
+    description: "Motif siluet lukisan bunga klasik nan anggun",
+    url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1600&q=80",
+    previewBg: "bg-stone-100 border-stone-300",
+  },
+  {
+    id: "soft-linen-canvas",
+    label: "Tekstur Linen Ivory",
+    description: "Sentuhan serat kain linen minimalis & tenang",
+    url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1600&q=80",
+    previewBg: "bg-neutral-100 border-neutral-300",
+  },
+  {
+    id: "blush-rose-petals",
+    label: "Kelopak Mawar Romantis",
+    description: "Nuansa bunga mawar mekar penuh kehangatan",
+    url: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=1600&q=80",
+    previewBg: "bg-rose-50 border-rose-200",
+  },
+];
+
+const FLORAL_ORNAMENT_OPTIONS = [
+  {
+    id: "gold",
+    label: "Bunga Emas Mewah (Gold)",
+    colorHex: "#c5a880",
+    desc: "Aksen bunga mawar & daun keemasan elegan di setiap sudut",
+  },
+  {
+    id: "burgundy",
+    label: "Bunga Burgundy Marun",
+    colorHex: "#6c1d28",
+    desc: "Aksen bunga mawar marun khas tema Botanical mewah",
+  },
+  {
+    id: "sage",
+    label: "Daun & Bunga Hijau Sage",
+    colorHex: "#7a8c7b",
+    desc: "Sentuhan dedaunan botanical alami yang sejuk & teduh",
+  },
+  {
+    id: "none",
+    label: "Tanpa Hiasan Bunga (Polos)",
+    colorHex: "#94a3b8",
+    desc: "Tampilan latar polos bersih tanpa ornamen bunga di sudut",
+  },
 ];
 
 interface ScheduleItem {
@@ -186,9 +274,21 @@ interface ContentEditorTabProps {
   useVideoAsDesktopCover?: boolean;
   setUseVideoAsDesktopCover?: (v: boolean) => void;
 
-  // Digital Envelope
+  // Digital Envelope & Gifts
   bankAccounts: BankItem[];
   setBankAccounts: React.Dispatch<React.SetStateAction<BankItem[]>>;
+  giftAddress?: string;
+  setGiftAddress?: (v: string) => void;
+  giftReceiver?: string;
+  setGiftReceiver?: (v: string) => void;
+  giftPhone?: string;
+  setGiftPhone?: (v: string) => void;
+
+  // Background & Floral Ornaments
+  backgroundImage?: string;
+  setBackgroundImage?: (v: string) => void;
+  floralOrnament?: string;
+  setFloralOrnament?: (v: string) => void;
 
   // Love Story
   stories: StoryItem[];
@@ -249,6 +349,16 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
   setUseVideoAsDesktopCover,
   bankAccounts,
   setBankAccounts,
+  giftAddress = "",
+  setGiftAddress,
+  giftReceiver = "",
+  setGiftReceiver,
+  giftPhone = "",
+  setGiftPhone,
+  backgroundImage = "",
+  setBackgroundImage,
+  floralOrnament = "gold",
+  setFloralOrnament,
   stories,
   setStories,
   desktopCoverImage,
@@ -269,6 +379,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
   const [isUploadingQrisIndex, setIsUploadingQrisIndex] = useState<number | null>(null);
   const [isUploadingGalleryIndex, setIsUploadingGalleryIndex] = useState<number | null>(null);
   const [isUploadingStoryIndex, setIsUploadingStoryIndex] = useState<number | null>(null);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [customBankIndices, setCustomBankIndices] = useState<Set<number>>(new Set());
 
   const isStarterTier = tier === "STARTER" || tier === "FREE" || !tier;
@@ -647,6 +758,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
     { id: 4, title: "5. Galeri Foto Prewedding", icon: ImageIcon, badge: `${galleries.length} Foto` },
     { id: 5, title: "6. Amplop Digital & QRIS", icon: CreditCard, badge: `${bankAccounts.length} Rekening` },
     { id: 6, title: "7. Cerita Cinta (Love Story)", icon: BookOpen, badge: `${stories.length} Momen` },
+    { id: 7, title: "8. Background & Hiasan Bunga", icon: Palette, badge: backgroundImage ? "Kustom" : "Aktif" },
   ];
 
   return (
@@ -724,13 +836,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                   <div className="flex items-center gap-1.5">
                     <label className="font-semibold text-slate-700">Tautan Undangan:</label>
                     {isStarterTier ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                         <Lock className="w-2.5 h-2.5 text-amber-600" />
                         <span>Otomatis (Starter)</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <Check className="w-2.5 h-2.5 text-emerald-600" />
                         <span>Kustom Bebas Aktif</span>
                       </span>
                     )}
@@ -740,7 +852,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     <button
                       type="button"
                       onClick={onUpgradeClick}
-                      className="text-[10px] px-2 py-0.5 rounded-full bg-[#F97316] text-white font-semibold hover:bg-[#EA580C] transition-colors cursor-pointer"
+                      className="text-[10px] px-2 py-0.5 rounded-none bg-[#F97316] text-white font-semibold hover:bg-[#EA580C] transition-colors cursor-pointer"
                     >
                       Upgrade untuk Kustom Tautan
                     </button>
@@ -843,7 +955,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     <label className="text-slate-700 font-semibold block text-xs">
                       Foto Mempelai Pria:
                     </label>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="text-[10px] px-2 py-0.5 rounded-none font-medium bg-slate-100 text-slate-700 border border-slate-200">
                       Maks. 1MB (Otomatis Kompres jika &gt; 1MB)
                     </span>
                   </div>
@@ -978,7 +1090,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     <label className="text-slate-700 font-semibold block text-xs">
                       Foto Mempelai Wanita:
                     </label>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="text-[10px] px-2 py-0.5 rounded-none font-medium bg-slate-100 text-slate-700 border border-slate-200">
                       Maks. 1MB (Otomatis Kompres jika &gt; 1MB)
                     </span>
                   </div>
@@ -1099,24 +1211,28 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 )}
                 <div className="flex flex-col gap-2">
                   <div>
-                    <label className="text-xs text-slate-600 block mb-1">Upload Foto Cover Desktop (Maks. 1MB):</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const compressed = await compressImageStandard(file, 1);
-                        const form = new FormData();
-                        form.append("file", compressed, file.name);
-                        const res = await fetch("/api/upload/image", { method: "POST", body: form });
-                        if (res.ok) {
-                          const data = await res.json();
-                          setDesktopCoverImage(data.url);
-                        }
-                      }}
-                      className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-50 file:text-[#F97316] file:font-semibold hover:file:bg-orange-100 file:cursor-pointer"
-                    />
+                    <label className="text-xs text-slate-600 block mb-1.5">Foto Cover Desktop (Maks. 1MB):</label>
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-semibold bg-white hover:bg-orange-50 text-[#F97316] border-orange-200 hover:border-[#F97316] transition-colors cursor-pointer shadow-2xs">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const compressed = await compressImageStandard(file, 1);
+                          const form = new FormData();
+                          form.append("file", compressed, file.name);
+                          const res = await fetch("/api/upload/image", { method: "POST", body: form });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setDesktopCoverImage(data.url);
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload File Cover Desktop</span>
+                    </label>
                   </div>
                   {galleries.length > 0 && (
                     <div>
@@ -1183,31 +1299,87 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
 
         {openSection === 1 && (
           <div className="p-4 sm:p-5 pt-0 border-t border-[#E2E8F0] space-y-4 text-xs animate-in fade-in">
-            <div className="flex items-center justify-between pt-4">
-              <p className="text-slate-500 text-xs">
-                Tambahkan satu atau lebih sesi acara pernikahan Anda.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSchedules([
-                    ...schedules,
-                    {
-                      eventName: "Resepsi Pernikahan",
-                      date: new Date().toISOString().split("T")[0],
-                      startTime: "11:00",
-                      endTime: "14:00",
-                      venueName: "",
-                      address: "",
-                      mapsUrl: "",
-                    },
-                  ]);
-                }}
-                className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-orange-50 text-[#F97316] hover:bg-blue-100 font-semibold text-xs border border-orange-100 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Tambah Sesi</span>
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-4">
+              <div>
+                <p className="text-slate-700 font-semibold text-xs">
+                  Sesi Acara Pernikahan ({schedules.length} Sesi Terdaftar)
+                </p>
+                <p className="text-slate-400 text-[11px]">
+                  Mendukung multi-jadwal seperti Akad, Resepsi Siang, Resepsi Malam, hingga Ngunduh Mantu.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prev = schedules[schedules.length - 1] || schedules[0];
+                    setSchedules([
+                      ...schedules,
+                      {
+                        eventName: "Resepsi Sesi 2 (Malam)",
+                        date: prev?.date ? (typeof prev.date === "string" ? prev.date.split("T")[0] : prev.date) : new Date().toISOString().split("T")[0],
+                        startTime: "18:30",
+                        endTime: "21:00 WIB",
+                        venueName: prev?.venueName || "",
+                        address: prev?.address || "",
+                        mapsUrl: prev?.mapsUrl || "",
+                      },
+                    ]);
+                  }}
+                  className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-orange-100/70 hover:bg-orange-100 text-[#F97316] font-semibold text-[11px] transition-colors cursor-pointer"
+                  title="Tambah Resepsi Sesi 2 Malam (otomatis salin lokasi sesi sebelumnya)"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ Resepsi Sesi 2 (Malam)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prev = schedules[schedules.length - 1] || schedules[0];
+                    setSchedules([
+                      ...schedules,
+                      {
+                        eventName: "Ngunduh Mantu / Tasyakuran",
+                        date: prev?.date ? (typeof prev.date === "string" ? prev.date.split("T")[0] : prev.date) : new Date().toISOString().split("T")[0],
+                        startTime: "10:00",
+                        endTime: "14:00 WIB",
+                        venueName: prev?.venueName || "",
+                        address: prev?.address || "",
+                        mapsUrl: prev?.mapsUrl || "",
+                      },
+                    ]);
+                  }}
+                  className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors cursor-pointer"
+                  title="Tambah Ngunduh Mantu atau Tasyakuran"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ Ngunduh Mantu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSchedules([
+                      ...schedules,
+                      {
+                        eventName: "Resepsi Pernikahan",
+                        date: new Date().toISOString().split("T")[0],
+                        startTime: "11:00",
+                        endTime: "14:00 WIB",
+                        venueName: "",
+                        address: "",
+                        mapsUrl: "",
+                      },
+                    ]);
+                  }}
+                  className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-[11px] transition-colors cursor-pointer shadow-2xs"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ Tambah Sesi</span>
+                </button>
+              </div>
             </div>
 
             {schedules.map((sch, idx) => (
@@ -1215,20 +1387,47 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 key={idx}
                 className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3 relative"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-                  <span className="font-semibold text-slate-900 text-xs">
-                    Sesi #{idx + 1}
-                  </span>
-                  {schedules.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setSchedules(schedules.filter((_, i) => i !== idx))}
-                      className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Hapus</span>
-                    </button>
-                  )}
+                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0] flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-xs px-2 py-0.5 rounded bg-slate-200/70">
+                      Sesi #{idx + 1}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-600">
+                      {sch.eventName || "Belum dinamai"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {idx > 0 && schedules[0]?.venueName && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...schedules];
+                          updated[idx].venueName = schedules[0].venueName;
+                          updated[idx].address = schedules[0].address;
+                          updated[idx].mapsUrl = schedules[0].mapsUrl;
+                          updated[idx].date = schedules[0].date;
+                          setSchedules(updated);
+                        }}
+                        className="text-[10.5px] text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 px-2 py-0.5 rounded bg-orange-50 border border-orange-200 cursor-pointer"
+                        title="Salin tanggal, nama gedung, alamat, dan link maps dari Sesi 1"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>Salin Lokasi Sesi 1</span>
+                      </button>
+                    )}
+
+                    {schedules.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSchedules(schedules.filter((_, i) => i !== idx))}
+                        className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1245,6 +1444,37 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                       placeholder="Akad Nikah / Resepsi"
                       className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
                     />
+                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                      <span className="text-[10px] text-slate-400">Pilihan Cepat:</span>
+                      {[
+                        "Akad Nikah",
+                        "Pemberkatan",
+                        "Resepsi Sesi 1 (Siang)",
+                        "Resepsi Sesi 2 (Malam)",
+                        "Ngunduh Mantu",
+                      ].map((presetName) => (
+                        <button
+                          key={presetName}
+                          type="button"
+                          onClick={() => {
+                            const updated = [...schedules];
+                            updated[idx].eventName = presetName;
+                            if (presetName === "Resepsi Sesi 2 (Malam)" && !updated[idx].startTime) {
+                              updated[idx].startTime = "18:30";
+                              updated[idx].endTime = "21:00 WIB";
+                            }
+                            setSchedules(updated);
+                          }}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                            sch.eventName === presetName
+                              ? "bg-orange-100 border-orange-300 text-orange-800 font-bold"
+                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          {presetName}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -1336,6 +1566,34 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none"
                   />
                 </div>
+
+                {/* Live Preview Peta Google Maps */}
+                {(sch.venueName || sch.address || sch.mapsUrl) && (
+                  <div className="pt-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#F97316]" />
+                        <span>Preview Peta Google Maps:</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Otomatis sinkron dengan nama gedung &amp; alamat
+                      </span>
+                    </div>
+                    <div className="h-36 sm:h-44 w-full border border-slate-200 rounded-lg overflow-hidden bg-slate-50 relative shadow-inner">
+                      <iframe
+                        src={getGoogleMapsEmbedUrl(sch.venueName, sch.address, sch.mapsUrl)}
+                        className="w-full h-full border-0 block"
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title={`Preview Lokasi ${sch.eventName || "Acara"}`}
+                      />
+                      <div className="absolute bottom-1 right-2 bg-slate-900/80 text-white text-[9px] px-2 py-0.5 rounded pointer-events-none flex items-center gap-1">
+                        <span>Google Maps Lokasi Acara</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
 
@@ -1371,7 +1629,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {musicUrl && (
-              <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-none border border-emerald-200">
                 Terpasang
               </span>
             )}
@@ -1519,7 +1777,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               <div className="pt-3 border-t border-slate-200/80 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700">
-                    <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
+                    <Music className="w-3.5 h-3.5 text-[#F97316]" />
                     <span>Pilihan Lagu Siap Pakai (10 Lagu Bebas Hak Cipta)</span>
                   </div>
                   <span className="text-[10px] text-slate-400 font-normal">
@@ -1631,7 +1889,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {youtubeVideoUrl && (
-              <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <span className="text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-none border border-emerald-200">
                 Tersedia
               </span>
             )}
@@ -1755,7 +2013,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none">
               {galleries.length} Foto
             </span>
             {openSection === 4 ? (
@@ -1774,7 +2032,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                   Daftar Foto Prewedding ({galleries.length} Foto)
                 </h4>
                 {(tier === "STARTER" || tier === "FREE") && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                  <span className="text-[10px] px-2 py-0.5 rounded-none bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
                     Paket Starter: Maks. 10 Foto ({galleries.length}/10)
                   </span>
                 )}
@@ -1960,7 +2218,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none">
               {bankAccounts.length} Rekening
             </span>
             {openSection === 5 ? (
@@ -1979,7 +2237,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                   Tamu dapat mengirimkan hadiah tanda kasih langsung via transfer rekening bank atau scan foto QRIS.
                 </p>
                 {(tier === "STARTER" || tier === "FREE") && (
-                  <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
+                  <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-none bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
                     Paket Starter: Maks. 2 Rekening ({bankAccounts.length}/2)
                   </span>
                 )}
@@ -2167,12 +2425,12 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                       <span>Foto QRIS Donasi:</span>
                     </label>
                     {isStarterTier ? (
-                      <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                      <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded-none border border-amber-200 flex items-center gap-1">
                         <Lock className="w-3 h-3" />
                         Khusus Paket Elegant &amp; Ultimate
                       </span>
                     ) : b.qrisImageUrl ? (
-                      <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-none border border-emerald-200">
                         QRIS Aktif
                       </span>
                     ) : null}
@@ -2273,6 +2531,66 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 </div>
               </div>
             ))}
+
+            {/* Physical Gift Delivery Address (Pengiriman Kado Fisik) */}
+            <div className="p-4 rounded-xl bg-orange-50/40 border border-orange-200/80 space-y-3.5 mt-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-orange-200/60">
+                <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center shrink-0">
+                  <Package className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900 text-xs">
+                    Alamat Pengiriman Kado Fisik (Opsional)
+                  </h4>
+                  <p className="text-[10.5px] text-slate-500">
+                    Ditampilkan pada tab Hadiah agar tamu undangan dapat mengirimkan kado atau parcel langsung ke kediaman Anda.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-slate-700 block mb-1 font-medium text-xs">
+                    Alamat Lengkap Penerima:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={giftAddress}
+                    onChange={(e) => setGiftAddress && setGiftAddress(e.target.value)}
+                    placeholder="Contoh: Jl. Anggrek No. 12, RT 03/RW 04, Menteng, Jakarta Pusat 10350"
+                    className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-700 block mb-1 font-medium text-xs">
+                      Nama Penerima:
+                    </label>
+                    <input
+                      type="text"
+                      value={giftReceiver}
+                      onChange={(e) => setGiftReceiver && setGiftReceiver(e.target.value)}
+                      placeholder="Contoh: Versa &amp; Mekar"
+                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs min-h-[40px] focus:border-[#F97316] outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-700 block mb-1 font-medium text-xs">
+                      No. HP / WhatsApp Penerima:
+                    </label>
+                    <input
+                      type="text"
+                      value={giftPhone}
+                      onChange={(e) => setGiftPhone && setGiftPhone(e.target.value)}
+                      placeholder="Contoh: 0812-3456-7890"
+                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs min-h-[40px] focus:border-[#F97316] outline-none font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -2296,7 +2614,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+            <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none">
               {stories.length} Momen
             </span>
             {openSection === 6 ? (
@@ -2503,6 +2821,276 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Accordion 8: Background & Hiasan Bunga Undangan */}
+      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection(7)}
+          className="w-full flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 text-[#F97316] flex items-center justify-center font-bold">
+              <Palette className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-800">8. Background &amp; Hiasan Bunga Undangan</h3>
+              <p className="text-xs text-slate-500">Pilih gambar latar belakang undangan &amp; dekorasi corak bunga di sudut</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-[#F97316]">
+              {backgroundImage ? "Gambar Kustom" : "Default"}
+            </span>
+            {openSection === 7 ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          </div>
+        </button>
+
+        {openSection === 7 && (
+          <div className="p-4 sm:p-5 space-y-6 border-t border-[#E2E8F0] animate-in fade-in duration-200">
+            {/* Bagian 1: Background Image */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-[#F97316]" />
+                <h4 className="font-bold text-xs sm:text-sm text-slate-800">
+                  1. Pilih Gambar Background Undangan
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500">
+                Pilih tekstur tema preset, upload foto Anda sendiri, atau gunakan foto prewedding sebagai latar belakang undangan.
+              </p>
+
+              {/* Preview Box */}
+              <div className="relative w-full h-36 sm:h-44 rounded-xl overflow-hidden border border-[#E2E8F0] shadow-inner flex items-center justify-center bg-slate-100">
+                {backgroundImage ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={backgroundImage}
+                      alt="Background Terpilih"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/25 flex flex-col items-center justify-center text-white p-3 text-center">
+                      <span className="text-xs font-bold drop-shadow-md">
+                        Gambar Background Aktif
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setBackgroundImage && setBackgroundImage("")}
+                        className="mt-2 px-3 py-1 bg-white text-rose-600 rounded-lg text-xs font-semibold shadow-xs hover:bg-rose-50 transition-colors cursor-pointer"
+                      >
+                        Reset ke Kertas Alami Default
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-[#f9f6f0] flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-[#c5a880]/40">
+                    <span className="font-serif-eb text-base text-[#6c1d28]">
+                      Kertas Botanical Alami (Default)
+                    </span>
+                    <span className="text-xs text-[#6b615b] mt-0.5">
+                      Kanvas bertekstur elegan khas tema Botanical
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Pilihan Preset Background */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-700 block">
+                  Pilihan Koleksi Background Populer:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                  {BACKGROUND_PRESETS.map((preset) => {
+                    const isSelected = (!backgroundImage && !preset.url) || (backgroundImage === preset.url);
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setBackgroundImage && setBackgroundImage(preset.url)}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between h-24 sm:h-28 relative group cursor-pointer ${
+                          isSelected
+                            ? "border-2 border-[#F97316] ring-2 ring-orange-100 bg-orange-50/20"
+                            : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+                        }`}
+                      >
+                        <div className={`w-full h-10 rounded-md mb-1.5 overflow-hidden border ${preset.previewBg}`}>
+                          {preset.url && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={preset.url} alt="" className="w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-800 line-clamp-1 block">
+                            {preset.label}
+                          </span>
+                          <span className="text-[9px] text-slate-400 line-clamp-1 block">
+                            {preset.description}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#F97316] text-white flex items-center justify-center">
+                            <CheckCircle2 className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Upload Gambar Background Sendiri */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                    Foto / Gambar Background Kustom (Maks. 2MB):
+                  </label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label
+                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-colors shadow-2xs ${
+                        isUploadingBackground
+                          ? "bg-slate-100 text-slate-400 border-slate-200 cursor-wait"
+                          : "bg-white hover:bg-orange-50 text-[#F97316] border-orange-200 hover:border-[#F97316]"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingBackground}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setIsUploadingBackground(true);
+                            const compressed = await compressImageStandard(file, 2);
+                            const form = new FormData();
+                            form.append("file", compressed, file.name);
+                            const res = await fetch("/api/upload/image", { method: "POST", body: form });
+                            if (res.ok) {
+                              const data = await res.json();
+                              if (setBackgroundImage) {
+                                setBackgroundImage(data.url);
+                              }
+                            }
+                          } finally {
+                            setIsUploadingBackground(false);
+                          }
+                        }}
+                        className="sr-only"
+                      />
+                      {isUploadingBackground ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Mengunggah background...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload File Background</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                {/* Pilih dari Galeri Prewedding */}
+                {galleries.length > 0 && (
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Atau pilih dari foto prewedding yang sudah diunggah:
+                    </label>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {galleries.slice(0, 12).map((g, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setBackgroundImage && setBackgroundImage(g.imageUrl)}
+                          className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                            backgroundImage === g.imageUrl
+                              ? "border-[#F97316] scale-95 ring-2 ring-orange-200"
+                              : "border-transparent hover:border-slate-300"
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={g.imageUrl} alt="" className="w-full h-full object-cover" />
+                          {backgroundImage === g.imageUrl && (
+                            <div className="absolute inset-0 bg-[#F97316]/30 flex items-center justify-center">
+                              <CheckCircle2 className="w-5 h-5 text-white drop-shadow-md" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Input URL Gambar Langsung */}
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">
+                    Atau tempel tautan URL gambar langsung:
+                  </label>
+                  <input
+                    type="url"
+                    value={backgroundImage}
+                    onChange={(e) => setBackgroundImage && setBackgroundImage(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-700 text-xs focus:border-[#F97316] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bagian 2: Hiasan Bunga Background (Floral Ornaments) */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4 text-[#F97316]" />
+                <h4 className="font-bold text-xs sm:text-sm text-slate-800">
+                  2. Hiasan Bunga untuk Background (Floral Ornaments)
+                </h4>
+              </div>
+              <p className="text-xs text-slate-500">
+                Pilih aksen ornamen sudut bunga mawar &amp; dedaunan botanical untuk memperindah latar belakang undangan pernikahan.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {FLORAL_ORNAMENT_OPTIONS.map((opt) => {
+                  const isSelected = (floralOrnament || "gold") === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setFloralOrnament && setFloralOrnament(opt.id)}
+                      className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between relative cursor-pointer ${
+                        isSelected
+                          ? "border-2 border-[#F97316] ring-2 ring-orange-100 bg-orange-50/20"
+                          : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                            style={{ backgroundColor: opt.colorHex }}
+                          />
+                          <span className="text-xs font-bold text-slate-800">
+                            {opt.label}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className="w-4 h-4 text-[#F97316]" />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        {opt.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
       </div>

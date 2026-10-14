@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&amp;family=EB+Garamond:ital,wght@0,400..700;1,400..700&amp;family=Space+Grotesk:wght@300..700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "inverse-surface": "#e5e2e1", "error-container": "#93000a", "secondary-fixed": "#e5e2db", "background": "#131313", "surface-container-lowest": "#0e0e0e", "on-background": "#e5e2e1", "on-primary": "#670306", "surface-container-low": "#1c1b1b", "on-error-container": "#ffdad6", "on-tertiary-fixed": "#1a1c1c", "tertiary": "#c6c6c7", "surface-variant": "#353534", "surface-container": "#201f1f", "outline-variant": "#58413f", "secondary": "#c9c6c0", "on-secondary-fixed-variant": "#474742", "on-tertiary-fixed-variant": "#454747", "surface-tint": "#ffb4ab", "secondary-fixed-dim": "#c9c6c0", "primary": "#ffb4ab", "secondary-container": "#474742", "on-surface-variant": "#dfbfbb", "on-secondary-container": "#b7b5af", "surface-dim": "#131313", "surface-container-highest": "#353534", "primary-fixed": "#ffdad5", "primary-fixed-dim": "#ffb4ab", "on-primary-container": "#fe7568", "on-secondary-fixed": "#1c1c18", "tertiary-container": "#353737", "on-secondary": "#31312c", "tertiary-fixed": "#e2e2e2", "on-surface": "#e5e2e1", "on-tertiary-container": "#9fa0a0", "on-primary-fixed": "#410002", "tertiary-fixed-dim": "#c6c6c7", "on-primary-fixed-variant": "#881e1a", "surface-bright": "#393939", "surface": "#131313", "inverse-on-surface": "#313030", "error": "#ffb4ab", "on-error": "#690005", "on-tertiary": "#2f3131", "outline": "#a68a87", "primary-container": "#700b0b", "inverse-primary": "#a9362e", "surface-container-high": "#2a2a2a" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-sm": "0.5rem", "gutter": "1.5rem", "gutter-mobile": "1rem", "space-md": "1rem", "margin-mobile": "1.25rem", "margin": "3rem", "space-xs": "0.25rem", "space-xl": "3rem", "space-lg": "1.75rem" }, "fontFamily": { "meta-tracked": [ "Space Grotesk" ], "body-lg": [ "EB Garamond" ], "script-couples-mobile": [ "EB Garamond" ], "body-md": [ "EB Garamond" ], "headline-md": [ "Bodoni Moda" ], "display-hero": [ "Bodoni Moda" ], "headline-lg": [ "Bodoni Moda" ], "headline-sm": [ "Bodoni Moda" ], "headline-lg-mobile": [ "Bodoni Moda" ], "script-couples": [ "EB Garamond" ], "display-hero-mobile": [ "Bodoni Moda" ], "label-caps": [ "Space Grotesk" ] }, "fontSize": { "meta-tracked": [ "11px", { "lineHeight": "16px", "letterSpacing": "0.22em", "fontWeight": "500" } ], "body-lg": [ "20px", { "lineHeight": "30px", "fontWeight": "400" } ], "script-couples-mobile": [ "34px", { "lineHeight": "42px", "letterSpacing": "0.01em", "fontWeight": "400" } ], "body-md": [ "16px", { "lineHeight": "26px", "fontWeight": "400" } ], "headline-md": [ "24px", { "lineHeight": "32px", "letterSpacing": "0.04em", "fontWeight": "500" } ], "display-hero": [ "56px", { "lineHeight": "64px", "letterSpacing": "-0.02em", "fontWeight": "400" } ], "headline-lg": [ "36px", { "lineHeight": "44px", "letterSpacing": "0.02em", "fontWeight": "400" } ], "headline-sm": [ "18px", { "lineHeight": "26px", "letterSpacing": "0.06em", "fontWeight": "600" } ], "headline-lg-mobile": [ "28px", { "lineHeight": "36px", "letterSpacing": "0.02em", "fontWeight": "400" } ], "script-couples": [ "48px", { "lineHeight": "56px", "letterSpacing": "0.02em", "fontWeight": "400" } ], "display-hero-mobile": [ "38px", { "lineHeight": "46px", "letterSpacing": "-0.01em", "fontWeight": "400" } ], "label-caps": [ "12px", { "lineHeight": "18px", "letterSpacing": "0.15em", "fontWeight": "600" } ] } } } };</script></head><body class="bg-background font-body-md text-on-surface antialiased"><div class="min-h-screen w-full lg:flex"><aside class="hidden lg:block lg:w-1/2 lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:z-30 bg-surface-container-lowest overflow-hidden select-none"><div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-surface-container-lowest/60 to-surface-container-lowest z-10 pointer-events-none"></div><div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/40 to-transparent z-10"></div><img alt="Putri &amp; Andika Pre-Wedding" class="w-full h-full object-cover filter grayscale contrast-125 brightness-75 scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV2GJHqpN-WfgpjME6IRs7XEW4vYaLkgwSwcFUhF_2JTjQa82jAhGvP2DMdKmIKXR_Oyf78tgV-AwAV95uVvdnnA6WWZIbQU5HWWRycaYQfmi2jVbuzVdvXnswpQcI0kd9Snjb8Se6ZXZw4ioZJ5af8Zb_3imR2U9DAn8o0tiEXANwC2Vm5k8Lt_fr1ZKR_TImNM97tBTqrkWVjpQ5VB5HqlPdvLngcSykrz0YIaw"/><div class="absolute top-space-xl left-space-xl z-20"><div class="flex items-center gap-space-sm"><span class="font-label-caps text-label-caps text-secondary tracking-widest uppercase">EDITION NO. L08</span><span class="w-1 h-1 bg-primary rounded-full"></span><span class="font-meta-tracked text-meta-tracked text-on-surface-variant uppercase">GOTHIC ARCHIVAL</span></div></div><div class="absolute bottom-0 left-0 right-0 p-space-xl z-20 flex flex-col items-start"><div class="font-label-caps text-label-caps text-primary tracking-widest uppercase mb-space-xs">The Wedding Of</div><div class="font-script-couples text-script-couples text-on-surface italic font-normal tracking-wide mb-space-sm">Putri &amp; Andika</div><div class="flex items-center gap-space-md pt-space-xs"><span class="font-headline-sm text-headline-sm text-secondary tracking-widest">28 . 12 . 2027</span><span class="font-meta-tracked text-meta-tracked text-on-surface-variant uppercase">FOLIO NO. 1042-ID</span></div><div class="mt-space-md pt-space-md w-full flex justify-between items-center"><span class="font-meta-tracked text-meta-tracked text-on-secondary-container">ARCHITECTURAL CORRESPONDENCE</span><span class="font-meta-tracked text-meta-tracked text-on-secondary-container">PARIS — JAKARTA</span></div></div></aside><div class="w-full lg:w-1/2 lg:ml-[50vw] min-h-screen bg-surface flex flex-col"><header class="sticky top-0 w-full z-40 bg-surface/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.3)]"><div class="h-16 w-full px-gutter lg:px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="font-label-caps text-label-caps text-primary uppercase">P &amp; A</span><span class="hidden sm:inline font-meta-tracked text-meta-tracked text-on-surface-variant uppercase">DECEMBER 2027</span></div><nav class="flex items-center gap-space-sm sm:gap-space-md" data-active-classes="bg-primary-container text-on-primary-container font-medium rounded"><a class="px-space-sm py-space-xs font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface uppercase transition-colors" data-path="ceremony-reception" href="#">Invitation</a><a class="px-space-sm py-space-xs font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface uppercase transition-colors" data-path="itinerary" href="#">Timeline</a><a class="px-space-sm py-space-xs font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface uppercase transition-colors" data-path="rsvp" href="#">RSVP</a><a class="px-space-sm py-space-xs font-label-caps text-label-caps text-on-surface-variant hover:text-on-surface uppercase transition-colors" data-path="registry" href="#">Registry</a></nav><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex-1 w-full bg-surface"><div class="w-full max-w-[480px] mx-auto px-gutter-mobile sm:px-gutter py-space-lg"><div class="flex flex-col w-full relative selection:bg-primary-container selection:text-on-primary">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-surface transition-all duration-1000 ease-in-out" id="coverOverlay">
+<div class="relative w-full h-full max-w-[480px] mx-auto flex flex-col justify-between p-margin-mobile sm:p-gutter bg-surface-container-lowest overflow-hidden shadow-2xl">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover grayscale contrast-125 brightness-50 scale-105 transition-transform duration-1000" data-alt="Dramatic black and white cinematic wedding editorial portrait of an Asian couple in high fashion attire. Cinematic chiaroscuro lighting, deep shadows, soft grain film texture, ethereal gothic romance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQfkt0EmDy1lbuTJ47y_EcI1Zio1gNWB-Zxbcp83DOFfmA3giY4Y6loYdNMU1gJuko38QWo2bW6KRJ9HVE9WjEaUzhJxsBWZk3hEOUfKHTOTCPJ4ZjOehvasPF1IEMLEKvGMSyuZVNz5NxBB4OLX2bpJ7mvnE9nxtUibbpBPlh14gmns6rnou93FO4UJD2JivNNngYQGUv3dcwWXeeu-WBG7ujYKjQXYAk0w6gI0I"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/70 to-surface-container-lowest/30"></div>
+</div>
+<div class="relative z-10 pt-space-lg text-center flex flex-col items-center">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.3em] mb-space-xs">THE WEDDING OF</span>
+<h1 class="font-script-couples text-script-couples-mobile sm:text-script-couples text-on-surface italic font-normal">Putri &amp; Andika</h1>
+<div class="w-12 h-[1px] bg-outline-variant my-space-xs"></div>
+<span class="font-label-caps text-label-caps text-secondary tracking-widest">28 . 12 . 2027</span>
+</div>
+<div class="relative z-10 pb-space-lg flex flex-col items-center w-full">
+<div class="w-full bg-surface-container/90 backdrop-blur-md p-space-md rounded-lg text-center mb-space-md shadow-xl">
+<p class="font-meta-tracked text-meta-tracked text-on-surface-variant uppercase tracking-wider mb-space-xs">KEPADA YTH. BAPAK/IBU/SAUDARA/I</p>
+<p class="font-headline-sm text-headline-sm text-on-surface font-serif my-space-xs tracking-normal" id="guestCallout">Tamu Undangan Terhormat</p>
+<p class="font-body-md text-meta-tracked text-secondary italic opacity-80 mt-space-xs">*Mohon maaf jika ada kesalahan penulisan nama / gelar</p>
+</div>
+<button class="w-full py-3.5 px-space-lg bg-primary-container hover:bg-error-container text-on-surface font-label-caps text-label-caps uppercase tracking-widest rounded-lg shadow-xl hover:shadow-[0_0_24px_rgba(112,11,11,0.6)] active:scale-95 transition-all flex items-center justify-center gap-space-sm group" id="openInvitationBtn">
+<span class="material-symbols-outlined text-[18px] text-primary transition-transform group-hover:rotate-12">drafts</span>
+<span>Buka Undangan</span>
+</button>
+</div>
+</div>
+</div>
+<div class="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-primary-container text-on-primary px-space-md py-space-xs rounded-full font-label-caps text-label-caps shadow-2xl transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-space-xs" id="toast">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span id="toastMsg">Tersalin ke clipboard</span>
+</div>
+<div class="fixed bottom-6 right-6 z-40 flex items-center gap-space-xs bg-surface-container-high/90 backdrop-blur-md p-1.5 pr-3 rounded-full shadow-2xl transition-all duration-500 scale-90 opacity-0 pointer-events-none" id="floatingVinyl">
+<button aria-label="Toggle Audio" class="relative w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center overflow-hidden group shadow-md" id="vinylToggle">
+<div class="w-full h-full rounded-full bg-surface-variant flex items-center justify-center animate-[spin_6s_linear_infinite]" id="vinylDisc">
+<div class="w-4 h-4 rounded-full bg-primary-container flex items-center justify-center">
+<div class="w-1.5 h-1.5 rounded-full bg-surface-container-lowest"></div>
+</div>
+</div>
+</button>
+<div class="flex items-end gap-0.5 h-4 px-1" id="audioEqualizer">
+<span class="w-0.5 h-2 bg-primary rounded-full animate-pulse"></span>
+<span class="w-0.5 h-4 bg-primary rounded-full animate-pulse delay-75"></span>
+<span class="w-0.5 h-3 bg-primary rounded-full animate-pulse delay-150"></span>
+<span class="w-0.5 h-1.5 bg-primary rounded-full animate-pulse delay-200"></span>
+</div>
+</div>
+<section class="w-full mb-space-xl flex flex-col items-center">
+<div class="w-full relative pt-space-md pb-space-lg flex flex-col items-center">
+<div class="relative w-64 h-72 sm:w-72 sm:h-80 flex items-center justify-center perspective-[1000px] mb-space-md">
+<div class="absolute inset-0 bg-primary-container rounded-lg shadow-2xl flex flex-col items-center justify-between p-4 overflow-hidden">
+<div class="w-full flex justify-between items-center opacity-40">
+<span class="font-meta-tracked text-meta-tracked text-on-surface">NO. 1042</span>
+<span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+</div>
+<div class="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center shadow-inner">
+<span class="font-headline-md text-headline-md text-primary font-serif">P&amp;A</span>
+</div>
+<div class="w-full text-center">
+<span class="font-meta-tracked text-meta-tracked text-on-surface-variant tracking-[0.25em] uppercase">EPISTOLARY MONOGRAPH</span>
+</div>
+</div>
+<div class="absolute w-52 h-64 bg-inverse-surface p-3 pb-8 rounded shadow-2xl flex flex-col items-center transition-all duration-1000 -translate-y-6 hover:-translate-y-12 rotate-[-2deg]" id="polaroidPhoto">
+<div class="w-full h-44 bg-surface-container-lowest overflow-hidden rounded-xs">
+<img class="w-full h-full object-cover grayscale contrast-125" data-alt="Monochrome close up vintage bridal photo of groom and bride forehead touch, classic black tie tuxedo, veil embroidery, soft dark aesthetic editorial luxury." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB34ggHZxC_d2zuUbpNIKdFZmJQ_Uce56s_Wrm38cgzTCMB_G1RMtaN6qeZagA3bYgQpRt1aHtA0ObH7irCYq909GTHlCN-n9dX_s1rOuhmEimrZsYAPsZJ1lkiL25UjWD5ehlsrtGSrKoTZ7CQjvV82Jp_AR_soF5pyFOYZO3zAcGiMgn0S5W6-8nsyAgbt0tdB4-49x9eUFSjfJc8W7OA6svzgo9mEe0brrLV90s"/>
+</div>
+<span class="font-script-couples text-headline-sm text-inverse-on-surface italic mt-3">Forever Yours</span>
+</div>
+</div>
+<div class="text-center max-w-sm px-space-sm mb-space-md">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">IN THE NAME OF LOVE</span>
+<h2 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">The Sacred Union</h2>
+</div>
+<div class="w-full bg-surface-container-low p-space-md rounded-lg relative overflow-hidden">
+<div class="flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary text-[28px] mb-space-xs opacity-75">format_quote</span>
+<p class="font-body-md text-body-md text-on-surface italic mb-space-xs leading-relaxed">
+            “Dan di antara tanda-tanda (kebesaran)-Nya ialah Dia menciptakan pasangan-pasangan untukmu dari jenismu sendiri, agar kamu cenderung dan merasa tenteram kepadanya, dan Dia menjadikan di antaramu rasa kasih dan sayang.”
+          </p>
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">Q.S. AR-RUM : 21</span>
+</div>
+</div>
+<div class="flex flex-col items-center mt-space-lg gap-space-xs opacity-60">
+<span class="font-meta-tracked text-meta-tracked text-secondary uppercase">GULIR KE BAWAH</span>
+<div class="w-5 h-8 rounded-full flex justify-center pt-1">
+<div class="w-1 h-2 bg-primary rounded-full animate-bounce"></div>
+</div>
+</div>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="text-center mb-space-lg">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">THE WEDDING OF</span>
+<h3 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">Mempelai Pengantin</h3>
+<p class="font-body-md text-body-md text-secondary mt-space-xs max-w-xs mx-auto">Dengan memohon rahmat dan ridho Allah SWT, kami mengundang Anda untuk merayakan cinta kami.</p>
+</div>
+<div class="flex flex-col gap-space-md">
+<div class="w-full bg-inverse-surface text-inverse-on-surface p-space-md sm:p-space-lg rounded-lg shadow-2xl relative overflow-hidden">
+<div class="flex flex-col items-center text-center">
+<div class="relative w-36 h-48 rounded-t-full overflow-hidden mb-space-md shadow-md bg-surface-container">
+<img class="w-full h-full object-cover grayscale contrast-125" data-alt="Exquisite studio portrait of Indonesian bride Putri wearing dark velvet kebaya with gold embellishment and modern bridal veil, fine art photography, dark moody ambiance." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_8N1_xeRUt3VaU2RJLT48zzrF0ONXeg5qkvwFHgzlCyjvDrdGafKWDWBKHqXJjUepsSuC8vL-UHhZ8dBowd7odBjWUe_ESbPb3L0FliFfjn8I5UuuNgJYHWi062hqvWSf7YgTWtl5rFYjvZPhZz3qi9FUnM_CQk-vxxusmW0CtW0WGM6mpO0HvSdIVWzGCLAiTGbcPa57iugnXuLSHM6k2dh872JuyeNa3Zrtd_4"/>
+</div>
+<span class="font-label-caps text-label-caps text-on-primary-fixed-variant tracking-[0.2em] uppercase mb-space-xs">THE BRIDE</span>
+<h4 class="font-headline-md text-headline-md font-serif text-inverse-on-surface">Putri Cantika Sari</h4>
+<p class="font-body-md text-body-md text-on-secondary-fixed-variant mt-space-xs max-w-xs">Putri pertama dari pasangan<br/><span class="font-medium">Bpk. Abdul Rozak &amp; Ibu Adelia Marni</span></p>
+<a class="mt-space-md inline-flex items-center gap-space-xs px-space-md py-space-xs bg-surface-container-lowest text-on-surface rounded-full font-label-caps text-label-caps tracking-widest hover:bg-primary-container transition-colors" href="https://instagram.com" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[16px]">photo_camera</span>
+<span>@putricantika</span>
+</a>
+</div>
+</div>
+<div class="flex items-center justify-center my-space-xs">
+<div class="w-12 h-[1px] bg-outline-variant"></div>
+<span class="font-script-couples text-script-couples-mobile sm:text-script-couples text-primary px-space-md italic">&amp;</span>
+<div class="w-12 h-[1px] bg-outline-variant"></div>
+</div>
+<div class="w-full bg-inverse-surface text-inverse-on-surface p-space-md sm:p-space-lg rounded-lg shadow-2xl relative overflow-hidden">
+<div class="flex flex-col items-center text-center">
+<div class="relative w-36 h-48 rounded-t-full overflow-hidden mb-space-md shadow-md bg-surface-container">
+<img class="w-full h-full object-cover grayscale contrast-125" data-alt="Sophisticated portrait of Indonesian groom Putra Andika in dark bespoke tailored suit, minimalist luxury aesthetic, quiet masculine elegance, vintage film tonality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMo8TBUHIO8hNlHGYHvQJNBGj0Jx8jmmsKzzFdht-b6b8f-DSk7ut3My3fEzZSNkyucS6QHb5CfGqeMZ4ZjbtFEkheVtpJUt7T5OwviqS5rQxyadEHYLOklXPoTKYZSyPA5XNf2Mx7P-mRxPF2t5dRyWE2h2D9ltfTiG5lFlqQucZmR8W5PXpUiuybosxmqvgwW5f7kwSElbARzNKN2Fu9gUr55F6RLjb1tfumxrk"/>
+</div>
+<span class="font-label-caps text-label-caps text-on-primary-fixed-variant tracking-[0.2em] uppercase mb-space-xs">THE GROOM</span>
+<h4 class="font-headline-md text-headline-md font-serif text-inverse-on-surface">Putra Andika Pratama</h4>
+<p class="font-body-md text-body-md text-on-secondary-fixed-variant mt-space-xs max-w-xs">Putra pertama dari pasangan<br/><span class="font-medium">Bpk. Deni Bastian &amp; Ibu Aisha Dania</span></p>
+<a class="mt-space-md inline-flex items-center gap-space-xs px-space-md py-space-xs bg-surface-container-lowest text-on-surface rounded-full font-label-caps text-label-caps tracking-widest hover:bg-primary-container transition-colors" href="https://instagram.com" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[16px]">photo_camera</span>
+<span>@putraandika</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="bg-surface-container-low p-space-md sm:p-space-lg rounded-lg flex flex-col items-center text-center shadow-xl relative overflow-hidden">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center mb-space-sm shadow-md">
+<span class="material-symbols-outlined text-primary text-[24px]">hourglass_top</span>
+</div>
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">SAVE THE DATE</span>
+<h3 class="font-headline-md text-headline-md text-on-surface font-serif mt-space-xs">Menghitung Hari Bahagia</h3>
+<p class="font-body-md text-body-md text-secondary mt-space-xs mb-space-md">Selasa, 28 Desember 2027</p>
+<div class="grid grid-cols-4 gap-2 sm:gap-3 w-full max-w-sm mb-space-lg">
+<div class="bg-surface-container p-space-sm rounded flex flex-col items-center shadow-inner">
+<span class="font-headline-md text-headline-md text-primary font-serif" id="countdownDays">00</span>
+<span class="font-meta-tracked text-meta-tracked text-secondary uppercase mt-0.5">HARI</span>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex flex-col items-center shadow-inner">
+<span class="font-headline-md text-headline-md text-primary font-serif" id="countdownHours">00</span>
+<span class="font-meta-tracked text-meta-tracked text-secondary uppercase mt-0.5">JAM</span>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex flex-col items-center shadow-inner">
+<span class="font-headline-md text-headline-md text-primary font-serif" id="countdownMinutes">00</span>
+<span class="font-meta-tracked text-meta-tracked text-secondary uppercase mt-0.5">MENIT</span>
+</div>
+<div class="bg-surface-container p-space-sm rounded flex flex-col items-center shadow-inner">
+<span class="font-headline-md text-headline-md text-primary font-serif" id="countdownSeconds">00</span>
+<span class="font-meta-tracked text-meta-tracked text-secondary uppercase mt-0.5">DETIK</span>
+</div>
+</div>
+<a class="w-full max-w-xs py-3 px-space-md bg-primary-container hover:bg-error-container text-on-surface rounded font-label-caps text-label-caps tracking-widest uppercase transition-all flex items-center justify-center gap-space-xs shadow-lg active:scale-95" href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=The+Wedding+of+Putri+%26+Andika&amp;dates=20271228T010000Z/20271228T070000Z&amp;details=Menara+165+Jakarta+Selatan&amp;location=Menara+165+Jakarta" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span>SIMPAN TANGGAL</span>
+</a>
+</div>
+</section>
+<section class="w-full mb-space-xl flex flex-col gap-space-md">
+<div class="text-center mb-space-sm">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">SCHEDULE &amp; VENUE</span>
+<h3 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">Rangkaian Acara</h3>
+</div>
+<div class="bg-surface-container-low rounded-lg overflow-hidden shadow-xl">
+<div class="relative h-44 w-full">
+<img class="w-full h-full object-cover grayscale contrast-125 brightness-75" data-alt="Atmospheric architectural photography of Menara 165 ballroom interior prepared for high-end wedding ceremony with moody ambient candlelight and floral arches." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2JV8SJvOIyvpxowMPvctdI2SJKg9PgjrX0OFeQDo6jG1K-_Bs3YBb-DbmxwTxvRxjn1xQP44myR6GTasO9JF1T-7F34UwNTEQJRc0wXMbyeLQS7F_4kya8nz30Gos2vcGMML6JEHnTaBpLTftyYvwwrSRc4LQEfioLj9H_OHhE2BTIUKXOfRZD--D84WPUiIpD_LmwPw_D_vQ2uvmSH4DStOqckWPr9lAu3rhwDQ"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-3 left-4">
+<span class="font-label-caps text-label-caps bg-primary-container text-on-surface px-space-sm py-0.5 rounded uppercase tracking-wider">SESI 01</span>
+</div>
+</div>
+<div class="p-space-md sm:p-space-lg flex flex-col items-center text-center">
+<h4 class="font-headline-md text-headline-md text-on-surface font-serif">Akad Nikah</h4>
+<p class="font-label-caps text-label-caps text-primary tracking-widest uppercase mt-space-xs">HOLY MATRIMONY</p>
+<div class="flex items-center gap-space-xs text-secondary mt-space-sm font-body-md">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Selasa, 28 Des 2027 | 08:00 WIB</span>
+</div>
+<div class="flex items-center gap-space-xs text-secondary mt-space-xs font-body-md">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+<span>Menara 165, Jakarta Selatan</span>
+</div>
+<a class="mt-space-md inline-flex items-center gap-space-xs px-space-lg py-2.5 bg-surface-container-highest text-on-surface rounded font-label-caps text-label-caps uppercase tracking-widest hover:bg-primary-container transition-colors" href="https://maps.google.com" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[18px]">near_me</span>
+<span>Petunjuk Lokasi</span>
+</a>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-lg overflow-hidden shadow-xl">
+<div class="relative h-44 w-full">
+<img class="w-full h-full object-cover grayscale contrast-125 brightness-75" data-alt="High contrast luxury grand reception banquet hall with long imperial tables, dim romantic candelabras, floral runner, Gothic arch windows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZzefSQ2_R3q3czoPEDssxeesZL3o6GVMSzseoW4fhd4NzYnxKKzlDFrMz0i6hCGVsOOh0tgK_p4feriTv2i9_He667Oa80Pe4S4leTzjz9_dd3YSg60QkhhCI22ujqpbXlLUrCC-j9_CqQuewuXWqBGM6YimBvlMPZbCzqXGZvo6cc1ARHr01lxY1FPmdYdsrWZnZak7PT3MVKBOECghdTUczJLcgkIhW55EU9ug"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent"></div>
+<div class="absolute bottom-3 left-4">
+<span class="font-label-caps text-label-caps bg-primary-container text-on-surface px-space-sm py-0.5 rounded uppercase tracking-wider">SESI 02</span>
+</div>
+</div>
+<div class="p-space-md sm:p-space-lg flex flex-col items-center text-center">
+<h4 class="font-headline-md text-headline-md text-on-surface font-serif">Resepsi Pernikahan</h4>
+<p class="font-label-caps text-label-caps text-primary tracking-widest uppercase mt-space-xs">WEDDING CELEBRATION</p>
+<div class="flex items-center gap-space-xs text-secondary mt-space-sm font-body-md">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+<span>Selasa, 28 Des 2027 | 11:00 – 14:00 WIB</span>
+</div>
+<div class="flex items-center gap-space-xs text-secondary mt-space-xs font-body-md">
+<span class="material-symbols-outlined text-[18px]">business</span>
+<span>Grand Ballroom Menara 165</span>
+</div>
+<a class="mt-space-md inline-flex items-center gap-space-xs px-space-lg py-2.5 bg-surface-container-highest text-on-surface rounded font-label-caps text-label-caps uppercase tracking-widest hover:bg-primary-container transition-colors" href="https://maps.google.com" rel="noopener noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[18px]">near_me</span>
+<span>Petunjuk Lokasi</span>
+</a>
+</div>
+</div>
+<div class="bg-surface-container-high p-space-md rounded-lg flex flex-col items-center text-center">
+<span class="font-meta-tracked text-meta-tracked uppercase text-on-surface-variant tracking-widest mb-space-xs">ETIKET BERBUSANA</span>
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-serif">Dress Code: Formal Elegance</h5>
+<p class="font-body-md text-body-md text-secondary mt-space-xs mb-space-md">Tamu undangan dihimbau mengenakan palet warna berikut:</p>
+<div class="flex items-center gap-space-md">
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest shadow-md"></div>
+<span class="font-meta-tracked text-meta-tracked text-secondary">HITAM</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-inverse-surface shadow-md"></div>
+<span class="font-meta-tracked text-meta-tracked text-secondary">PUTIH</span>
+</div>
+<div class="flex flex-col items-center gap-1">
+<div class="w-8 h-8 rounded-full bg-primary-container shadow-md"></div>
+<span class="font-meta-tracked text-meta-tracked text-secondary">MAROON</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container p-space-md rounded-lg flex items-center justify-between shadow-md">
+<div class="flex items-center gap-space-sm">
+<span class="w-3 h-3 rounded-full bg-error animate-ping"></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-on-surface text-[15px] font-medium">Live Streaming</span>
+<span class="font-body-md text-secondary text-[13px]">Bagi kerabat yang berhalangan hadir</span>
+</div>
+</div>
+<a class="px-space-md py-2 bg-error-container text-on-error-container rounded font-label-caps text-label-caps tracking-wider uppercase hover:opacity-90 transition-opacity" href="https://youtube.com" rel="noopener noreferrer" target="_blank">
+        Tonton
+      </a>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="text-center mb-space-lg">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">CHRONICLE</span>
+<h3 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">Our Love Story</h3>
+</div>
+<div class="relative pl-6 space-y-space-lg">
+<div class="absolute left-2 top-3 bottom-3 w-[1px] bg-outline-variant"></div>
+<div class="relative flex flex-col gap-space-xs">
+<div class="absolute -left-[21px] top-1.5 w-3.5 h-3.5 rounded-full bg-primary-container shadow-md"></div>
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">2022 • FIRST SIGHT</span>
+<div class="bg-surface-container-low p-space-md rounded-lg shadow-md">
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-serif">Pertemuan Pertama</h5>
+<p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">
+            Takdir mempertemukan kami di sebuah pameran seni di Jakarta. Sebuah percakapan sederhana tentang karya monokrom membuka jalan bagi kisah panjang kami berdua.
+          </p>
+</div>
+</div>
+<div class="relative flex flex-col gap-space-xs">
+<div class="absolute -left-[21px] top-1.5 w-3.5 h-3.5 rounded-full bg-primary-container shadow-md"></div>
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">2024 • THE JOURNEY</span>
+<div class="bg-surface-container-low p-space-md rounded-lg shadow-md">
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-serif">Melewati Ribuan Cerita</h5>
+<p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">
+            Dua tahun penuh pembelajaran, saling melengkapi mimpi masing-masing, dan memahami bahwa cinta adalah komitmen untuk terus tumbuh bersama dalam setiap musim.
+          </p>
+</div>
+</div>
+<div class="relative flex flex-col gap-space-xs">
+<div class="absolute -left-[21px] top-1.5 w-3.5 h-3.5 rounded-full bg-primary-container shadow-md"></div>
+<span class="font-label-caps text-label-caps text-primary tracking-widest uppercase">2026 • THE PROPOSAL</span>
+<div class="bg-surface-container-low p-space-md rounded-lg shadow-md">
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-serif">Sebuah Janji Suci</h5>
+<p class="font-body-md text-body-md text-secondary mt-space-xs leading-relaxed">
+            Di bawah temaram lentera kota tua, Andika melingkarkan cincin komitmen dan Putri menjawab dengan senyuman penuh keyakinan untuk menyongsong selamanya.
+          </p>
+</div>
+</div>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="text-center mb-space-lg">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">GALLERY &amp; MEMORIES</span>
+<h3 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">Momen Bahagia</h3>
+</div>
+<div class="w-full h-56 bg-surface-container-low rounded-lg overflow-hidden relative mb-space-md shadow-xl group">
+<img class="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-700" data-alt="Cinematic teaser still frame of bride and groom walking in shadowy Parisian gothic architectural avenue, editorial contrast black white wedding style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkNQfqJ69UnqL_2sCwx5lkBOeBYZfKIG84ktdbfSd4vIW9s-jwOwknlNE7jPr6G6XJDy1a2W2FuLJMnkWmYjF_W5mAvEP8U_ItfbXq1a4bIjIffZWPHO15vMEJlm0kJHHXkqiRM5UTwdRtiDX0c5py-ZOGA8xUP33c7LjeZhMdlhjRnTegcRPiqARsz-4nRa0ppjJIi6FOjWEYbAetmk7FXqvpatp5XuQXjgcJ5Kw"/>
+<div class="absolute inset-0 bg-surface-container-lowest/40 flex items-center justify-center">
+<div class="w-14 h-14 rounded-full bg-primary-container text-on-surface flex items-center justify-center shadow-2xl cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[28px] pl-0.5">play_arrow</span>
+</div>
+</div>
+<div class="absolute bottom-3 left-4">
+<span class="font-meta-tracked text-meta-tracked text-on-surface uppercase tracking-wider">TEASER VIDEO • PRE-WEDDING</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-sm mb-space-md">
+<div class="h-48 rounded overflow-hidden shadow-md group">
+<img class="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-500" data-alt="Artistic close up hands of couple wearing engagement rings with antique fabric texture and shadow play." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQnWEPX-dkva9gA6j2cWTDrYp6TbMnmAnlUcs2giPqNleGihYU5XIOsv8O4B9sb8zb1_otHLKS7yRxn7Iwcpiz33trEwy0rwZ9btn2OyuCuKeF4j0k2R_EuCdsbmFgxndJfLTPB1h2rKgNh9VVkp9iNIfGeKl7e9mQcXz4LS1KzTZuWZ7bY_wTM-GfioeJNUDPFQp9LT2eyOg2i2u_uhk8HoMjtHmT_EjGAti3B_I"/>
+</div>
+<div class="h-48 rounded overflow-hidden shadow-md group">
+<img class="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-500" data-alt="Intimate editorial portrait of bride looking away with lace veil casting shadows across her face." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzjD2_HWuT6TANkMP0dWeeZ9fOWQAFkSw-jalry8xzIU53eS18Y1M0VUkD9cyfHPhAJfSeuY39rahuGn8ez-qqlY7ntyoA65YBW4EOXC-8NqLJVXMvt6ILOZpUWdOJkMJWpqrTmu-sYdAzYgbw7HLiikoGpFhz2SRbB5c9RTy4sfaWr0EW7rOtRYvedAhsYJKxfEuqdmrU9Wv5QJqDvct_DRqHs-VG8VTAT6gCb8s"/>
+</div>
+<div class="h-48 rounded overflow-hidden shadow-md group">
+<img class="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-500" data-alt="Groom adjusting vintage watch cufflink with moody dark monochrome background styling." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXcN9IYR9VBCRhpnX8Q38pP5332sTFXMrGrzKkBVwc4c9SQutFBy9WRogPQFDJHW_H4yuhgabcsWK0W-lWqI3xStMnMFCGi_S4tCMBQ_vbdBULgb7BOffkesRL_pA0KbGQr3Kcmu1gdUIz_YOML00WZ8TowLFL19oShLy2RE7-BMR29JYbiWlEvPILT6lJ9h3ZEzQztbZpmtcWzJz9uS9fi6WY9LWtn_Hh-_x6iCU"/>
+</div>
+<div class="h-48 rounded overflow-hidden shadow-md group">
+<img class="w-full h-full object-cover grayscale contrast-125 group-hover:scale-105 transition-transform duration-500" data-alt="Full body dramatic couple silhouette standing in architectural doorway with soft directional backlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDoG8-Y8mIKWVRYNDOVTESW6QkOldSIXu87y_m4kX3Mdj2DnQiV-X9e9mXRS0rtmg9rMwUJt2NW_gNbzfNo48DOIkGbkkppBiR1cM9Miy-z_nkCS0Qi-rrG660zACHbxwMG9bN67JygflPywkuBOLhCHm9lRpp7xsGbO81zO2cJEwiMtCLmlEkl-XhweQGa3sYTyyBf4UP4dErjxK4DlGCKJmk6hy3EkLYABWq9rpQ"/>
+</div>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="bg-surface-container-low p-space-md sm:p-space-lg rounded-lg text-center shadow-xl">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-space-sm shadow-md">
+<span class="material-symbols-outlined text-primary text-[24px]">redeem</span>
+</div>
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">WEDDING GIFT</span>
+<h3 class="font-headline-md text-headline-md text-on-surface font-serif mt-space-xs">Tanda Kasih</h3>
+<p class="font-body-md text-body-md text-secondary mt-space-xs mb-space-md">
+        Doa restu Anda adalah karunia terindah bagi kami. Bagi yang berkenan memberikan tanda kasih, dapat mengirimkan melalui:
+      </p>
+<button class="w-full py-3 px-space-md bg-surface-container-highest hover:bg-surface-bright text-on-surface rounded font-label-caps text-label-caps uppercase tracking-widest transition-all flex items-center justify-center gap-space-xs shadow-md" id="giftToggleBtn">
+<span class="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+<span>Kirim Hadiah / Amplop Digital</span>
+<span class="material-symbols-outlined text-[18px] transition-transform" id="giftArrow">expand_more</span>
+</button>
+<div class="hidden flex-col gap-space-md mt-space-md text-left transition-all" id="giftDrawer">
+<div class="p-space-md bg-surface-container rounded-lg shadow-inner">
+<div class="flex justify-between items-center mb-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-serif">Bank BCA</span>
+<span class="font-meta-tracked text-meta-tracked text-primary uppercase">DIGITAL TRANSFER</span>
+</div>
+<p class="font-body-md text-secondary text-[14px]">a/n Putri Cantika Sari</p>
+<div class="flex items-center justify-between mt-space-sm bg-surface-container-lowest p-2 rounded">
+<span class="font-meta-tracked text-body-md text-on-surface tracking-wider font-mono">123123123</span>
+<button class="px-space-sm py-1 bg-primary-container text-on-surface text-meta-tracked rounded hover:bg-error-container transition-colors" onclick="copyToClipboard('123123123', 'No. Rekening BCA')">
+              Salin
+            </button>
+</div>
+</div>
+<div class="p-space-md bg-surface-container rounded-lg shadow-inner">
+<div class="flex justify-between items-center mb-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-serif">Bank BRI</span>
+<span class="font-meta-tracked text-meta-tracked text-primary uppercase">DIGITAL TRANSFER</span>
+</div>
+<p class="font-body-md text-secondary text-[14px]">a/n Putra Andika Pratama</p>
+<div class="flex items-center justify-between mt-space-sm bg-surface-container-lowest p-2 rounded">
+<span class="font-meta-tracked text-body-md text-on-surface tracking-wider font-mono">321321321</span>
+<button class="px-space-sm py-1 bg-primary-container text-on-surface text-meta-tracked rounded hover:bg-error-container transition-colors" onclick="copyToClipboard('321321321', 'No. Rekening BRI')">
+              Salin
+            </button>
+</div>
+</div>
+<div class="p-space-md bg-surface-container rounded-lg shadow-inner">
+<div class="flex justify-between items-center mb-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface font-serif">Kirim Kado Fisik</span>
+<span class="font-meta-tracked text-meta-tracked text-primary uppercase">ALAMAT PENGIRIMAN</span>
+</div>
+<p class="font-body-md text-secondary text-[14px] leading-relaxed">
+            Jl. Cilandak Barat No. 18, Cilandak, Jakarta Selatan, DKI Jakarta 12430 (Up. Putri Cantika)
+          </p>
+<button class="mt-space-sm w-full py-1.5 bg-surface-container-highest text-on-surface text-meta-tracked rounded hover:bg-primary-container transition-colors text-center uppercase tracking-widest font-label-caps" onclick="copyToClipboard('Jl. Cilandak Barat No. 18, Cilandak, Jakarta Selatan, DKI Jakarta 12430', 'Alamat Pengiriman')">
+            Salin Alamat
+          </button>
+</div>
+</div>
+</div>
+</section>
+<section class="w-full mb-space-xl">
+<div class="bg-surface-container-low p-space-md sm:p-space-lg rounded-lg shadow-xl">
+<div class="text-center mb-space-md">
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">RSVP &amp; WISHES</span>
+<h3 class="font-headline-md text-headline-md text-on-surface font-serif mt-space-xs">Konfirmasi Kehadiran</h3>
+<p class="font-body-md text-body-md text-secondary mt-space-xs">Mohon konfirmasi kesediaan kehadiran Anda serta titipkan untaian doa.</p>
+</div>
+<form class="flex flex-col gap-space-md" id="rsvpForm">
+<div>
+<label class="block font-meta-tracked text-meta-tracked text-secondary uppercase mb-1">NAMA LENGKAP</label>
+<input class="w-full bg-surface-container p-3 rounded text-on-surface font-body-md placeholder:text-outline-variant focus:outline-none focus:bg-surface-container-high transition-colors" id="guestNameInput" placeholder="Contoh: Rian &amp; Keluarga" required="" type="text"/>
+</div>
+<div>
+<label class="block font-meta-tracked text-meta-tracked text-secondary uppercase mb-2">KONFIRMASI KEHADIRAN</label>
+<div class="grid grid-cols-2 gap-space-sm">
+<label class="flex items-center gap-space-xs p-3 rounded bg-surface-container cursor-pointer hover:bg-surface-container-high transition-colors">
+<input checked="" class="accent-primary" name="attendance" type="radio" value="Hadir"/>
+<span class="font-body-md text-on-surface text-[14px]">Hadir</span>
+</label>
+<label class="flex items-center gap-space-xs p-3 rounded bg-surface-container cursor-pointer hover:bg-surface-container-high transition-colors">
+<input class="accent-primary" name="attendance" type="radio" value="Tidak Hadir"/>
+<span class="font-body-md text-on-surface text-[14px]">Tidak Hadir</span>
+</label>
+</div>
+</div>
+<div>
+<label class="block font-meta-tracked text-meta-tracked text-secondary uppercase mb-1">JUMLAH TAMU</label>
+<select class="w-full bg-surface-container p-3 rounded text-on-surface font-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="guestCountSelect">
+<option value="1">1 Orang</option>
+<option value="2">2 Orang</option>
+<option value="3">3 Orang</option>
+</select>
+</div>
+<div>
+<label class="block font-meta-tracked text-meta-tracked text-secondary uppercase mb-1">UCAPAN &amp; DOA RESTU</label>
+<textarea class="w-full bg-surface-container p-3 rounded text-on-surface font-body-md placeholder:text-outline-variant focus:outline-none focus:bg-surface-container-high transition-colors" id="guestWishInput" placeholder="Tuliskan doa restu untuk kedua mempelai..." required="" rows="3"></textarea>
+</div>
+<button class="w-full py-3.5 bg-primary-container hover:bg-error-container text-on-surface rounded font-label-caps text-label-caps uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center justify-center gap-space-xs" type="submit">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Kirim Ucapan</span>
+</button>
+</form>
+<div class="mt-space-lg pt-space-md border-t border-surface-container">
+<div class="flex items-center justify-between mb-space-sm">
+<span class="font-meta-tracked text-meta-tracked text-primary uppercase">GUESTBOOK FEED</span>
+<span class="font-meta-tracked text-meta-tracked text-secondary" id="wishesCount">3 UCAPAN</span>
+</div>
+<div class="space-y-space-sm max-h-64 overflow-y-auto pr-1" id="wishesFeed">
+<div class="p-space-sm bg-surface-container rounded">
+<div class="flex items-center justify-between mb-1">
+<span class="font-headline-sm text-on-surface text-[14px] font-medium">Bima Satria</span>
+<span class="font-meta-tracked text-[10px] text-primary px-1.5 py-0.5 bg-primary-container rounded">HADIR</span>
+</div>
+<p class="font-body-md text-secondary text-[13px] italic">“Selamat menempuh hidup baru Putri dan Andika! Semoga senantiasa sakinah, mawaddah, warahmah.”</p>
+<span class="font-meta-tracked text-[10px] text-outline mt-1 block">Baru saja</span>
+</div>
+<div class="p-space-sm bg-surface-container rounded">
+<div class="flex items-center justify-between mb-1">
+<span class="font-headline-sm text-on-surface text-[14px] font-medium">dr. Nabila Hapsari</span>
+<span class="font-meta-tracked text-[10px] text-primary px-1.5 py-0.5 bg-primary-container rounded">HADIR</span>
+</div>
+<p class="font-body-md text-secondary text-[13px] italic">“Semoga pernikahan kalian diberkahi dengan limpahan kebahagiaan tak berujung. Congrats both!”</p>
+<span class="font-meta-tracked text-[10px] text-outline mt-1 block">1 jam lalu</span>
+</div>
+<div class="p-space-sm bg-surface-container rounded">
+<div class="flex items-center justify-between mb-1">
+<span class="font-headline-sm text-on-surface text-[14px] font-medium">Farhan &amp; Istri</span>
+<span class="font-meta-tracked text-[10px] text-secondary px-1.5 py-0.5 bg-surface-container-highest rounded">BERHALANGAN</span>
+</div>
+<p class="font-body-md text-secondary text-[13px] italic">“Mohon maaf berhalangan hadir dari Surabaya, doa tulus kami menyertai langkah indah kalian.”</p>
+<span class="font-meta-tracked text-[10px] text-outline mt-1 block">3 jam lalu</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="w-full pb-space-lg flex flex-col items-center text-center">
+<div class="relative w-44 h-56 rounded-t-full overflow-hidden shadow-2xl mb-space-md bg-surface-container-low">
+<img class="w-full h-full object-cover grayscale contrast-125" data-alt="Tender and respectful closing portrait of Putri and Andika looking at camera with heartfelt serene smiles, dark black and white studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0j3E8_XcQrf0Z7PdP_Tz6SUHMJUmw6u1aeqvcylar7YQSkagvJ6pZ4Ww4KjP0j445wJcutrTrnRwQEay6iG3LJWIL1cVC_55zTDFsJGRlCm0EtwKxzU0HWBecuOGzVUc4Es9B-EbmT_id59i78Oj9lide5Zs61itIJtvo2WRx8ygxpZakMFojApROUWDPiPCnsJvWlV8EMIWkd8sbnJkSK5jXG1fgnXSIiIYfgF0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<span class="font-meta-tracked text-meta-tracked uppercase text-primary tracking-[0.25em]">CLOSING BLESSINGS</span>
+<h3 class="font-headline-lg-mobile sm:text-headline-lg text-on-surface mt-space-xs font-serif">Terima Kasih</h3>
+<p class="font-body-md text-body-md text-secondary mt-space-xs max-w-xs leading-relaxed">
+      Merupakan suatu kehormatan dan kebahagiaan bagi kami apabila Bapak/Ibu/Saudara/i berkenan hadir dan memberikan doa restu bagi lembaran baru kehidupan kami.
+    </p>
+<div class="mt-space-md">
+<p class="font-meta-tracked text-meta-tracked uppercase text-secondary tracking-widest mb-1">KAMI YANG BERBAHAGIA</p>
+<p class="font-script-couples text-script-couples text-on-surface italic">Putri &amp; Andika</p>
+<p class="font-body-md text-secondary text-[14px] mt-1">Beserta Seluruh Keluarga Besar</p>
+</div>
+</section>
+</div>
+<script>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const toParam = params.get('to');
+    if (toParam) {
+      const guestCallout = document.getElementById('guestCallout');
+      if (guestCallout) guestCallout.textContent = decodeURIComponent(toParam);
+    }
+
+    const coverOverlay = document.getElementById('coverOverlay');
+    const openInvitationBtn = document.getElementById('openInvitationBtn');
+    const floatingVinyl = document.getElementById('floatingVinyl');
+    const vinylDisc = document.getElementById('vinylDisc');
+    const vinylToggle = document.getElementById('vinylToggle');
+    const audioEqualizer = document.getElementById('audioEqualizer');
+
+    let isPlaying = false;
+
+    if (openInvitationBtn && coverOverlay) {
+      openInvitationBtn.addEventListener('click', function () {
+        coverOverlay.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        document.body.style.overflow = 'auto';
+
+        if (floatingVinyl) {
+          floatingVinyl.classList.remove('opacity-0', 'pointer-events-none');
+          floatingVinyl.classList.add('opacity-100');
+        }
+        isPlaying = true;
+        updateAudioState();
+      });
+    }
+
+    function updateAudioState() {
+      if (isPlaying) {
+        if (vinylDisc) vinylDisc.style.animationPlayState = 'running';
+        if (audioEqualizer) audioEqualizer.style.opacity = '1';
+      } else {
+        if (vinylDisc) vinylDisc.style.animationPlayState = 'paused';
+        if (audioEqualizer) audioEqualizer.style.opacity = '0.3';
+      }
+    }
+
+    if (vinylToggle) {
+      vinylToggle.addEventListener('click', function () {
+        isPlaying = !isPlaying;
+        updateAudioState();
+        showToast(isPlaying ? 'Musik diputar' : 'Musik dijeda');
+      });
+    }
+
+    const targetDate = new Date('2027-12-28T08:00:00+07:00').getTime();
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      if (distance < 0) {
+        document.getElementById('countdownDays').textContent = '00';
+        document.getElementById('countdownHours').textContent = '00';
+        document.getElementById('countdownMinutes').textContent = '00';
+        document.getElementById('countdownSeconds').textContent = '00';
+        return;
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      const dEl = document.getElementById('countdownDays');
+      const hEl = document.getElementById('countdownHours');
+      const mEl = document.getElementById('countdownMinutes');
+      const sEl = document.getElementById('countdownSeconds');
+
+      if (dEl) dEl.textContent = String(days).padStart(2, '0');
+      if (hEl) hEl.textContent = String(hours).padStart(2, '0');
+      if (mEl) mEl.textContent = String(minutes).padStart(2, '0');
+      if (sEl) sEl.textContent = String(seconds).padStart(2, '0');
+    }
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    const giftToggleBtn = document.getElementById('giftToggleBtn');
+    const giftDrawer = document.getElementById('giftDrawer');
+    const giftArrow = document.getElementById('giftArrow');
+
+    if (giftToggleBtn && giftDrawer) {
+      giftToggleBtn.addEventListener('click', function () {
+        const isHidden = giftDrawer.classList.contains('hidden');
+        if (isHidden) {
+          giftDrawer.classList.remove('hidden');
+          giftDrawer.classList.add('flex');
+          if (giftArrow) giftArrow.classList.add('rotate-180');
+        } else {
+          giftDrawer.classList.add('hidden');
+          giftDrawer.classList.remove('flex');
+          if (giftArrow) giftArrow.classList.remove('rotate-180');
+        }
+      });
+    }
+
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toastMsg');
+    let toastTimeout;
+
+    window.showToast = function(msg) {
+      if (!toast || !toastMsg) return;
+      toastMsg.textContent = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2500);
+    };
+
+    window.copyToClipboard = function(text, label) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(label + ' tersalin!');
+        }).catch(() => {
+          fallbackCopy(text, label);
+        });
+      } else {
+        fallbackCopy(text, label);
+      }
+    };
+
+    function fallbackCopy(text, label) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast(label + ' tersalin!');
+      } catch (err) {
+        showToast('Gagal menyalin');
+      }
+      document.body.removeChild(textarea);
+    }
+
+    const rsvpForm = document.getElementById('rsvpForm');
+    const wishesFeed = document.getElementById('wishesFeed');
+    const wishesCount = document.getElementById('wishesCount');
+    let totalWishes = 3;
+
+    if (rsvpForm) {
+      rsvpForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name = document.getElementById('guestNameInput').value.trim();
+        const attendance = document.querySelector('input[name="attendance"]:checked').value;
+        const wish = document.getElementById('guestWishInput').value.trim();
+
+        if (!name || !wish) return;
+
+        const newEntry = document.createElement('div');
+        newEntry.className = 'p-space-sm bg-surface-container rounded shadow-sm';
+        const badgeColor = attendance === 'Hadir' ? 'bg-primary-container text-primary' : 'bg-surface-container-highest text-secondary';
+
+        newEntry.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-headline-sm text-on-surface text-[14px] font-medium">${name}</span>
+            <span class="font-meta-tracked text-[10px] ${badgeColor} px-1.5 py-0.5 rounded uppercase">${attendance.toUpperCase()}</span>
+          </div>
+          <p class="font-body-md text-secondary text-[13px] italic">&ldquo;${wish}&rdquo;</p>
+          <span class="font-meta-tracked text-[10px] text-outline mt-1 block">Baru saja</span>
+        `;
+
+        if (wishesFeed) {
+          wishesFeed.insertBefore(newEntry, wishesFeed.firstChild);
+        }
+
+        totalWishes++;
+        if (wishesCount) {
+          wishesCount.textContent = totalWishes + ' UCAPAN';
+        }
+
+        rsvpForm.reset();
+        showToast('Ucapan berhasil terkirim!');
+      });
+    }
+  })();
+</script></div></main><footer class="w-full bg-surface-container-lowest py-space-lg"><div class="max-w-[480px] mx-auto px-gutter-mobile sm:px-gutter text-center flex flex-col items-center gap-space-xs"><span class="font-label-caps text-label-caps text-primary uppercase">Putri &amp; Andika</span><span class="font-meta-tracked text-meta-tracked text-on-surface-variant">MEMORANDUM • PRIVÉ INVITATION L08</span><span class="font-meta-tracked text-meta-tracked text-secondary-container mt-space-xs">© 2027 ALL RIGHTS RESERVED</span></div></footer></div></div></body></html>

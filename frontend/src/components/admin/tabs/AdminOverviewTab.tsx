@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -13,6 +13,7 @@ import {
   Heart,
   QrCode,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   TrendingUp,
@@ -64,25 +65,92 @@ export interface MetricsData {
   monthlyRevenue: number;
 }
 
+export interface ActiveInvitationClient {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  invitation: {
+    id: string;
+    title: string;
+    slug: string;
+    themeId: string;
+    activeUntil: string | null;
+    isActive: boolean;
+    tier: string;
+    status: string;
+  } | null;
+}
+
 interface AdminOverviewTabProps {
   metrics: MetricsData | null;
   analytics: SalesAnalytics | null;
   transactions: TransactionItem[];
+  clients?: ActiveInvitationClient[];
   isLoading: boolean;
   onRefresh: () => void;
+  onNavigateTab?: (tab: string, filter?: string) => void;
 }
 
 export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
   metrics,
   analytics,
   transactions,
+  clients,
   isLoading,
   onRefresh,
+  onNavigateTab,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [tierFilter, setTierFilter] = useState("ALL");
   const [previewProof, setPreviewProof] = useState<{ url: string; orderId: string; userName: string } | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
+  const [activeSearchQuery, setActiveSearchQuery] = useState("");
+
+  const activeInvitationsList = useMemo(() => {
+    return (clients || []).filter(
+      (c) => c.invitation && c.invitation.isActive && c.invitation.status !== "EXPIRED"
+    );
+  }, [clients]);
+
+  const filteredActiveInvitations = useMemo(() => {
+    const q = activeSearchQuery.toLowerCase().trim();
+    if (!q) return activeInvitationsList;
+    return activeInvitationsList.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        c.invitation?.slug.toLowerCase().includes(q) ||
+        c.invitation?.title.toLowerCase().includes(q)
+    );
+  }, [activeInvitationsList, activeSearchQuery]);
+
+  const handleResetSales = async () => {
+    const confirmed = window.confirm(
+      "PERINGATAN: Apakah Anda yakin ingin mereset semua data penjualan admin?\\n\\nSemua riwayat transaksi pembayaran dan omset akan dihapus secara permanen."
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsResetting(true);
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_sales" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal mereset data penjualan");
+      alert(json.message || "Data penjualan admin berhasil direset ke 0.");
+      onRefresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Terjadi kesalahan saat mereset data penjualan");
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // Format Currency IDR
   const formatIDR = (val: number) => {
@@ -179,18 +247,35 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
           <p className="text-[11px] text-slate-500">Akun terdaftar dalam database</p>
         </div>
 
-        {/* Card 2: Active Invitations */}
-        <div className="p-5 rounded-xl bg-white border border-[#E2E8F0] shadow-xs space-y-2">
+        {/* Card 2: Active Invitations (Interactive with quick checker) */}
+        <div
+          onClick={() => setIsActiveModalOpen(true)}
+          className="p-5 rounded-xl bg-white border border-[#E2E8F0] shadow-xs space-y-2.5 hover:border-[#F97316] hover:shadow-sm transition-all cursor-pointer group relative"
+          title="Klik untuk membuka dan mengecek daftar undangan aktif"
+        >
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
-            <span>Undangan Aktif</span>
-            <div className="p-2 rounded-lg bg-orange-50 text-[#F97316]">
+            <span className="group-hover:text-[#F97316] font-semibold transition-colors flex items-center gap-1.5">
+              <span>Undangan Aktif</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#F97316] transition-colors" />
+            </span>
+            <div className="p-2 rounded-lg bg-orange-50 text-[#F97316] group-hover:bg-orange-100 transition-colors">
               <Heart className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold font-sans text-slate-900 tracking-tight">
-            {metrics?.totalActiveInvitations ?? 0}
-          </p>
-          <p className="text-[11px] text-emerald-600 font-medium">Status tayang &amp; siap diakses tamu</p>
+          <div className="flex items-baseline justify-between">
+            <p className="text-2xl font-bold font-sans text-slate-900 tracking-tight">
+              {metrics?.totalActiveInvitations ?? activeInvitationsList.length ?? 0}
+            </p>
+            <span className="text-[11px] font-semibold text-[#F97316] group-hover:underline inline-flex items-center gap-0.5">
+              Cek Undangan ↗
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-emerald-600 font-medium flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Status tayang &amp; siap diakses tamu</span>
+            </span>
+          </div>
         </div>
 
         {/* Card 3: Monthly Revenue */}
@@ -428,9 +513,21 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               Daftar seluruh transaksi pembayaran, verifikasi struk transfer, dan status langganan.
             </p>
           </div>
-          <span className="text-xs font-medium text-slate-500">
-            Menampilkan <strong>{filteredTransactions.length}</strong> transaksi
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">
+              Menampilkan <strong>{filteredTransactions.length}</strong> transaksi
+            </span>
+            <button
+              type="button"
+              onClick={handleResetSales}
+              disabled={isResetting || transactions.length === 0}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Reset seluruh data transaksi penjualan"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+              <span>{isResetting ? "Mereset..." : "Reset Data Penjualan"}</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter Controls */}
@@ -666,6 +763,159 @@ export const AdminOverviewTab: React.FC<AdminOverviewTabProps> = ({
               >
                 Verifikasi Transaksi Ini
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DAFTAR UNDANGAN AKTIF (Requirement: Cek Undangan Aktif) */}
+      {isActiveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] max-w-3xl w-full shadow-xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50/70">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100/70 text-[#F97316] flex items-center justify-center border border-orange-200/50">
+                  <Heart className="w-5 h-5 fill-[#F97316]/20" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>Daftar Undangan Aktif</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      {activeInvitationsList.length} Undangan Tayang
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Daftar seluruh undangan pernikahan yang berstatus aktif dan dapat diakses publik oleh tamu undangan.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsActiveModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Search Input */}
+            <div className="p-4 border-b border-[#E2E8F0] bg-white">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={activeSearchQuery}
+                  onChange={(e) => setActiveSearchQuery(e.target.value)}
+                  placeholder="Cari berdasarkan nama pengantin, email, judul undangan, atau slug..."
+                  className="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-50 border border-[#E2E8F0] text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#F97316] focus:bg-white focus:ring-1 focus:ring-[#F97316] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Modal List Body */}
+            <div className="p-5 overflow-y-auto space-y-3 flex-1 bg-[#F8FAFC]">
+              {filteredActiveInvitations.length === 0 ? (
+                <div className="p-10 text-center text-slate-400 bg-white rounded-xl border border-dashed border-[#E2E8F0]">
+                  <Heart className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                  <p className="text-xs font-medium">Tidak ada undangan aktif yang cocok dengan pencarian.</p>
+                </div>
+              ) : (
+                filteredActiveInvitations.map((client) => {
+                  const inv = client.invitation!;
+                  return (
+                    <div
+                      key={client.id}
+                      className="p-4 rounded-xl border border-[#E2E8F0] bg-white hover:border-[#F97316]/40 transition-all shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Tayang &amp; Aktif</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-[#E2E8F0]">
+                            {inv.tier}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            Tema: <strong className="text-slate-600 font-semibold">{inv.themeId || "Botanical"}</strong>
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-slate-900 truncate">
+                          {inv.title || "Undangan Pernikahan"}
+                        </h4>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                          <div className="flex items-center gap-1 font-mono text-[11px] text-[#F97316]">
+                            <span>fasaro.id/invitation/{inv.slug}</span>
+                          </div>
+                          <span>•</span>
+                          <span className="truncate">Pemilik: <strong>{client.name}</strong> ({client.email})</span>
+                          <span>•</span>
+                          <span className="text-[11px]">
+                            {inv.activeUntil
+                              ? `Aktif s.d: ${new Date(inv.activeUntil).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`
+                              : "Masa Aktif: Selamanya (Aktif)"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`/invitation/${inv.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Buka Undangan ↗</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsActiveModalOpen(false);
+                            onNavigateTab?.("clients", "ACTIVE");
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                          title="Kelola di Tab Klien"
+                        >
+                          <Users className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="hidden sm:inline">Kelola</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[#E2E8F0] bg-white flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <span className="text-slate-500">
+                Menampilkan <strong>{filteredActiveInvitations.length}</strong> dari <strong>{activeInvitationsList.length}</strong> undangan aktif
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsActiveModalOpen(false);
+                    onNavigateTab?.("clients", "ACTIVE");
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E2E8F0] bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition-all cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Buka Semua di Manajemen Klien</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsActiveModalOpen(false)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold transition-all cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -25,6 +25,8 @@ export interface WeddingScheduleItem {
 
 export interface WhatsAppMessageParams {
   guestName?: string;
+  ticketCode?: string;
+  quota?: number;
   invitationUrl: string;
   coupleInfo?: WeddingCoupleInfo;
   schedules?: WeddingScheduleItem[];
@@ -33,6 +35,8 @@ export interface WhatsAppMessageParams {
 
 export function generateWhatsAppInvitationText({
   guestName,
+  ticketCode,
+  quota,
   invitationUrl,
   coupleInfo,
   schedules,
@@ -111,6 +115,18 @@ export function generateWhatsAppInvitationText({
     familyLine = `\n${families.join(" & ")}`;
   }
 
+  let ticketBlock = "";
+  if (ticketCode) {
+    const quotaInfo = quota && quota > 0 ? ` (Kuota: ${quota} Pax)` : "";
+    ticketBlock = `🎟️ *KARTU AKSES & TIKET CHECK-IN TAMU:*
+Kode Akses: *${ticketCode}*${quotaInfo}
+(Cukup tunjukkan kode QR check-in saat tiba di meja resepsi acara)\n\n`;
+  }
+
+  const linkIntro = ticketCode
+    ? "Berikut tautan undangan digital & tiket QR resmi Anda:"
+    : "Berikut link undangan kami:";
+
   // Susun teks pesan lengkap
   return `Kepada Yth.
 Bapak/Ibu/Saudara/i
@@ -124,7 +140,7 @@ ${openingGreeting}
 
 ${scheduleBlock ? `${scheduleBlock}\n\n` : ""}Tanpa mengurangi rasa hormat, perkenankan kami mengundang Bapak/Ibu/Saudara/i *${targetGuestProper}*, untuk menghadiri acara kami.
 
-Berikut link undangan kami:
+${ticketBlock}${linkIntro}
 
 ${invitationUrl}
 

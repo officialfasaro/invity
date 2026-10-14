@@ -66,47 +66,67 @@ export const GoogleTranslateWidget: React.FC<GoogleTranslateWidgetProps> = ({
 
     const intervalId = setInterval(resetBodyTopAndText, 300);
 
-    // 2. Define global callback
-    window.googleTranslateElementInit = () => {
+    // 2. Define init function
+    const initWidget = () => {
       if (window.google?.translate?.TranslateElement) {
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: "id",
-            includedLanguages: "id,en,ar,zh-CN,ja,ko,ms,fr,de,es,nl,ru",
-            autoDisplay: false,
-          },
-          "google_translate_element"
-        );
+        const el = document.getElementById("google_translate_element");
+        if (el && !el.querySelector(".goog-te-combo")) {
+          try {
+            new window.google.translate.TranslateElement(
+              {
+                pageLanguage: "id",
+                includedLanguages: "id,en,ar,zh-CN,ja,ko,ms,fr,de,es,nl,ru",
+                autoDisplay: false,
+              },
+              "google_translate_element"
+            );
+          } catch {
+            // Widget might already be rendered
+          }
+        }
         setIsLoaded(true);
         setTimeout(cleanDiberdayakanText, 100);
       }
     };
 
-    // 3. Inject Google Translate script if not already present
+    window.googleTranslateElementInit = initWidget;
+
+    // 3. Inject Google Translate script if not already present or initialize immediately
     let timer: NodeJS.Timeout | null = null;
-    const existingScript = document.getElementById("google-translate-script");
+    let pollInterval: NodeJS.Timeout | null = null;
+    const existingScript = document.getElementById("google-translate-script") as HTMLScriptElement | null;
+
     if (!existingScript) {
       const script = document.createElement("script");
       script.id = "google-translate-script";
       script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
       script.async = true;
       document.body.appendChild(script);
-    } else if (window.google?.translate) {
-      window.googleTranslateElementInit?.();
+    } else if (window.google?.translate?.TranslateElement) {
+      initWidget();
       timer = setTimeout(() => {
         setIsLoaded(true);
       }, 0);
+    } else {
+      existingScript.addEventListener("load", initWidget);
+      pollInterval = setInterval(() => {
+        if (window.google?.translate?.TranslateElement) {
+          if (pollInterval) clearInterval(pollInterval);
+          initWidget();
+        }
+      }, 300);
     }
 
     return () => {
       clearInterval(intervalId);
       if (timer) clearTimeout(timer);
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, []);
 
   return (
     <div
-      className={`google-translate-wrapper inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 bg-white/80 hover:bg-white text-slate-700 transition-colors shadow-2xs ${className}`}
+      className={`google-translate-wrapper inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border-0 bg-transparent hover:bg-slate-100/70 text-slate-700 transition-colors ${className}`}
       title="Pilih Bahasa / Translate"
     >
       {showIcon && (

@@ -20,13 +20,11 @@ fasaro/
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/                 # Next.js 16 UI (App Router)
-│   ├── app/                  # Next.js pages & layouts (Port 3000)
-│   ├── components/           # UI Components (Admin, Dashboard, Templates, Marketing)
-│   ├── lib/                  # Client/SSR helpers (Auth JWT reader, sanitizers)
+├── frontend/                 # React 19 + Vite UI
+│   ├── src/                  # React components, pages & routes (Port 3001)
 │   ├── public/               # Static assets & PWA manifest
-│   ├── next.config.ts        # Reverse proxy rewrites (/api & /uploads -> Port 5001)
-│   ├── .env.local            # Frontend Environment variables
+│   ├── vite.config.ts        # Vite proxy rewrites (/api & /uploads -> Port 5001)
+│   ├── .env                  # Frontend Environment variables
 │   ├── package.json
 │   └── tsconfig.json
 │
@@ -48,7 +46,7 @@ Atau jalankan masing-masing service secara terpisah:
 # Terminal 1: Backend Express (Port 5001)
 npm run dev:backend
 
-# Terminal 2: Frontend Next.js (Port 3000)
+# Terminal 2: Frontend Vite (Port 3001)
 npm run dev:frontend
 ```
 

@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
   ExternalLink,
   RefreshCw,
+  Search,
   ShieldCheck,
+  X,
   XCircle,
 } from "lucide-react";
 
@@ -40,11 +42,20 @@ export default function VerifikasiManualAdminPage() {
     null
   );
 
-  const refreshList = async () => {
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("WAITING_VERIFICATION");
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState("ALL");
+
+  const fetchItems = async (status: string, type: string) => {
     setIsLoading(true);
     setFeedback(null);
     try {
-      const res = await fetch("/api/admin/verify-payment?status=WAITING_VERIFICATION");
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      if (type && type !== "ALL") params.set("paymentType", type);
+
+      const res = await fetch(`/api/admin/verify-payment?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
         setItems(json.data || []);
@@ -56,24 +67,13 @@ export default function VerifikasiManualAdminPage() {
     }
   };
 
-  useEffect(() => {
-    let ignore = false;
-    fetch("/api/admin/verify-payment?status=WAITING_VERIFICATION")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (!ignore && json) {
-          setItems(json.data || []);
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!ignore) setIsLoading(false);
-      });
+  const refreshList = () => {
+    fetchItems(statusFilter, paymentTypeFilter);
+  };
 
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  useEffect(() => {
+    fetchItems(statusFilter, paymentTypeFilter);
+  }, [statusFilter, paymentTypeFilter]);
 
   const handleAction = async (transactionId: string, action: "APPROVE" | "REJECT") => {
     setProcessingId(transactionId);
@@ -98,8 +98,18 @@ export default function VerifikasiManualAdminPage() {
             : "Transaksi berhasil ditolak.",
       });
 
-      // Remove from list
-      setItems((prev) => prev.filter((item) => item.id !== transactionId));
+      setItems((prev) =>
+        prev
+          .map((item) =>
+            item.id === transactionId
+              ? {
+                  ...item,
+                  paymentStatus: action === "APPROVE" ? "SETTLEMENT" : "CANCELLED",
+                }
+              : item
+          )
+          .filter((item) => (statusFilter === "WAITING_VERIFICATION" ? item.id !== transactionId : true))
+      );
     } catch (err) {
       setFeedback({
         type: "error",
@@ -110,13 +120,47 @@ export default function VerifikasiManualAdminPage() {
     }
   };
 
+  // Instant multi-field client-side search
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+
+    return items.filter((item) => {
+      const orderId = (item.orderId || "").toLowerCase();
+      const userName = (item.user?.name || "").toLowerCase();
+      const userEmail = (item.user?.email || "").toLowerCase();
+      const invTitle = (item.invitation?.title || "").toLowerCase();
+      const invSlug = (item.invitation?.slug || "").toLowerCase();
+      const tier = (item.tier || "").toLowerCase();
+      const paymentType = (item.paymentType || "").toLowerCase();
+      const amountStr = String(item.amount || "");
+
+      return (
+        orderId.includes(q) ||
+        userName.includes(q) ||
+        userEmail.includes(q) ||
+        invTitle.includes(q) ||
+        invSlug.includes(q) ||
+        tier.includes(q) ||
+        paymentType.includes(q) ||
+        amountStr.includes(q)
+      );
+    });
+  }, [items, searchQuery]);
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("WAITING_VERIFICATION");
+    setPaymentTypeFilter("ALL");
+  };
+
   return (
     <div className="min-h-screen bg-[#F3F6FB] text-slate-900 py-8 px-4 sm:px-8">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-50 text-[#F97316] border border-orange-100 text-[11px] font-semibold mb-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none bg-orange-50 text-[#F97316] border border-orange-100 text-[11px] font-semibold mb-2">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Verifikasi Manual</span>
             </div>
@@ -131,7 +175,7 @@ export default function VerifikasiManualAdminPage() {
           <button
             onClick={refreshList}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border border-[#E2E8F0] bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold border border-[#E2E8F0] bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
             <span>Muat Ulang</span>
@@ -156,6 +200,80 @@ export default function VerifikasiManualAdminPage() {
           </div>
         )}
 
+        {/* Search & Filter Toolbar */}
+        <div className="bg-white border border-[#E2E8F0] rounded-xl p-4 shadow-xs space-y-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {/* Search Input Box */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari berdasarkan Order ID (FSR-...), nama, email, judul undangan, paket..."
+                className="w-full pl-10 pr-9 py-2 text-xs rounded-lg border border-[#E2E8F0] bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#F97316] focus:bg-white focus:ring-1 focus:ring-[#F97316] transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title="Hapus kata kunci pencarian"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex items-center gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-xs py-2 px-3 rounded-lg border border-[#E2E8F0] bg-white text-slate-700 font-medium focus:outline-none focus:border-[#F97316] shadow-xs cursor-pointer"
+              >
+                <option value="WAITING_VERIFICATION">Menunggu Verifikasi (Pending)</option>
+                <option value="SETTLEMENT">Sudah Disetujui (Settlement)</option>
+                <option value="CANCELLED">Ditolak / Batal (Cancelled)</option>
+                <option value="ALL">Semua Status</option>
+              </select>
+
+              <select
+                value={paymentTypeFilter}
+                onChange={(e) => setPaymentTypeFilter(e.target.value)}
+                className="text-xs py-2 px-3 rounded-lg border border-[#E2E8F0] bg-white text-slate-700 font-medium focus:outline-none focus:border-[#F97316] shadow-xs cursor-pointer"
+              >
+                <option value="ALL">Semua Metode Manual</option>
+                <option value="MANUAL_BANK">Transfer Bank</option>
+                <option value="MANUAL_QRIS">QRIS Manual</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Results Summary & Clear Button */}
+          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+            <div>
+              Menampilkan <span className="font-bold text-slate-800">{filteredItems.length}</span> transaksi manual
+              {searchQuery && (
+                <span>
+                  {" "}
+                  untuk pencarian &quot;<strong className="text-slate-800">{searchQuery}</strong>&quot;
+                </span>
+              )}
+            </div>
+            {(searchQuery || statusFilter !== "WAITING_VERIFICATION" || paymentTypeFilter !== "ALL") && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-[#F97316] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+                <span>Reset Filter &amp; Pencarian</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Table Content */}
         <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
@@ -176,14 +294,30 @@ export default function VerifikasiManualAdminPage() {
                       Memuat antrean verifikasi...
                     </td>
                   </tr>
-                ) : items.length === 0 ? (
+                ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-400 italic">
-                      Tidak ada antrean verifikasi manual pending saat ini.
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center space-y-2 text-slate-400">
+                        <AlertCircle className="w-6 h-6 text-slate-300" />
+                        <p className="text-xs font-medium text-slate-600">
+                          {searchQuery
+                            ? `Tidak ada transaksi yang cocok dengan pencarian "${searchQuery}".`
+                            : "Tidak ada antrean pembayaran manual yang ditemukan."}
+                        </p>
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery("")}
+                            className="text-xs font-semibold text-[#F97316] hover:underline cursor-pointer"
+                          >
+                            Hapus kata kunci pencarian
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  items.map((item) => (
+                  filteredItems.map((item) => (
                     <tr
                       key={item.id}
                       className="hover:bg-slate-50/70 transition-colors"
@@ -198,9 +332,28 @@ export default function VerifikasiManualAdminPage() {
                             timeStyle: "short",
                           })}
                         </p>
-                        <span className="inline-block mt-1 px-2 py-0.5 rounded bg-orange-50 text-[#F97316] font-semibold text-[10px] border border-orange-100">
-                          {item.paymentType}
-                        </span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="px-2 py-0.5 rounded bg-orange-50 text-[#F97316] font-semibold text-[10px] border border-orange-100">
+                            {item.paymentType}
+                          </span>
+                          {item.paymentStatus !== "WAITING_VERIFICATION" && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                                item.paymentStatus === "SETTLEMENT"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : item.paymentStatus === "CANCELLED"
+                                  ? "bg-rose-50 text-rose-700 border-rose-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                              }`}
+                            >
+                              {item.paymentStatus === "SETTLEMENT"
+                                ? "Sukses"
+                                : item.paymentStatus === "CANCELLED"
+                                ? "Batal"
+                                : item.paymentStatus}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-5 align-top">
@@ -236,7 +389,7 @@ export default function VerifikasiManualAdminPage() {
                         {item.proofImageUrl ? (
                           <button
                             onClick={() => setActiveModalImg(item.proofImageUrl as string)}
-                            className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#E2E8F0] hover:border-[#F97316] transition-colors"
+                            className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#E2E8F0] hover:border-[#F97316] transition-colors cursor-pointer"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
@@ -251,25 +404,42 @@ export default function VerifikasiManualAdminPage() {
                       </td>
 
                       <td className="py-3.5 px-5 align-top text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleAction(item.id, "APPROVE")}
-                            disabled={processingId === item.id}
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 transition-colors"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Setujui</span>
-                          </button>
+                        {item.paymentStatus === "WAITING_VERIFICATION" ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleAction(item.id, "APPROVE")}
+                              disabled={processingId === item.id}
+                              className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Setujui</span>
+                            </button>
 
-                          <button
-                            onClick={() => handleAction(item.id, "REJECT")}
-                            disabled={processingId === item.id}
-                            className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 disabled:opacity-50 transition-colors"
-                          >
+                            <button
+                              onClick={() => handleAction(item.id, "REJECT")}
+                              disabled={processingId === item.id}
+                              className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 disabled:opacity-50 transition-colors cursor-pointer"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Tolak</span>
+                            </button>
+                          </div>
+                        ) : item.paymentStatus === "SETTLEMENT" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Disetujui</span>
+                          </span>
+                        ) : item.paymentStatus === "CANCELLED" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-semibold text-[11px] border border-rose-200">
                             <XCircle className="w-3.5 h-3.5" />
-                            <span>Tolak</span>
-                          </button>
-                        </div>
+                            <span>Ditolak</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>{item.paymentStatus}</span>
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -294,7 +464,7 @@ export default function VerifikasiManualAdminPage() {
               <h4 className="font-semibold text-xs text-slate-800">Bukti Transfer</h4>
               <button
                 onClick={() => setActiveModalImg(null)}
-                className="text-slate-400 hover:text-slate-700 text-xs font-bold"
+                className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
               >
                 ✕ Tutup
               </button>
