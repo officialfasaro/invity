@@ -1,69 +1,91 @@
-# Fasaro Wedding Platform — Monorepo
+# Fasaro Wedding Platform (Invity) — Monolithic Project
 
-Arsitektur aplikasi terpisah sejajar menjadi **Backend (Express.js)** dan **Frontend (Next.js 16)** di bawah root folder `fasaro`.
+Platform undangan pernikahan digital modern & manajemen tamu terintegrasi (Express.js REST API + React 19 / Vite UI) siap dideploy ke **Vercel Serverless** dalam 1 project tunggal.
 
-## 📁 Struktur Monorepo
+---
+
+## 📁 Struktur Direktori
 
 ```
-fasaro/
-├── backend/                  # Dedicated Express.js REST API
-│   ├── prisma/               # Prisma schema, migrations & seed
-│   ├── src/
-│   │   ├── config/           # Prisma client, constants
-│   │   ├── controllers/      # REST API Controllers (Auth, Public, Dashboard, Admin, Payment, Upload)
-│   │   ├── middleware/       # Auth JWT, rate limit, error handler
-│   │   ├── routes/           # Express Route definitions
-│   │   ├── services/         # Supabase, Midtrans, Google Auth, Settings
-│   │   ├── utils/            # Validations, Quotes
-│   │   └── server.ts         # Express server (Port 5000)
-│   ├── .env                  # Backend Environment variables
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/                 # React 19 + Vite UI
-│   ├── src/                  # React components, pages & routes (Port 3001)
-│   ├── public/               # Static assets & PWA manifest
-│   ├── vite.config.ts        # Vite proxy rewrites (/api & /uploads -> Port 5001)
-│   ├── .env                  # Frontend Environment variables
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── package.json              # Monorepo workspace orchestrator
-└── README.md
+invity/
+├── api/                       # Vercel Serverless Function entrypoint (index.ts)
+├── server/                    # Backend REST API Express.js
+│   ├── config/                # Prisma singleton client & constants
+│   ├── controllers/           # Auth, Public, Dashboard, Admin, Payment, Upload
+│   ├── middleware/            # Auth JWT, Rate Limit, Error Handler
+│   ├── routes/                # Express Route Definitions
+│   ├── services/              # Supabase, Midtrans, Google Auth, Sanity
+│   ├── utils/                 # Validations & Helpers
+│   ├── app.ts                 # Express Application instance (tanpa app.listen)
+│   └── dev.ts                 # Dev server runner lokal (Port 5001)
+├── prisma/                    # PostgreSQL Prisma ORM, migrations, seed
+├── src/                       # Frontend UI (React 19 + Vite + Tailwind CSS)
+├── public/                    # Static assets (audio music, favicon, manifest PWA)
+├── index.html                 # Single Page Entrypoint Vite
+├── vite.config.ts             # Vite build & local dev proxy (/api -> Port 5001)
+├── tsconfig.json              # TypeScript configuration
+├── vercel.json                # Vercel deployment & serverless rewrites
+├── package.json               # Dependensi & skrip aplikasi
+├── .env.example               # Template environment variables
+└── .env                       # Local environment variables
 ```
 
-## 🚀 Menjalankan Server Pengembangan (Dev)
+---
 
-Jalankan kedua service (Backend & Frontend) secara bersamaan dari root folder:
+## 🚀 Panduan Menjalankan di Lokal (Development)
+
+1. **Instalasi Dependensi**:
+   ```bash
+   npm install
+   ```
+
+2. **Jalankan Aplikasi (Server + Client)**:
+   ```bash
+   npm run dev
+   ```
+   - **Frontend UI (Vite)**: `http://localhost:3001`
+   - **Backend API (Express)**: `http://localhost:5001` (di-proxy otomatis oleh Vite untuk endpoint `/api` dan `/uploads`)
+
+---
+
+## ☁️ Deployment ke Vercel (1 Project Tunggal)
+
+Ketika repositori ini dihubungkan ke Vercel:
+- **Framework Preset**: Vite
+- **Build Command**: `npm run build` *(menjalankan `prisma generate && vite build`)*
+- **Output Directory**: `dist`
+- **Install Command**: `npm install`
+
+### Variabel Lingkungan (Environment Variables):
+Tambahkan variabel dari file `.env.example` ke menu **Project Settings > Environment Variables** di Vercel:
+- `DATABASE_URL` (Koneksi Supabase/Neon PostgreSQL)
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET`
+- `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (URL Vercel Anda, misal: `https://your-domain.vercel.app`)
+- `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+- `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_VERSION`, `SANITY_API_TOKEN`
+- `VITE_SANITY_PROJECT_ID`, `VITE_SANITY_DATASET`, `VITE_SANITY_API_VERSION`
+
+---
+
+## 🛠️ Perintah Berguna
 
 ```bash
-npm run dev
-```
-
-Atau jalankan masing-masing service secara terpisah:
-
-```bash
-# Terminal 1: Backend Express (Port 5001)
-npm run dev:backend
-
-# Terminal 2: Frontend Vite (Port 3001)
-npm run dev:frontend
-```
-
-
-## 🛠️ Perintah Berguna Lainnya
-
-```bash
-# Typecheck seluruh monorepo (Frontend + Backend)
+# Validasi TypeScript
 npm run typecheck
 
-# Build seluruh monorepo
+# Build bundle produksi
 npm run build
 
-# Database commands (di folder backend)
-cd backend
-npm run db:push      # Push schema ke database
-npm run db:seed      # Seed initial demo data
-npm run db:studio    # Buka Prisma Studio GUI
-```
+# Push skema database Prisma
+npm run db:push
 
+# Migrasi database Prisma
+npm run db:migrate
+
+# Seed data awal
+npm run db:seed
+
+# Prisma Studio
+npm run db:studio
+```

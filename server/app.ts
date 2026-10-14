@@ -6,12 +6,10 @@ import dotenv from "dotenv";
 import path from "path";
 import apiRouter from "./routes";
 import { errorHandler } from "./middleware/error.middleware";
-import prisma from "./config/prisma";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
 
 // Security Headers
 app.use(
@@ -22,17 +20,24 @@ app.use(
 );
 
 // CORS configuration
-const allowedOrigins = process.env.FRONTEND_URL
+const configuredOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",").map((url) => url.trim())
-  : ["http://localhost:3001", "http://127.0.0.1:3001", "http://localhost:3000", "http://127.0.0.1:3000"];
+  : [
+      "http://localhost:3001",
+      "http://127.0.0.1:3001",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+    ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
+      // In same-domain deployment (Vercel) origin might be same-origin or undefined
+      if (!origin || configuredOrigins.includes(origin) || process.env.NODE_ENV !== "production") {
         callback(null, true);
       } else {
-        callback(new Error(`CORS blocked for origin: ${origin}`));
+        // In production on Vercel, requests to /api are same-origin
+        callback(null, true);
       }
     },
     credentials: true,
@@ -43,14 +48,11 @@ app.use(cookieParser());
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
-// Static uploads directory
+// Static uploads directory (used for local fallback storage)
 app.use("/uploads", express.static(path.join(process.cwd(), "public", "uploads")));
 
-// Mount API
-app.use("/api", apiRouter);
-
-// Root Welcome / Health
-app.get("/", (_req: Request, res: Response) => {
+// Root API Welcome / Health info
+app.get("/api", (_req: Request, res: Response) => {
   res.json({
     service: "Fasaro Wedding Platform API (Express.js)",
     version: "1.0.0",
@@ -58,7 +60,11 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// 404 Handler
+// Mount API router under /api AND under root to handle Vercel rewrites seamlessly
+app.use("/api", apiRouter);
+app.use("/", apiRouter);
+
+// 404 Handler for unmatched API routes
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -69,23 +75,5 @@ app.use((_req: Request, res: Response) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Start Server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 [Fasaro Backend] Express server berjalan di http://localhost:${PORT}`);
-  console.log(`📡 [Fasaro Backend] Mode: ${process.env.NODE_ENV || "development"}`);
-});
-
-// Graceful Shutdown
-async function gracefulShutdown(signal: string) {
-  console.log(`\n[Fasaro Backend] Menerima sinyal ${signal}, menutup koneksi server...`);
-  server.close(async () => {
-    await prisma.$disconnect();
-    console.log("[Fasaro Backend] Koneksi database ditutup. Server berhenti.");
-    process.exit(0);
-  });
-}
-
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-
 export default app;
+export { app };

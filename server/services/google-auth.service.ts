@@ -36,14 +36,21 @@ export function getBaseUrl(requestUrl?: string): string {
   return "http://localhost:3001";
 }
 
+export function getGoogleRedirectUri(requestUrl?: string): string {
+  if (process.env.GOOGLE_CALLBACK_URL && process.env.GOOGLE_CALLBACK_URL.trim() !== "") {
+    return process.env.GOOGLE_CALLBACK_URL.trim();
+  }
+  const baseUrl = getBaseUrl(requestUrl);
+  return `${baseUrl}/api/auth/google/callback`;
+}
+
 export function generateOAuthState(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
 export function getGoogleOAuthUrl(state: string, requestUrl?: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const baseUrl = getBaseUrl(requestUrl);
-  const redirectUri = `${baseUrl}/api/auth/google/callback`;
+  const redirectUri = getGoogleRedirectUri(requestUrl);
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -64,8 +71,7 @@ export async function exchangeCodeForTokens(
 ): Promise<GoogleTokenResponse> {
   const clientId = process.env.GOOGLE_CLIENT_ID || "";
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-  const baseUrl = getBaseUrl(requestUrl);
-  const redirectUri = `${baseUrl}/api/auth/google/callback`;
+  const redirectUri = getGoogleRedirectUri(requestUrl);
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",

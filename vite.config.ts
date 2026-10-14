@@ -17,10 +17,10 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        "@": path.resolve(import.meta.dirname, "./src"),
-        "next/link": path.resolve(import.meta.dirname, "./src/compat/link.tsx"),
-        "next/image": path.resolve(import.meta.dirname, "./src/compat/image.tsx"),
-        "next/navigation": path.resolve(import.meta.dirname, "./src/compat/navigation.ts"),
+        "@": path.resolve(process.cwd(), "./src"),
+        "next/link": path.resolve(process.cwd(), "./src/compat/link.tsx"),
+        "next/image": path.resolve(process.cwd(), "./src/compat/image.tsx"),
+        "next/navigation": path.resolve(process.cwd(), "./src/compat/navigation.ts"),
       },
     },
     server: {
@@ -35,6 +35,10 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
         },
       },
+    },
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
     },
   };
 });

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -23,6 +23,6 @@
       "next/navigation": ["./src/compat/navigation.ts"]
     }
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "server", "api", "vite.config.ts"],
+  "exclude": ["node_modules", "dist", "_backup", "template", "frontend", "backend"]
 }
