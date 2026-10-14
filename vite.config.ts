@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: Number(env.PORT || env.VITE_PORT || 3001),
+      port: Number(env.VITE_PORT || 3001),
       proxy: {
         "/api": {
           target: env.BACKEND_URL || "http://localhost:5001",
