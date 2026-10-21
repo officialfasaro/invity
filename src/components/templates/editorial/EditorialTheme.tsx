@@ -290,22 +290,35 @@ export const EditorialTheme: React.FC<ThemeProps> = ({
     [primaryEvent?.date, formatWeddingDate]
   );
 
-  // Physical Gift Shipping Address
-  const giftShippingAddress = useMemo(() => {
-    return (
+  // Physical Gift Shipping Address List
+  const giftShippingList = useMemo(() => {
+    if (Array.isArray(data.coupleInfo.giftAddresses) && data.coupleInfo.giftAddresses.length > 0) {
+      const valid = data.coupleInfo.giftAddresses.filter(
+        (g) => g.address && g.address.trim() !== ""
+      );
+      if (valid.length > 0) return valid;
+    }
+    const fallback =
       data.coupleInfo.giftAddress ||
       primaryEvent?.address ||
-      "Jl. Cempaka Putih Timur No. 18B, Kompleks Griya Asri, Jakarta Pusat 10510"
-    );
-  }, [data.coupleInfo.giftAddress, primaryEvent?.address]);
-
-  const giftRecipientName = useMemo(() => {
-    return data.coupleInfo.giftReceiver || coupleDisplayName;
-  }, [data.coupleInfo.giftReceiver, coupleDisplayName]);
-
-  const giftPhoneNumber = useMemo(() => {
-    return data.coupleInfo.giftPhone || "0812-9876-5432";
-  }, [data.coupleInfo.giftPhone]);
+      "Jl. Cempaka Putih Timur No. 18B, Kompleks Griya Asri, Jakarta Pusat 10510";
+    return [
+      {
+        id: "primary",
+        title: "Alamat Penerima",
+        receiver: data.coupleInfo.giftReceiver || coupleDisplayName,
+        phone: data.coupleInfo.giftPhone || "0812-9876-5432",
+        address: fallback,
+      },
+    ];
+  }, [
+    data.coupleInfo.giftAddresses,
+    data.coupleInfo.giftAddress,
+    data.coupleInfo.giftReceiver,
+    data.coupleInfo.giftPhone,
+    primaryEvent?.address,
+    coupleDisplayName,
+  ]);
 
   // Bank Accounts
   const activeBankList = useMemo(() => {
@@ -1304,7 +1317,7 @@ export const EditorialTheme: React.FC<ThemeProps> = ({
             {/* =================================================================== */}
             {Boolean(
               isFeatureAvailable("digital_gift", { data, forcedThemeId: "editorial" }) ||
-                (giftShippingAddress && isFeatureAvailable("physical_gift", { data, forcedThemeId: "editorial" }))
+                (giftShippingList.length > 0 && isFeatureAvailable("physical_gift", { data, forcedThemeId: "editorial" }))
             ) && (
               <section id="hadiah" className="p-6 sm:p-8 border-b border-[#E2DDD4] bg-[#F5F2EB]">
                 <div className="text-center mb-8">
@@ -1361,40 +1374,42 @@ export const EditorialTheme: React.FC<ThemeProps> = ({
                     </>
                   )}
 
-                  {/* Physical Gift Address */}
-                  {giftShippingAddress && isFeatureAvailable("physical_gift", { data, forcedThemeId: "editorial" }) && (
-                    <div className="bg-[#FAF8F5] border border-[#E2DDD4] rounded-2xl p-5 shadow-soft">
-                      <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD4]">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-[#9E9688]/10 flex items-center justify-center text-[#9E9688]">
-                            <Heart className="w-4 h-4" />
+                  {/* Physical Gift Address List */}
+                  {giftShippingList.length > 0 && isFeatureAvailable("physical_gift", { data, forcedThemeId: "editorial" }) && (
+                    <div className="space-y-3">
+                      {giftShippingList.map((item, idx) => {
+                        const fullText = `${item.address} (Penerima: ${item.receiver || coupleDisplayName} / ${item.phone || "-"})`;
+                        return (
+                          <div key={item.id || idx} className="bg-[#FAF8F5] border border-[#E2DDD4] rounded-2xl p-5 shadow-soft">
+                            <div className="flex items-center justify-between pb-3 border-b border-[#E2DDD4]">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-[#9E9688]/10 flex items-center justify-center text-[#9E9688]">
+                                  <Heart className="w-4 h-4" />
+                                </div>
+                                <span className="text-xs font-semibold text-[#22201E]">Kirim Kado Fisik</span>
+                              </div>
+                              <span className="text-[10px] text-[#6B6760] tracking-wider uppercase font-medium">
+                                {item.title || (giftShippingList.length > 1 ? `Alamat ${idx + 1}` : "Alamat Penerima")}
+                              </span>
+                            </div>
+                            <div className="mt-3">
+                              <p className="text-xs text-[#1E1C1A] leading-relaxed">
+                                {item.address} (Penerima: {item.receiver || coupleDisplayName} / {item.phone || "-"})
+                              </p>
+                              <div className="mt-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => copyToClipboard(fullText, item.title || "Alamat Kado")}
+                                  className="px-3.5 py-1.5 rounded-full border border-[#E2DDD4] bg-[#F5F2EB] hover:bg-[#9E9688] hover:text-white text-xs text-[#6B6760] transition-colors inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Salin Alamat</span>
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-xs font-semibold text-[#22201E]">Kirim Kado Fisik</span>
-                        </div>
-                        <span className="text-[10px] text-[#6B6760] tracking-wider uppercase">
-                          Alamat Penerima
-                        </span>
-                      </div>
-                      <div className="mt-3">
-                        <p className="text-xs text-[#1E1C1A] leading-relaxed">
-                          {giftShippingAddress} (Penerima: {giftRecipientName} / {giftPhoneNumber})
-                        </p>
-                        <div className="mt-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              copyToClipboard(
-                                `${giftShippingAddress} (Penerima: ${giftRecipientName} / ${giftPhoneNumber})`,
-                                "Alamat Kado"
-                              )
-                            }
-                            className="px-3.5 py-1.5 rounded-full border border-[#E2DDD4] bg-[#F5F2EB] hover:bg-[#9E9688] hover:text-white text-xs text-[#6B6760] transition-colors inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Salin Alamat</span>
-                          </button>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

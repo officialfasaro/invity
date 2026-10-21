@@ -26,7 +26,8 @@ import GuestBookTab, { GuestItem } from "./tabs/GuestBookTab";
 import RsvpRecapTab, { RsvpRecapData, WishItem } from "./tabs/RsvpRecapTab";
 import BillingUpgradeTab from "./tabs/BillingUpgradeTab";
 import TestimonialTab from "./tabs/TestimonialTab";
-import { ThemeId } from "@/types/wedding";
+import { ThemeId, GiftAddressItem } from "@/types/wedding";
+import { useHostPresence } from "@/utils/useInvitationPresence";
 
 export default function UserAdminPanel() {
   const router = useRouter();
@@ -58,6 +59,9 @@ export default function UserAdminPanel() {
   const [tier, setTier] = useState<string | null>(null);
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
+  // Real-time Live Visitors tracking via Supabase Presence
+  const liveCount = useHostPresence({ slug });
+
   // Couple Info
   const [groomName, setGroomName] = useState("");
   const [groomNickname, setGroomNickname] = useState("");
@@ -78,6 +82,7 @@ export default function UserAdminPanel() {
   const [giftAddress, setGiftAddress] = useState("");
   const [giftReceiver, setGiftReceiver] = useState("");
   const [giftPhone, setGiftPhone] = useState("");
+  const [giftAddresses, setGiftAddresses] = useState<GiftAddressItem[]>([]);
   const [backgroundImage, setBackgroundImage] = useState("");
   const [floralOrnament, setFloralOrnament] = useState("gold");
 
@@ -181,6 +186,20 @@ export default function UserAdminPanel() {
           setGiftAddress((c.giftAddress as string) || "");
           setGiftReceiver((c.giftReceiver as string) || "");
           setGiftPhone((c.giftPhone as string) || "");
+          if (Array.isArray(c.giftAddresses) && c.giftAddresses.length > 0) {
+            setGiftAddresses(c.giftAddresses as GiftAddressItem[]);
+          } else if (c.giftAddress) {
+            setGiftAddresses([
+              {
+                title: "Alamat Utama",
+                receiver: (c.giftReceiver as string) || "",
+                phone: (c.giftPhone as string) || "",
+                address: (c.giftAddress as string) || "",
+              },
+            ]);
+          } else {
+            setGiftAddresses([]);
+          }
           setBackgroundImage((c.backgroundImage as string) || "");
           setFloralOrnament((c.floralOrnament as string) || "gold");
           setStories(Array.isArray(c.stories) ? c.stories : []);
@@ -329,9 +348,10 @@ export default function UserAdminPanel() {
         greetingMessage: greetingMessage || undefined,
         desktopCoverImage: desktopCoverImage || undefined,
         useVideoAsDesktopCover: Boolean(useVideoAsDesktopCover),
-        giftAddress: giftAddress || undefined,
-        giftReceiver: giftReceiver || undefined,
-        giftPhone: giftPhone || undefined,
+        giftAddresses: giftAddresses.filter((g) => g.address && g.address.trim() !== ""),
+        giftAddress: giftAddresses[0]?.address || giftAddress || undefined,
+        giftReceiver: giftAddresses[0]?.receiver || giftReceiver || undefined,
+        giftPhone: giftAddresses[0]?.phone || giftPhone || undefined,
         backgroundImage: backgroundImage || undefined,
         floralOrnament: floralOrnament || "gold",
         stories:
@@ -605,6 +625,7 @@ export default function UserAdminPanel() {
         userEmail={userEmail}
         activeUntil={activeUntil}
         isLoading={isLoading}
+        liveCount={liveCount}
         onLogout={handleLogout}
         onUpgradeClick={() => setActiveTab("billing")}
       />
@@ -788,6 +809,8 @@ export default function UserAdminPanel() {
             setYoutubeVideoUrl={setYoutubeVideoUrl}
             bankAccounts={bankAccounts}
             setBankAccounts={setBankAccounts}
+            giftAddresses={giftAddresses}
+            setGiftAddresses={setGiftAddresses}
             giftAddress={giftAddress}
             setGiftAddress={setGiftAddress}
             giftReceiver={giftReceiver}
@@ -889,6 +912,7 @@ export default function UserAdminPanel() {
             rsvpRecap={rsvpRecap}
             wishes={wishes}
             isLoading={isLoading}
+            liveCount={liveCount}
           />
         )}
 

@@ -291,15 +291,35 @@ export const RakaAyuTheme: React.FC<RakaAyuThemeProps> = ({
     ];
   }, [data.bankAccounts, groomFullName, brideFullName]);
 
-  // Physical Gift Shipping Address
-  const physicalGiftAddress =
-    data.coupleInfo.giftAddress ||
-    (schedules && schedules[0]?.address) ||
-    "Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan 12140";
-  const physicalGiftReceiver =
-    data.coupleInfo.giftReceiver || coupleDisplayName;
-  const physicalGiftPhone =
-    data.coupleInfo.giftPhone || "0812-3456-7890";
+  // Physical Gift Shipping Addresses
+  const physicalGiftList = useMemo(() => {
+    if (Array.isArray(data.coupleInfo.giftAddresses) && data.coupleInfo.giftAddresses.length > 0) {
+      const valid = data.coupleInfo.giftAddresses.filter(
+        (g) => g.address && g.address.trim() !== ""
+      );
+      if (valid.length > 0) return valid;
+    }
+    const fallbackAddr =
+      data.coupleInfo.giftAddress ||
+      (schedules && schedules[0]?.address) ||
+      "Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan 12140";
+    return [
+      {
+        id: "primary",
+        title: "Alamat Pengiriman",
+        receiver: data.coupleInfo.giftReceiver || coupleDisplayName,
+        phone: data.coupleInfo.giftPhone || "0812-3456-7890",
+        address: fallbackAddr,
+      },
+    ];
+  }, [
+    data.coupleInfo.giftAddresses,
+    data.coupleInfo.giftAddress,
+    data.coupleInfo.giftReceiver,
+    data.coupleInfo.giftPhone,
+    schedules,
+    coupleDisplayName,
+  ]);
 
   // Toast Helper
   const showToast = useCallback((msg: string) => {
@@ -1137,7 +1157,7 @@ export const RakaAyuTheme: React.FC<RakaAyuThemeProps> = ({
             {/* =================================================================== */}
             {/* SECTION 11: KIRIM KADO FISIK (PHYSICAL GIFT)                        */}
             {/* =================================================================== */}
-            {isFeatureAvailable("physical_gift", { data, forcedThemeId: "raka-ayu" }) && (
+            {isFeatureAvailable("physical_gift", { data, forcedThemeId: "raka-ayu" }) && physicalGiftList.length > 0 && (
               <section className="py-16 px-6 text-center border-b border-[#ead7d0]">
                 <p className="text-xs uppercase tracking-widest text-[#b08a4a] font-semibold mb-1">
                   Kirim Hadiah
@@ -1148,29 +1168,36 @@ export const RakaAyuTheme: React.FC<RakaAyuThemeProps> = ({
                 <p className="text-xs text-[#26332f]/80 max-w-sm mx-auto mb-6 leading-relaxed">
                   Bagi keluarga dan sahabat yang ingin mengirimkan bingkisan atau tanda kasih fisik ke kediaman mempelai:
                 </p>
-                <div className="p-6 border border-[#b08a4a] bg-white text-left space-y-2.5 max-w-sm mx-auto shadow-sm">
-                  <div className="flex items-center gap-2 text-[#b08a4a] text-xs font-semibold uppercase tracking-wider">
-                    <MapPin className="w-4 h-4" />
-                    <span>Alamat Pengiriman</span>
-                  </div>
-                  <p className="text-sm font-semibold text-[#1f3a34]">{physicalGiftReceiver}</p>
-                  <p className="text-xs text-[#26332f]/80 leading-relaxed">{physicalGiftAddress}</p>
-                  <p className="text-xs text-[#b08a4a] font-mono">No. Telp: {physicalGiftPhone}</p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyToClipboard(
-                          `${physicalGiftReceiver}\n${physicalGiftAddress}\nTelp: ${physicalGiftPhone}`,
-                          "Alamat Pengiriman"
-                        )
-                      }
-                      className="py-2 px-5 bg-[#1f3a34] hover:bg-[#b08a4a] text-white text-xs uppercase tracking-wider font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Salin Alamat Lengkap</span>
-                    </button>
-                  </div>
+                <div className="space-y-4 max-w-sm mx-auto">
+                  {physicalGiftList.map((item, idx) => {
+                    const fullText = `${item.receiver || coupleDisplayName}\n${item.address}\nTelp: ${item.phone || "-"}`;
+                    return (
+                      <div key={item.id || idx} className="p-6 border border-[#b08a4a] bg-white text-left space-y-2.5 shadow-sm">
+                        <div className="flex items-center gap-2 text-[#b08a4a] text-xs font-semibold uppercase tracking-wider">
+                          <MapPin className="w-4 h-4" />
+                          <span>{item.title || `Alamat ${idx + 1}`}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-[#1f3a34]">{item.receiver || coupleDisplayName}</p>
+                        <p className="text-xs text-[#26332f]/80 leading-relaxed">{item.address}</p>
+                        {item.phone && <p className="text-xs text-[#b08a4a] font-mono">No. Telp: {item.phone}</p>}
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              copyToClipboard(
+                                fullText,
+                                item.title || `Alamat Pengiriman ${idx + 1}`
+                              )
+                            }
+                            className="py-2 px-5 bg-[#1f3a34] hover:bg-[#b08a4a] text-white text-xs uppercase tracking-wider font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Salin Alamat Lengkap</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

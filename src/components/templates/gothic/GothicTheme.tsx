@@ -336,9 +336,31 @@ export const GothicTheme: React.FC<GothicThemeProps> = ({
     ];
   }, [data.bankAccounts]);
 
-  const giftAddress =
-    data.coupleInfo.giftAddress ||
-    "Jl. Cilandak Barat No. 18, Cilandak, Jakarta Selatan, DKI Jakarta 12430 (Up. Putri Cantika)";
+  const giftAddressList = useMemo(() => {
+    if (Array.isArray(data.coupleInfo.giftAddresses) && data.coupleInfo.giftAddresses.length > 0) {
+      const valid = data.coupleInfo.giftAddresses.filter(
+        (g) => g.address && g.address.trim() !== ""
+      );
+      if (valid.length > 0) return valid;
+    }
+    const fallback =
+      data.coupleInfo.giftAddress ||
+      "Jl. Cilandak Barat No. 18, Cilandak, Jakarta Selatan, DKI Jakarta 12430 (Up. Putri Cantika)";
+    return [
+      {
+        id: "primary",
+        title: "ALAMAT PENGIRIMAN",
+        receiver: data.coupleInfo.giftReceiver || "",
+        phone: data.coupleInfo.giftPhone || "",
+        address: fallback,
+      },
+    ];
+  }, [
+    data.coupleInfo.giftAddresses,
+    data.coupleInfo.giftAddress,
+    data.coupleInfo.giftReceiver,
+    data.coupleInfo.giftPhone,
+  ]);
 
   // Toast feedback helper
   const showToast = useCallback((msg: string) => {
@@ -1324,29 +1346,40 @@ export const GothicTheme: React.FC<GothicThemeProps> = ({
                           </div>
                         ))}
 
-                      {/* Physical Gift Card */}
-                      {isFeatureAvailable("physical_gift", { data, forcedThemeId: "gothic" }) && (
-                        <div className="p-4 bg-[#201F1F] border border-[#353534] rounded-lg shadow-inner">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-serif-bodoni text-base font-semibold text-[#E5E2E1]">
-                              Kirim Kado Fisik
-                            </span>
-                            <span className="font-sans-space text-[10px] text-[#FFB4AB] font-semibold uppercase tracking-wider">
-                              ALAMAT PENGIRIMAN
-                            </span>
-                          </div>
-                          <p className="font-serif text-xs text-[#C9C6C0] leading-relaxed">
-                            {giftAddress}
-                          </p>
-                          <button
-                            onClick={() => handleCopy(giftAddress, "Alamat Pengiriman")}
-                            className="mt-3 w-full py-2 bg-[#2A2A2A] hover:bg-[#700B0B] text-[#E5E2E1] font-sans-space text-xs font-semibold rounded transition-colors text-center uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Salin Alamat</span>
-                          </button>
-                        </div>
-                      )}
+                      {/* Physical Gift Cards */}
+                      {isFeatureAvailable("physical_gift", { data, forcedThemeId: "gothic" }) &&
+                        giftAddressList.map((item, idx) => {
+                          const fullText = item.receiver || item.phone
+                            ? `${item.address} (Penerima: ${item.receiver || "-"} / ${item.phone || "-"})`
+                            : item.address;
+                          return (
+                            <div key={item.id || idx} className="p-4 bg-[#201F1F] border border-[#353534] rounded-lg shadow-inner">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-serif-bodoni text-base font-semibold text-[#E5E2E1]">
+                                  Kirim Kado Fisik
+                                </span>
+                                <span className="font-sans-space text-[10px] text-[#FFB4AB] font-semibold uppercase tracking-wider">
+                                  {item.title || (giftAddressList.length > 1 ? `ALAMAT ${idx + 1}` : "ALAMAT PENGIRIMAN")}
+                                </span>
+                              </div>
+                              {item.receiver && (
+                                <p className="font-sans-space text-xs text-[#E5E2E1] font-medium mb-1">
+                                  Penerima: {item.receiver} {item.phone ? `(${item.phone})` : ""}
+                                </p>
+                              )}
+                              <p className="font-serif text-xs text-[#C9C6C0] leading-relaxed">
+                                {item.address}
+                              </p>
+                              <button
+                                onClick={() => handleCopy(fullText, item.title || "Alamat Pengiriman")}
+                                className="mt-3 w-full py-2 bg-[#2A2A2A] hover:bg-[#700B0B] text-[#E5E2E1] font-sans-space text-xs font-semibold rounded transition-colors text-center uppercase tracking-widest flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Salin Alamat</span>
+                              </button>
+                            </div>
+                          );
+                        })}
                     </div>
                   </div>
                 </section>

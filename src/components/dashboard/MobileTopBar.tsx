@@ -25,6 +25,7 @@ interface MobileTopBarProps {
   userEmail?: string;
   activeUntil?: string | null;
   isLoading: boolean;
+  liveCount?: number;
   onLogout: () => void;
   onUpgradeClick?: () => void;
 }
@@ -38,6 +39,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
   userEmail,
   activeUntil,
   isLoading,
+  liveCount = 0,
   onLogout,
   onUpgradeClick,
 }) => {
@@ -79,7 +81,7 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
           <BrandLogo href="/" showText={false} />
 
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <h1 className="font-bold text-sm sm:text-base text-slate-900 truncate">
                 {title || "Undangan Saya"}
               </h1>
@@ -88,9 +90,19 @@ export const MobileTopBar: React.FC<MobileTopBarProps> = ({
               )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className="font-mono truncate max-w-[120px] sm:max-w-xs">
+              <span className="hidden sm:inline font-mono truncate max-w-[120px] sm:max-w-xs">
                 fasaro.id/{slug}
               </span>
+
+              {/* Realtime Live Visitor Badge */}
+              <div
+                className="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-200 bg-emerald-50 text-emerald-700"
+                title={`${liveCount} tamu sedang membuka website undangan Anda saat ini`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>{liveCount} Live</span>
+              </div>
+
               {!tier || tier === "UNSELECTED" ? (
                 <button
                   type="button"

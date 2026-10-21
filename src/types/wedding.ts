@@ -5,6 +5,14 @@ export interface StoryItem {
   imageUrl?: string | null;
 }
 
+export interface GiftAddressItem {
+  id?: string;
+  title?: string | null;
+  receiver: string;
+  phone: string;
+  address: string;
+}
+
 export interface CoupleInfo {
   groomName: string;
   groomNickname?: string | null;
@@ -28,6 +36,7 @@ export interface CoupleInfo {
   giftAddress?: string | null;
   giftReceiver?: string | null;
   giftPhone?: string | null;
+  giftAddresses?: GiftAddressItem[] | null;
   backgroundImage?: string | null;
   floralOrnament?: string | null;
 }
@@ -143,6 +152,8 @@ export interface ThemeMeta {
   isNew?: boolean;
   canChangeFont?: boolean;
   mockupBg?: string;
+  features?: string[];
+  source?: string;
 }
 
 export const THEME_LIST: ThemeMeta[] = [

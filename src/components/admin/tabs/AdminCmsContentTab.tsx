@@ -322,13 +322,19 @@ export const AdminCmsContentTab: React.FC<AdminCmsContentTabProps> = ({
           <div className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-100 flex items-center justify-center text-[#F97316]">
             <Globe className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-base font-sans font-bold text-slate-900">
-              Identitas Brand, Tab Browser &amp; Icon Aplikasi
-            </h2>
-            <p className="text-xs text-slate-500">
-              Atur logo brand resmi, favicon tab browser, serta icon shortcut aplikasi (PWA / homescreen ponsel).
-            </p>
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <h2 className="text-base font-sans font-bold text-slate-900">
+                Identitas Brand, Tab Browser &amp; Icon Aplikasi
+              </h2>
+              <p className="text-xs text-slate-500">
+                Atur logo brand resmi, favicon tab browser, serta icon shortcut aplikasi (PWA / homescreen ponsel).
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Sanity CMS Sync
+            </span>
           </div>
         </div>
 

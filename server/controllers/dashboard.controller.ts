@@ -9,6 +9,7 @@ import {
 } from "../utils/validations";
 import { invalidateInvitationCache } from "../services/cache.service";
 import { syncInvitationToSanity } from "../services/sanity.service";
+import { getInvitationAnalytics } from "../services/analytics.service";
 
 function generateSlugCode(name: string): string {
   const clean = name
@@ -167,6 +168,7 @@ export async function getDashboardInvitation(
     const effectiveActiveUntil = isPaid ? invitation.activeUntil : null;
     const musicUrl = (coupleInfo.musicUrl as string) || null;
     const youtubeVideoUrl = (coupleInfo.youtubeVideoUrl as string) || null;
+    const analytics = await getInvitationAnalytics(invitation.id);
 
     res.json({
       success: true,
@@ -180,6 +182,7 @@ export async function getDashboardInvitation(
         paymentStatus,
         userEmail: user.email,
         isAdmin: user.role === "ADMIN" || user.email === "admin@admin.com",
+        analytics,
       },
     });
   } catch (error) {
@@ -768,6 +771,7 @@ export async function getRsvpRecap(
           tentativeCount: 0,
           totalPax: 0,
           rsvps: [],
+          analytics: { totalViews: 0, todayViews: 0, mobilePercent: 100 },
         },
       });
       return;
@@ -794,6 +798,8 @@ export async function getRsvpRecap(
       }
     }
 
+    const analytics = await getInvitationAnalytics(invitation.id);
+
     res.json({
       success: true,
       data: {
@@ -803,6 +809,7 @@ export async function getRsvpRecap(
         tentativeCount,
         totalPax,
         rsvps,
+        analytics,
       },
     });
   } catch (error) {

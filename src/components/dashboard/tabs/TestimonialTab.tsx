@@ -224,14 +224,16 @@ export const TestimonialTab: React.FC<TestimonialTabProps> = ({
                     />
                   </button>
                 ))}
-                <span className="text-xs font-bold text-slate-700 ml-2">
+                <span className="text-xs font-semibold text-slate-700 ml-2">
                   {rating === 5
-                    ? "⭐⭐⭐⭐⭐ Sangat Puas"
+                    ? "Sangat Puas"
                     : rating === 4
-                    ? "⭐⭐⭐⭐ Puas"
+                    ? "Puas"
                     : rating === 3
-                    ? "⭐⭐⭐ Cukup"
-                    : `${rating} Bintang`}
+                    ? "Cukup"
+                    : rating === 2
+                    ? "Kurang Puas"
+                    : "Tidak Puas"}
                 </span>
               </div>
             </div>

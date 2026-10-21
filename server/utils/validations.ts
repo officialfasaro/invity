@@ -108,6 +108,18 @@ export const coupleInfoSchema = z.object({
   giftAddress: z.string().max(500).optional().nullable(),
   giftReceiver: z.string().max(100).optional().nullable(),
   giftPhone: z.string().max(50).optional().nullable(),
+  giftAddresses: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        title: z.string().max(100).optional().nullable(),
+        receiver: z.string().max(100).optional().nullable(),
+        phone: z.string().max(50).optional().nullable(),
+        address: z.string().max(500),
+      })
+    )
+    .optional()
+    .nullable(),
   stories: z
     .array(
       z.object({

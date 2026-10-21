@@ -1,6 +1,7 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -66,6 +67,7 @@ model Invitation {
   rsvps                Rsvp[]
   wishes               Wish[]
   paymentTransactions  PaymentTransaction[]
+  invitationViews      InvitationView[]
 
   @@map("invitations")
 }
@@ -199,5 +201,20 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model InvitationView {
+  id           String     @id @default(cuid())
+  invitationId String
+  guestName    String?
+  deviceType   String     @default("mobile")
+  browser      String?
+  ipHash       String?
+  visitedAt    DateTime   @default(now())
+
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@index([invitationId, visitedAt])
+  @@map("invitation_views")
 }
 

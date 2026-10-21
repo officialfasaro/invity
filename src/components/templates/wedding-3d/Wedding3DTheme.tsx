@@ -184,15 +184,36 @@ export const Wedding3DTheme: React.FC<Wedding3DThemeProps> = ({
     return () => clearInterval(interval);
   }, [targetDate]);
 
-  // Physical Gift Shipping Address
-  const physicalGiftAddress =
-    data.coupleInfo.giftAddress ||
-    (data.eventSchedules && data.eventSchedules[0]?.address) ||
-    "Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan 12140";
-  const physicalGiftReceiver =
-    data.coupleInfo.giftReceiver || `${groomNick} & ${brideNick}`;
-  const physicalGiftPhone =
-    data.coupleInfo.giftPhone || "0812-3456-7890";
+  // Physical Gift Shipping Addresses
+  const physicalGiftList = useMemo(() => {
+    if (Array.isArray(data.coupleInfo.giftAddresses) && data.coupleInfo.giftAddresses.length > 0) {
+      const valid = data.coupleInfo.giftAddresses.filter(
+        (g) => g.address && g.address.trim() !== ""
+      );
+      if (valid.length > 0) return valid;
+    }
+    const fallbackAddr =
+      data.coupleInfo.giftAddress ||
+      (data.eventSchedules && data.eventSchedules[0]?.address) ||
+      "Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan 12140";
+    return [
+      {
+        id: "primary",
+        title: "Alamat Pengiriman",
+        receiver: data.coupleInfo.giftReceiver || `${groomNick} & ${brideNick}`,
+        phone: data.coupleInfo.giftPhone || "0812-3456-7890",
+        address: fallbackAddr,
+      },
+    ];
+  }, [
+    data.coupleInfo.giftAddresses,
+    data.coupleInfo.giftAddress,
+    data.coupleInfo.giftReceiver,
+    data.coupleInfo.giftPhone,
+    data.eventSchedules,
+    groomNick,
+    brideNick,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Three.js 3D WebGL Scene Engine
@@ -1314,7 +1335,7 @@ export const Wedding3DTheme: React.FC<Wedding3DThemeProps> = ({
             {/* =============================================================== */}
             {/* SECTION: KIRIM KADO FISIK (PHYSICAL GIFT)                        */}
             {/* =============================================================== */}
-            {isFeatureAvailable("physical_gift", { data, forcedThemeId: "wedding-3d" }) && (
+            {isFeatureAvailable("physical_gift", { data, forcedThemeId: "wedding-3d" }) && physicalGiftList.length > 0 && (
               <section className="py-16 px-6 text-center border-t border-[#d4b06a]/20 bg-[#0c1624]/20">
                 <p className="text-xs uppercase tracking-[0.3em] text-[#d4b06a] mb-2">
                   Kirim Hadiah
@@ -1325,33 +1346,44 @@ export const Wedding3DTheme: React.FC<Wedding3DThemeProps> = ({
                 <p className="text-xs text-[#f7f1e8]/70 max-w-xs mx-auto mb-6 leading-relaxed">
                   Bagi keluarga dan sahabat yang ingin mengirimkan kado atau bingkisan fisik ke kediaman mempelai:
                 </p>
-                <div className="p-6 border border-[#d4b06a]/70 bg-[#1a2440]/30 backdrop-blur-[2px] text-left space-y-2.5 max-w-sm mx-auto">
-                  <div className="flex items-center gap-2 text-[#d4b06a] text-xs font-semibold uppercase tracking-wider">
-                    <MapPin className="w-4 h-4" />
-                    <span>Alamat Pengiriman</span>
-                  </div>
-                  <p className="text-sm font-medium text-white">{physicalGiftReceiver}</p>
-                  <p className="text-xs text-[#f7f1e8]/85 leading-relaxed">{physicalGiftAddress}</p>
-                  <p className="text-xs text-[#d4b06a]/90 font-mono">No. Telp: {physicalGiftPhone}</p>
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`${physicalGiftReceiver}\n${physicalGiftAddress}\nTelp: ${physicalGiftPhone}`, "physical-gift")}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-[11px] uppercase tracking-widest text-[#f7f1e8] bg-[#0c1624]/50 hover:bg-[#d4b06a] hover:text-[#0c1624] border border-[#d4b06a]/60 transition-colors cursor-pointer"
-                    >
-                      {isCopied === "physical-gift" ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Alamat Tersalin!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-[#d4b06a]" />
-                          <span>Salin Alamat Lengkap</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <div className="space-y-4 max-w-sm mx-auto">
+                  {physicalGiftList.map((item, idx) => {
+                    const copyKey = `physical-gift-${item.id || idx}`;
+                    const fullText = `${item.receiver || `${groomNick} & ${brideNick}`}\n${item.address}\nTelp: ${item.phone || "-"}`;
+                    return (
+                      <div
+                        key={item.id || idx}
+                        className="p-6 border border-[#d4b06a]/70 bg-[#1a2440]/30 backdrop-blur-[2px] text-left space-y-2.5"
+                      >
+                        <div className="flex items-center gap-2 text-[#d4b06a] text-xs font-semibold uppercase tracking-wider">
+                          <MapPin className="w-4 h-4" />
+                          <span>{item.title || `Alamat ${idx + 1}`}</span>
+                        </div>
+                        <p className="text-sm font-medium text-white">{item.receiver || `${groomNick} & ${brideNick}`}</p>
+                        <p className="text-xs text-[#f7f1e8]/85 leading-relaxed">{item.address}</p>
+                        {item.phone && <p className="text-xs text-[#d4b06a]/90 font-mono">No. Telp: {item.phone}</p>}
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(fullText, copyKey)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 text-[11px] uppercase tracking-widest text-[#f7f1e8] bg-[#0c1624]/50 hover:bg-[#d4b06a] hover:text-[#0c1624] border border-[#d4b06a]/60 transition-colors cursor-pointer"
+                          >
+                            {isCopied === copyKey ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span>Alamat Tersalin!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-[#d4b06a]" />
+                                <span>Salin Alamat Lengkap</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}

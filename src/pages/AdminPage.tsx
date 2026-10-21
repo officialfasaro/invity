@@ -677,10 +677,16 @@ function MasterAdminContent() {
       {/* TAB 2: KATALOG TEMA */}
       {activeTab === "themes" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
-              Katalog tema yang dapat dipilih langsung oleh pengantin tanpa kehilangan data.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-slate-500">
+                Katalog tema yang dapat dipilih langsung oleh pengantin tanpa kehilangan data.
+              </p>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Sanity CMS Linked (CDN Aktif)
+              </span>
+            </div>
             <button
               onClick={() => {
                 setEditingThemeId(null);

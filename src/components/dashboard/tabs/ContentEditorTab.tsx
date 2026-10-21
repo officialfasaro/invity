@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { WEDDING_QUOTES } from "@/lib/weddingQuotes";
 import { getGoogleMapsEmbedUrl } from "@/components/templates/shared/GoogleMapEmbed";
+import { GiftAddressItem } from "@/types/wedding";
 
 interface MusicPreset {
   title: string;
@@ -274,9 +275,13 @@ interface ContentEditorTabProps {
   useVideoAsDesktopCover?: boolean;
   setUseVideoAsDesktopCover?: (v: boolean) => void;
 
-  // Digital Envelope & Gifts
+  // Digital Envelope & Bank Accounts
   bankAccounts: BankItem[];
   setBankAccounts: React.Dispatch<React.SetStateAction<BankItem[]>>;
+
+  // Physical Gift Delivery Addresses (Alamat Pengiriman Kado Fisik)
+  giftAddresses?: GiftAddressItem[];
+  setGiftAddresses?: React.Dispatch<React.SetStateAction<GiftAddressItem[]>>;
   giftAddress?: string;
   setGiftAddress?: (v: string) => void;
   giftReceiver?: string;
@@ -349,6 +354,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
   setUseVideoAsDesktopCover,
   bankAccounts,
   setBankAccounts,
+  giftAddresses = [],
+  setGiftAddresses,
   giftAddress = "",
   setGiftAddress,
   giftReceiver = "",
@@ -381,6 +388,94 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
   const [isUploadingStoryIndex, setIsUploadingStoryIndex] = useState<number | null>(null);
   const [isUploadingBackground, setIsUploadingBackground] = useState(false);
   const [customBankIndices, setCustomBankIndices] = useState<Set<number>>(new Set());
+  const [newlyAddedScheduleIdx, setNewlyAddedScheduleIdx] = useState<number | null>(null);
+  const [openScheduleIndices, setOpenScheduleIndices] = useState<Set<number>>(() => new Set([0]));
+
+  const toggleSchedule = (idx: number) => {
+    setOpenScheduleIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSchedules = () => {
+    if (openScheduleIndices.size === schedules.length) {
+      setOpenScheduleIndices(new Set());
+    } else {
+      setOpenScheduleIndices(new Set(schedules.map((_, i) => i)));
+    }
+  };
+
+  // Helper untuk menambah sesi baru, otomatis scroll dan fokus ke input sesi baru
+  const handleAddSchedule = (preset?: Partial<ScheduleItem>) => {
+    const prev = schedules[schedules.length - 1] || schedules[0];
+    const newSchedule: ScheduleItem = {
+      eventName: preset?.eventName || "Resepsi Pernikahan",
+      date:
+        preset?.date ||
+        (prev?.date
+          ? typeof prev.date === "string"
+            ? prev.date.split("T")[0]
+            : prev.date
+          : new Date().toISOString().split("T")[0]),
+      startTime: preset?.startTime || "11:00",
+      endTime: preset?.endTime || "14:00 WIB",
+      venueName: preset?.venueName !== undefined ? preset.venueName : prev?.venueName || "",
+      address: preset?.address !== undefined ? preset.address : prev?.address || "",
+      mapsUrl: preset?.mapsUrl !== undefined ? preset.mapsUrl : prev?.mapsUrl || "",
+    };
+
+    const newIdx = schedules.length;
+    setSchedules([...schedules, newSchedule]);
+    setNewlyAddedScheduleIdx(newIdx);
+
+    // Otomatis buka sesi yang baru ditambahkan
+    setOpenScheduleIndices((prev) => {
+      const next = new Set(prev);
+      next.add(newIdx);
+      return next;
+    });
+
+    // Otomatis scroll dan fokus ke sesi yang baru ditambahkan tepat di bawah sticky topbar
+    setTimeout(() => {
+      const cardEl = document.getElementById(`schedule-card-${newIdx}`);
+      const inputEl = document.getElementById(`schedule-name-input-${newIdx}`) as HTMLInputElement | null;
+
+      if (inputEl) {
+        // Fokuskan dan seleksi teks dengan preventScroll agar browser tidak meng-override posisi scroll
+        try {
+          inputEl.focus({ preventScroll: true });
+          inputEl.select?.();
+        } catch {
+          inputEl.focus();
+        }
+      }
+
+      if (cardEl) {
+        // Sticky header tingginya 64px (h-16). Berikan offset 76px (mobile) / 84px (desktop)
+        // sehingga bagian atas kartu (Sesi #... dan tombol Hapus) berada tepat di bawah header tanpa terpotong
+        const headerOffset = window.innerWidth < 640 ? 76 : 84;
+        const rect = cardEl.getBoundingClientRect();
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const targetY = rect.top + scrollTop - headerOffset;
+
+        window.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: "smooth",
+        });
+      }
+    }, 120);
+
+    // Hilangkan efek penanda/highlight setelah 2.5 detik
+    setTimeout(() => {
+      setNewlyAddedScheduleIdx(null);
+    }, 2500);
+  };
 
   const isStarterTier = tier === "STARTER" || tier === "FREE" || !tier;
 
@@ -756,9 +851,10 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
     { id: 2, title: "3. Musik Latar Undangan (.mp3)", icon: Music, badge: musicUrl ? "Terpasang" : "Opsional" },
     { id: 3, title: "4. Video Teaser Prewedding (YouTube)", icon: Video, badge: youtubeVideoUrl ? "Tersedia" : "Opsional" },
     { id: 4, title: "5. Galeri Foto Prewedding", icon: ImageIcon, badge: `${galleries.length} Foto` },
-    { id: 5, title: "6. Amplop Digital & QRIS", icon: CreditCard, badge: `${bankAccounts.length} Rekening` },
-    { id: 6, title: "7. Cerita Cinta (Love Story)", icon: BookOpen, badge: `${stories.length} Momen` },
-    { id: 7, title: "8. Background & Hiasan Bunga", icon: Palette, badge: backgroundImage ? "Kustom" : "Aktif" },
+    { id: 5, title: "6. Rekening Bank & Amplop Digital", icon: CreditCard, badge: `${bankAccounts.length} Rekening` },
+    { id: 6, title: "7. Alamat Pengiriman Kado Fisik", icon: Package, badge: `${giftAddresses.length} Alamat` },
+    { id: 7, title: "8. Cerita Cinta (Love Story)", icon: BookOpen, badge: `${stories.length} Momen` },
+    { id: 8, title: "9. Background & Hiasan Bunga", icon: Palette, badge: backgroundImage ? "Kustom" : "Aktif" },
   ];
 
   return (
@@ -797,8 +893,10 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         </div>
       </div>
 
-      {/* Accordion 1: Mempelai */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+      {/* Accordion Sections Container (Clean Flat List on Mobile, Floating Cards on Desktop) */}
+      <div className="-mx-4 sm:mx-0 bg-white sm:bg-transparent border-y sm:border-y-0 border-[#E2E8F0] sm:space-y-4">
+        {/* Accordion 1: Mempelai */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(0)}
@@ -893,10 +991,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
 
             {/* Mempelai Pria */}
-            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
-              <h3 className="font-semibold text-[#F97316] text-xs uppercase tracking-wider">
-                Mempelai Pria (Groom)
-              </h3>
+            <div className="pt-5 border-t border-[#E2E8F0] space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                  Mempelai Pria (Groom)
+                </h3>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-600 block mb-1">Nama Lengkap &amp; Gelar:</label>
@@ -1028,10 +1129,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
 
             {/* Mempelai Wanita */}
-            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3">
-              <h3 className="font-semibold text-[#F97316] text-xs uppercase tracking-wider">
-                Mempelai Wanita (Bride)
-              </h3>
+            <div className="pt-5 border-t border-[#E2E8F0] space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
+                <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                  Mempelai Wanita (Bride)
+                </h3>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-slate-600 block mb-1">Nama Lengkap &amp; Gelar:</label>
@@ -1163,8 +1267,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
 
             {/* Pesan Pembuka */}
-            <div className="space-y-2">
-              <label className="font-semibold text-slate-700">Pesan Pembuka / Salam Hangat:</label>
+            <div className="space-y-2 pt-5 border-t border-[#E2E8F0]">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#F97316]" />
+                <label className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                  Pesan Pembuka / Salam Hangat
+                </label>
+              </div>
               <select
                 className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-700 text-xs focus:border-[#F97316] outline-none"
                 defaultValue=""
@@ -1189,10 +1298,12 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             </div>
 
             {/* Cover Layar Desktop */}
-            <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="space-y-2 pt-5 border-t border-[#E2E8F0]">
               <div className="flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-[#F97316]" />
-                <label className="font-semibold text-slate-700">Cover Layar Desktop (Split Screen):</label>
+                <label className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                  Cover Layar Desktop (Split Screen)
+                </label>
               </div>
               <p className="text-xs text-slate-500">Foto ini akan muncul di bagian kiri layar pada tampilan desktop. Jika kosong, sistem akan menggunakan foto galeri pertama.</p>
               <div className="flex flex-col gap-2">
@@ -1278,8 +1389,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 2: Jadwal & Lokasi */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 2: Jadwal & Lokasi */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(1)}
@@ -1312,21 +1423,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => {
-                    const prev = schedules[schedules.length - 1] || schedules[0];
-                    setSchedules([
-                      ...schedules,
-                      {
-                        eventName: "Resepsi Sesi 2 (Malam)",
-                        date: prev?.date ? (typeof prev.date === "string" ? prev.date.split("T")[0] : prev.date) : new Date().toISOString().split("T")[0],
-                        startTime: "18:30",
-                        endTime: "21:00 WIB",
-                        venueName: prev?.venueName || "",
-                        address: prev?.address || "",
-                        mapsUrl: prev?.mapsUrl || "",
-                      },
-                    ]);
-                  }}
+                  onClick={() =>
+                    handleAddSchedule({
+                      eventName: "Resepsi Sesi 2 (Malam)",
+                      startTime: "18:30",
+                      endTime: "21:00 WIB",
+                    })
+                  }
                   className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-orange-100/70 hover:bg-orange-100 text-[#F97316] font-semibold text-[11px] transition-colors cursor-pointer"
                   title="Tambah Resepsi Sesi 2 Malam (otomatis salin lokasi sesi sebelumnya)"
                 >
@@ -1336,21 +1439,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const prev = schedules[schedules.length - 1] || schedules[0];
-                    setSchedules([
-                      ...schedules,
-                      {
-                        eventName: "Ngunduh Mantu / Tasyakuran",
-                        date: prev?.date ? (typeof prev.date === "string" ? prev.date.split("T")[0] : prev.date) : new Date().toISOString().split("T")[0],
-                        startTime: "10:00",
-                        endTime: "14:00 WIB",
-                        venueName: prev?.venueName || "",
-                        address: prev?.address || "",
-                        mapsUrl: prev?.mapsUrl || "",
-                      },
-                    ]);
-                  }}
+                  onClick={() =>
+                    handleAddSchedule({
+                      eventName: "Ngunduh Mantu / Tasyakuran",
+                      startTime: "10:00",
+                      endTime: "14:00 WIB",
+                    })
+                  }
                   className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition-colors cursor-pointer"
                   title="Tambah Ngunduh Mantu atau Tasyakuran"
                 >
@@ -1360,20 +1455,16 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setSchedules([
-                      ...schedules,
-                      {
-                        eventName: "Resepsi Pernikahan",
-                        date: new Date().toISOString().split("T")[0],
-                        startTime: "11:00",
-                        endTime: "14:00 WIB",
-                        venueName: "",
-                        address: "",
-                        mapsUrl: "",
-                      },
-                    ]);
-                  }}
+                  onClick={() =>
+                    handleAddSchedule({
+                      eventName: "Resepsi Pernikahan",
+                      startTime: "11:00",
+                      endTime: "14:00 WIB",
+                      venueName: "",
+                      address: "",
+                      mapsUrl: "",
+                    })
+                  }
                   className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-[11px] transition-colors cursor-pointer shadow-2xs"
                 >
                   <Plus className="w-3 h-3" />
@@ -1382,220 +1473,360 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               </div>
             </div>
 
-            {schedules.map((sch, idx) => (
-              <div
-                key={idx}
-                className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3 relative"
-              >
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0] flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-900 text-xs px-2 py-0.5 rounded bg-slate-200/70">
-                      Sesi #{idx + 1}
+            {schedules.length === 0 ? (
+              <div className="py-8 px-4 text-center border-y border-[#E2E8F0] space-y-3">
+                <Calendar className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-700">Belum ada sesi acara yang terdaftar</p>
+                <p className="text-[11px] text-slate-500">
+                  Klik tombol di bawah atau tombol di atas untuk menambahkan jadwal acara baru.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleAddSchedule({
+                      eventName: "Akad Nikah",
+                      startTime: "09:00",
+                      endTime: "11:00 WIB",
+                      venueName: "",
+                      address: "",
+                      mapsUrl: "",
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ Tambah Sesi Acara</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                {schedules.length > 1 && (
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-[11px] text-slate-400">
+                      Klik header sesi untuk membuka / menutup formulir.
                     </span>
-                    <span className="text-[11px] font-medium text-slate-600">
-                      {sch.eventName || "Belum dinamai"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {idx > 0 && schedules[0]?.venueName && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = [...schedules];
-                          updated[idx].venueName = schedules[0].venueName;
-                          updated[idx].address = schedules[0].address;
-                          updated[idx].mapsUrl = schedules[0].mapsUrl;
-                          updated[idx].date = schedules[0].date;
-                          setSchedules(updated);
-                        }}
-                        className="text-[10.5px] text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 px-2 py-0.5 rounded bg-orange-50 border border-orange-200 cursor-pointer"
-                        title="Salin tanggal, nama gedung, alamat, dan link maps dari Sesi 1"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>Salin Lokasi Sesi 1</span>
-                      </button>
-                    )}
-
-                    {schedules.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setSchedules(schedules.filter((_, i) => i !== idx))}
-                        className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Hapus</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-slate-600 block mb-1">Nama Sesi Acara:</label>
-                    <input
-                      type="text"
-                      value={sch.eventName}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].eventName = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      placeholder="Akad Nikah / Resepsi"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                    <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                      <span className="text-[10px] text-slate-400">Pilihan Cepat:</span>
-                      {[
-                        "Akad Nikah",
-                        "Pemberkatan",
-                        "Resepsi Sesi 1 (Siang)",
-                        "Resepsi Sesi 2 (Malam)",
-                        "Ngunduh Mantu",
-                      ].map((presetName) => (
-                        <button
-                          key={presetName}
-                          type="button"
-                          onClick={() => {
-                            const updated = [...schedules];
-                            updated[idx].eventName = presetName;
-                            if (presetName === "Resepsi Sesi 2 (Malam)" && !updated[idx].startTime) {
-                              updated[idx].startTime = "18:30";
-                              updated[idx].endTime = "21:00 WIB";
-                            }
-                            setSchedules(updated);
-                          }}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
-                            sch.eventName === presetName
-                              ? "bg-orange-100 border-orange-300 text-orange-800 font-bold"
-                              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          {presetName}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-slate-600 block mb-1">Tanggal Acara:</label>
-                    <input
-                      type="date"
-                      value={typeof sch.date === "string" ? sch.date.split("T")[0] : ""}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].date = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-600 block mb-1">Jam Mulai:</label>
-                    <input
-                      type="text"
-                      value={sch.startTime}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].startTime = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      placeholder="08:00 WIB"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-600 block mb-1">Jam Selesai:</label>
-                    <input
-                      type="text"
-                      value={sch.endTime}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].endTime = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      placeholder="10:00 WIB / Selesai"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-600 block mb-1">Nama Tempat / Gedung:</label>
-                    <input
-                      type="text"
-                      value={sch.venueName}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].venueName = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      placeholder="Masjid Agung / Grand Ballroom"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-600 block mb-1">Link Google Maps:</label>
-                    <input
-                      type="text"
-                      value={sch.mapsUrl}
-                      onChange={(e) => {
-                        const updated = [...schedules];
-                        updated[idx].mapsUrl = e.target.value;
-                        setSchedules(updated);
-                      }}
-                      placeholder="https://maps.app.goo.gl/..."
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-slate-600 block mb-1">Alamat Lengkap Venue:</label>
-                  <textarea
-                    rows={2}
-                    value={sch.address}
-                    onChange={(e) => {
-                      const updated = [...schedules];
-                      updated[idx].address = e.target.value;
-                      setSchedules(updated);
-                    }}
-                    placeholder="Jl. Diponegoro No. 12, Surabaya, Jawa Timur"
-                    className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none"
-                  />
-                </div>
-
-                {/* Live Preview Peta Google Maps */}
-                {(sch.venueName || sch.address || sch.mapsUrl) && (
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#F97316]" />
-                        <span>Preview Peta Google Maps:</span>
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        Otomatis sinkron dengan nama gedung &amp; alamat
-                      </span>
-                    </div>
-                    <div className="h-36 sm:h-44 w-full border border-slate-200 rounded-lg overflow-hidden bg-slate-50 relative shadow-inner">
-                      <iframe
-                        src={getGoogleMapsEmbedUrl(sch.venueName, sch.address, sch.mapsUrl)}
-                        className="w-full h-full border-0 block"
-                        loading="lazy"
-                        allowFullScreen
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`Preview Lokasi ${sch.eventName || "Acara"}`}
-                      />
-                      <div className="absolute bottom-1 right-2 bg-slate-900/80 text-white text-[9px] px-2 py-0.5 rounded pointer-events-none flex items-center gap-1">
-                        <span>Google Maps Lokasi Acara</span>
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleAllSchedules}
+                      className="text-[11px] text-[#F97316] hover:underline font-semibold cursor-pointer"
+                    >
+                      {openScheduleIndices.size === schedules.length
+                        ? "Tutup Semua Sesi"
+                        : "Buka Semua Sesi"}
+                    </button>
                   </div>
                 )}
-              </div>
-            ))}
+
+                {schedules.map((sch, idx) => {
+                  const isScheduleOpen = openScheduleIndices.has(idx);
+
+                  return (
+                    <div
+                      id={`schedule-card-${idx}`}
+                      key={idx}
+                      className={`border-t border-[#E2E8F0] first:border-t-0 transition-all duration-300 scroll-mt-20 sm:scroll-mt-24 ${
+                        newlyAddedScheduleIdx === idx
+                          ? "bg-orange-50/40"
+                          : ""
+                      }`}
+                    >
+                      {/* Header Dropdown Sesi (Klik untuk Buka/Tutup) */}
+                      <div
+                        onClick={() => toggleSchedule(idx)}
+                        className={`w-full flex items-center justify-between py-3 px-1 text-left transition-colors cursor-pointer select-none ${
+                          isScheduleOpen
+                            ? "border-b border-[#E2E8F0]/70"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                          <span
+                            className={`font-bold text-xs px-2 py-0.5 rounded shrink-0 ${
+                              newlyAddedScheduleIdx === idx
+                                ? "bg-orange-200 text-orange-950 font-extrabold"
+                                : isScheduleOpen
+                                ? "bg-[#F97316] text-white"
+                                : "bg-slate-200/80 text-slate-800"
+                            }`}
+                          >
+                            Sesi #{idx + 1}
+                          </span>
+
+                          <span className="font-semibold text-xs text-slate-900 truncate">
+                            {sch.eventName || "Belum dinamai"}
+                          </span>
+
+                          {!isScheduleOpen && (
+                            <span className="text-[11px] text-slate-500 truncate hidden xs:inline sm:inline">
+                              {sch.startTime ? `• ${sch.startTime} - ${sch.endTime}` : ""}
+                              {sch.venueName ? ` • ${sch.venueName}` : ""}
+                            </span>
+                          )}
+
+                          {newlyAddedScheduleIdx === idx && (
+                            <span className="text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-300 px-2 py-0.5 rounded-full inline-flex items-center gap-1 animate-pulse shrink-0">
+                              <Check className="w-2.5 h-2.5 stroke-[3] text-emerald-600" />
+                              <span className="hidden sm:inline">Sesi Baru Ditambahkan</span>
+                              <span className="sm:hidden">Baru</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action Buttons: Salin Lokasi + Hapus + Chevron Dropdown */}
+                        <div
+                          className="flex items-center gap-1.5 shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {idx > 0 && schedules[0]?.venueName && isScheduleOpen && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...schedules];
+                                updated[idx].venueName = schedules[0].venueName;
+                                updated[idx].address = schedules[0].address;
+                                updated[idx].mapsUrl = schedules[0].mapsUrl;
+                                updated[idx].date = schedules[0].date;
+                                setSchedules(updated);
+                              }}
+                              className="text-[10.5px] text-orange-600 hover:text-orange-700 font-medium hidden sm:flex items-center gap-1 px-2 py-0.5 rounded bg-orange-50 border border-orange-200 cursor-pointer"
+                              title="Salin tanggal, nama gedung, alamat, dan link maps dari Sesi 1"
+                            >
+                              <Copy className="w-3 h-3" />
+                              <span>Salin Lokasi Sesi 1</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSchedules(schedules.filter((_, i) => i !== idx));
+                              setOpenScheduleIndices((prev) => {
+                                const next = new Set<number>();
+                                prev.forEach((openIdx) => {
+                                  if (openIdx < idx) next.add(openIdx);
+                                  else if (openIdx > idx) next.add(openIdx - 1);
+                                });
+                                return next;
+                              });
+                            }}
+                            className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 p-1 hover:bg-rose-50 rounded cursor-pointer transition-colors"
+                            title="Hapus sesi ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Hapus</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => toggleSchedule(idx)}
+                            aria-label={isScheduleOpen ? "Tutup sesi" : "Buka sesi"}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                          >
+                            {isScheduleOpen ? (
+                              <ChevronUp className="w-4 h-4 text-slate-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-600" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Konten Form Sesi (Tampil Saat Dropdown Terbuka) */}
+                      {isScheduleOpen && (
+                        <div className="py-3 px-1 space-y-3.5 animate-in fade-in duration-200">
+                          {idx > 0 && schedules[0]?.venueName && (
+                            <div className="sm:hidden pb-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...schedules];
+                                  updated[idx].venueName = schedules[0].venueName;
+                                  updated[idx].address = schedules[0].address;
+                                  updated[idx].mapsUrl = schedules[0].mapsUrl;
+                                  updated[idx].date = schedules[0].date;
+                                  setSchedules(updated);
+                                }}
+                                className="text-[10.5px] text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 px-2.5 py-1 rounded bg-orange-50 border border-orange-200 cursor-pointer w-full justify-center"
+                                title="Salin tanggal, nama gedung, alamat, dan link maps dari Sesi 1"
+                              >
+                                <Copy className="w-3 h-3" />
+                                <span>Salin Lokasi Sesi 1</span>
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-slate-600 block mb-1">Nama Sesi Acara:</label>
+                              <input
+                                id={`schedule-name-input-${idx}`}
+                                type="text"
+                                value={sch.eventName}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].eventName = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                placeholder="Akad Nikah / Resepsi"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                              <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                                <span className="text-[10px] text-slate-400">Pilihan Cepat:</span>
+                                {[
+                                  "Akad Nikah",
+                                  "Pemberkatan",
+                                  "Resepsi Sesi 1 (Siang)",
+                                  "Resepsi Sesi 2 (Malam)",
+                                  "Ngunduh Mantu",
+                                ].map((presetName) => (
+                                  <button
+                                    key={presetName}
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...schedules];
+                                      updated[idx].eventName = presetName;
+                                      if (presetName === "Resepsi Sesi 2 (Malam)" && !updated[idx].startTime) {
+                                        updated[idx].startTime = "18:30";
+                                        updated[idx].endTime = "21:00 WIB";
+                                      }
+                                      setSchedules(updated);
+                                    }}
+                                    className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                                      sch.eventName === presetName
+                                        ? "bg-orange-100 border-orange-300 text-orange-800 font-bold"
+                                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                                    }`}
+                                  >
+                                    {presetName}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-slate-600 block mb-1">Tanggal Acara:</label>
+                              <input
+                                type="date"
+                                value={typeof sch.date === "string" ? sch.date.split("T")[0] : ""}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].date = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-slate-600 block mb-1">Jam Mulai:</label>
+                              <input
+                                type="text"
+                                value={sch.startTime}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].startTime = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                placeholder="08:00 WIB"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-slate-600 block mb-1">Jam Selesai:</label>
+                              <input
+                                type="text"
+                                value={sch.endTime}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].endTime = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                placeholder="10:00 WIB / Selesai"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-slate-600 block mb-1">Nama Tempat / Gedung:</label>
+                              <input
+                                type="text"
+                                value={sch.venueName}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].venueName = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                placeholder="Masjid Agung / Grand Ballroom"
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-slate-600 block mb-1">Link Google Maps:</label>
+                              <input
+                                type="text"
+                                value={sch.mapsUrl}
+                                onChange={(e) => {
+                                  const updated = [...schedules];
+                                  updated[idx].mapsUrl = e.target.value;
+                                  setSchedules(updated);
+                                }}
+                                placeholder="https://maps.app.goo.gl/..."
+                                className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[42px] focus:border-[#F97316] outline-none"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-slate-600 block mb-1">Alamat Lengkap Venue:</label>
+                            <textarea
+                              rows={2}
+                              value={sch.address}
+                              onChange={(e) => {
+                                const updated = [...schedules];
+                                updated[idx].address = e.target.value;
+                                setSchedules(updated);
+                              }}
+                              placeholder="Jl. Diponegoro No. 12, Surabaya, Jawa Timur"
+                              className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none"
+                            />
+                          </div>
+
+                          {/* Live Preview Peta Google Maps */}
+                          {(sch.venueName || sch.address || sch.mapsUrl) && (
+                            <div className="pt-2">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-[#F97316]" />
+                                  <span>Preview Peta Google Maps:</span>
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  Otomatis sinkron dengan nama gedung &amp; alamat
+                                </span>
+                              </div>
+                              <div className="h-36 sm:h-44 w-full border border-slate-200 rounded-lg overflow-hidden bg-slate-50 relative shadow-inner">
+                                <iframe
+                                  src={getGoogleMapsEmbedUrl(sch.venueName, sch.address, sch.mapsUrl)}
+                                  className="w-full h-full border-0 block"
+                                  loading="lazy"
+                                  allowFullScreen
+                                  referrerPolicy="no-referrer-when-downgrade"
+                                  title={`Preview Lokasi ${sch.eventName || "Acara"}`}
+                                />
+                                <div className="absolute bottom-1 right-2 bg-slate-900/80 text-white text-[9px] px-2 py-0.5 rounded pointer-events-none flex items-center gap-1">
+                                  <span>Google Maps Lokasi Acara</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
 
             {tier === "FREE" && (
               <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-orange-950 text-xs flex items-center gap-2.5">
@@ -1609,8 +1840,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 3: Musik Latar Undangan (.mp3) */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 3: Musik Latar Undangan (.mp3) */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(2)}
@@ -1792,7 +2023,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                   className="hidden"
                 />
 
-                <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1.5 rounded-xl border border-slate-200 bg-slate-50/50 p-2">
+                <div className="max-h-64 overflow-y-auto divide-y divide-[#E2E8F0] border-y border-[#E2E8F0]">
                   {MUSIC_PRESETS.map((preset, idx) => {
                     const isCurrentSelected = musicUrl === preset.url;
                     const isThisPlaying = playingPresetUrl === preset.url;
@@ -1800,10 +2031,10 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     return (
                       <div
                         key={idx}
-                        className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
+                        className={`flex items-center justify-between py-2.5 px-1.5 transition-colors ${
                           isCurrentSelected
-                            ? "bg-orange-50/90 border-[#F97316] shadow-xs"
-                            : "bg-white border-[#E2E8F0] hover:border-slate-300 hover:bg-slate-50"
+                            ? "bg-orange-50/80 font-medium"
+                            : "hover:bg-slate-50"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-2">
@@ -1869,8 +2100,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 4: Video Teaser Prewedding (YouTube) */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 4: Video Teaser Prewedding (YouTube) */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(3)}
@@ -1922,7 +2153,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               </div>
 
               {/* Desktop Cover Toggle */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-2">
+              <div className="pt-4 border-t border-[#E2E8F0] space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <label
@@ -1961,7 +2192,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 const videoId = getYouTubeVideoId(youtubeVideoUrl);
                 if (!videoId) return null;
                 return (
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-2.5">
+                  <div className="pt-4 border-t border-[#E2E8F0] space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-slate-800 text-[11px] flex items-center gap-1.5">
                         <Video className="w-3.5 h-3.5 text-rose-500" />
@@ -1994,8 +2225,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 5: Galeri Foto Prewedding */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 5: Galeri Foto Prewedding */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(4)}
@@ -2051,7 +2282,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     },
                   ]);
                 }}
-                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs border transition-colors ${
+                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs border transition-colors w-fit self-start shrink-0 ${
                   (tier === "STARTER" || tier === "FREE") && galleries.length >= 10
                     ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                     : "bg-orange-50 text-[#F97316] hover:bg-orange-100 border-orange-100 cursor-pointer"
@@ -2082,13 +2313,13 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 pt-2">
               {galleries.map((gal, idx) => (
                 <div
                   key={idx}
-                  className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2.5 relative"
+                  className="border-b border-[#E2E8F0] pb-4 sm:border-b-0 sm:pb-0 space-y-2.5 relative"
                 >
-                  <div className="flex items-center justify-between pb-1.5 border-b border-[#E2E8F0]">
+                  <div className="flex items-center justify-between pb-1">
                     <span className="text-[11px] font-semibold text-slate-800">Foto #{idx + 1}</span>
                     <button
                       type="button"
@@ -2199,8 +2430,8 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 6: Amplop Digital & QRIS */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 6: Amplop Digital & QRIS */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
           onClick={() => toggleSection(5)}
@@ -2256,7 +2487,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                     },
                   ]);
                 }}
-                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs border transition-colors ${
+                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs border transition-colors w-fit self-start shrink-0 ${
                   (tier === "STARTER" || tier === "FREE") && bankAccounts.length >= 2
                     ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                     : "bg-orange-50 text-[#F97316] hover:bg-orange-100 border-orange-100 cursor-pointer"
@@ -2290,12 +2521,17 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             {bankAccounts.map((b, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3 relative"
+                className="pt-4 border-t border-[#E2E8F0] first:border-t-0 space-y-3 relative"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-                  <span className="font-semibold text-slate-900 text-xs">
-                    Rekening #{idx + 1}
-                  </span>
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs px-2 py-0.5 rounded bg-orange-100 text-[#F97316]">
+                      Rekening #{idx + 1}
+                    </span>
+                    <span className="font-semibold text-slate-800 text-xs">
+                      {b.bankName || "Bank / E-Wallet"}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -2531,75 +2767,232 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
                 </div>
               </div>
             ))}
-
-            {/* Physical Gift Delivery Address (Pengiriman Kado Fisik) */}
-            <div className="p-4 rounded-xl bg-orange-50/40 border border-orange-200/80 space-y-3.5 mt-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-orange-200/60">
-                <div className="w-7 h-7 rounded-lg bg-orange-100 text-[#F97316] flex items-center justify-center shrink-0">
-                  <Package className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900 text-xs">
-                    Alamat Pengiriman Kado Fisik (Opsional)
-                  </h4>
-                  <p className="text-[10.5px] text-slate-500">
-                    Ditampilkan pada tab Hadiah agar tamu undangan dapat mengirimkan kado atau parcel langsung ke kediaman Anda.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-slate-700 block mb-1 font-medium text-xs">
-                    Alamat Lengkap Penerima:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={giftAddress}
-                    onChange={(e) => setGiftAddress && setGiftAddress(e.target.value)}
-                    placeholder="Contoh: Jl. Anggrek No. 12, RT 03/RW 04, Menteng, Jakarta Pusat 10350"
-                    className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none resize-none leading-relaxed"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-slate-700 block mb-1 font-medium text-xs">
-                      Nama Penerima:
-                    </label>
-                    <input
-                      type="text"
-                      value={giftReceiver}
-                      onChange={(e) => setGiftReceiver && setGiftReceiver(e.target.value)}
-                      placeholder="Contoh: Versa &amp; Mekar"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs min-h-[40px] focus:border-[#F97316] outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-slate-700 block mb-1 font-medium text-xs">
-                      No. HP / WhatsApp Penerima:
-                    </label>
-                    <input
-                      type="text"
-                      value={giftPhone}
-                      onChange={(e) => setGiftPhone && setGiftPhone(e.target.value)}
-                      placeholder="Contoh: 0812-3456-7890"
-                      className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs min-h-[40px] focus:border-[#F97316] outline-none font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Accordion 7: Kisah Cinta (Love Story) */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 7: Alamat Pengiriman Kado Fisik (Terpisah & Multi-Alamat) */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection(6)}
+            className="w-full flex items-center justify-between p-4 text-left font-semibold text-sm sm:text-base text-slate-900 hover:bg-slate-50 min-h-[52px] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-50 text-[#F97316]">
+                <Package className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block">{sections[6].title}</span>
+                <span className="text-[11px] text-slate-400 font-normal">
+                  Alamat rumah / kantor untuk pengiriman kado fisik dari tamu
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none">
+                {giftAddresses.length} Alamat
+              </span>
+              {openSection === 6 ? (
+                <ChevronUp className="w-4 h-4 text-slate-500" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              )}
+            </div>
+          </button>
+
+          {openSection === 6 && (
+            <div className="p-4 sm:p-5 pt-0 border-t border-[#E2E8F0] space-y-4 text-xs animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-4">
+                <div>
+                  <p className="text-slate-500 text-xs">
+                    Tamu yang ingin mengirimkan bingkisan atau parcel dapat mengirimkannya langsung ke alamat berikut. Anda dapat menambahkan lebih dari satu alamat (misal: rumah mempelai wanita, rumah mempelai pria, atau orang tua).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!setGiftAddresses) return;
+                    setGiftAddresses([
+                      ...giftAddresses,
+                      {
+                        title: giftAddresses.length === 0 ? "Rumah Mempelai Wanita" : "Rumah Mempelai Pria",
+                        receiver: "",
+                        phone: "",
+                        address: "",
+                      },
+                    ]);
+                  }}
+                  className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg font-semibold text-xs border bg-orange-50 text-[#F97316] hover:bg-orange-100 border-orange-100 transition-colors w-fit self-start shrink-0 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Alamat Pengiriman</span>
+                </button>
+              </div>
+
+              {giftAddresses.length === 0 ? (
+                <div className="py-6 px-4 text-center border-y border-[#E2E8F0] space-y-2.5">
+                  <Package className="w-7 h-7 text-slate-300 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-700">Belum ada alamat pengiriman kado fisik</p>
+                  <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                    Tambahkan alamat jika Anda ingin menerima kiriman kado fisik atau parcel pernikahan dari tamu undangan.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!setGiftAddresses) return;
+                      setGiftAddresses([
+                        {
+                          title: "Rumah Mempelai",
+                          receiver: "",
+                          phone: "",
+                          address: "",
+                        },
+                      ]);
+                    }}
+                    className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Tambah Alamat Pengiriman</span>
+                  </button>
+                </div>
+              ) : (
+                giftAddresses.map((ga, idx) => (
+                  <div
+                    key={idx}
+                    className="pt-4 border-t border-[#E2E8F0] first:border-t-0 space-y-3 relative"
+                  >
+                    <div className="flex items-center justify-between pb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs px-2 py-0.5 rounded bg-orange-100 text-[#F97316]">
+                          Alamat #{idx + 1}
+                        </span>
+                        <span className="font-semibold text-slate-800 text-xs">
+                          {ga.title || "Alamat Pengiriman"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!setGiftAddresses) return;
+                          setGiftAddresses(giftAddresses.filter((_, i) => i !== idx));
+                        }}
+                        className="text-rose-500 hover:text-rose-700 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Hapus alamat ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-slate-600 block mb-1">
+                          Label / Nama Tempat (Opsional):
+                        </label>
+                        <input
+                          type="text"
+                          value={ga.title || ""}
+                          onChange={(e) => {
+                            if (!setGiftAddresses) return;
+                            const updated = [...giftAddresses];
+                            updated[idx].title = e.target.value;
+                            setGiftAddresses(updated);
+                          }}
+                          placeholder="Contoh: Rumah Mempelai Wanita / Kediaman Orang Tua"
+                          className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[40px] focus:border-[#F97316] outline-none"
+                        />
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                          <span className="text-[10px] text-slate-400">Pilihan Cepat:</span>
+                          {[
+                            "Rumah Mempelai Wanita",
+                            "Rumah Mempelai Pria",
+                            "Rumah Orang Tua",
+                            "Kantor / Lainnya",
+                          ].map((presetLabel) => (
+                            <button
+                              key={presetLabel}
+                              type="button"
+                              onClick={() => {
+                                if (!setGiftAddresses) return;
+                                const updated = [...giftAddresses];
+                                updated[idx].title = presetLabel;
+                                setGiftAddresses(updated);
+                              }}
+                              className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                                ga.title === presetLabel
+                                  ? "bg-orange-100 border-orange-300 text-orange-800 font-bold"
+                                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              {presetLabel}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-slate-600 block mb-1">Nama Penerima Kado:</label>
+                          <input
+                            type="text"
+                            value={ga.receiver}
+                            onChange={(e) => {
+                              if (!setGiftAddresses) return;
+                              const updated = [...giftAddresses];
+                              updated[idx].receiver = e.target.value;
+                              setGiftAddresses(updated);
+                            }}
+                            placeholder="Contoh: Siti Dewi / Rohim"
+                            className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[40px] focus:border-[#F97316] outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-slate-600 block mb-1">No. WhatsApp / HP Penerima:</label>
+                          <input
+                            type="text"
+                            value={ga.phone}
+                            onChange={(e) => {
+                              if (!setGiftAddresses) return;
+                              const updated = [...giftAddresses];
+                              updated[idx].phone = e.target.value;
+                              setGiftAddresses(updated);
+                            }}
+                            placeholder="Contoh: 0812-3456-7890"
+                            className="w-full px-3 py-2 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 min-h-[40px] focus:border-[#F97316] outline-none font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-slate-600 block mb-1">Alamat Lengkap Pengiriman:</label>
+                        <textarea
+                          rows={2}
+                          value={ga.address}
+                          onChange={(e) => {
+                            if (!setGiftAddresses) return;
+                            const updated = [...giftAddresses];
+                            updated[idx].address = e.target.value;
+                            setGiftAddresses(updated);
+                          }}
+                          placeholder="Jl. Anggrek No. 12, RT 03/RW 04, Menteng, Jakarta Pusat 10350"
+                          className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-white text-slate-900 text-xs focus:border-[#F97316] outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Accordion 8: Kisah Cinta (Love Story) */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
-          onClick={() => toggleSection(6)}
+          onClick={() => toggleSection(7)}
           className="w-full flex items-center justify-between p-4 text-left font-semibold text-sm sm:text-base text-slate-900 hover:bg-slate-50 min-h-[52px] transition-colors"
         >
           <div className="flex items-center gap-3">
@@ -2607,7 +3000,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <span className="block">{sections[6].title}</span>
+              <span className="block">{sections[7].title}</span>
               <span className="text-[11px] text-slate-400 font-normal">
                 Timeline perjalanan cinta dari pertama kenal hingga lamaran
               </span>
@@ -2617,7 +3010,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-none">
               {stories.length} Momen
             </span>
-            {openSection === 6 ? (
+            {openSection === 7 ? (
               <ChevronUp className="w-4 h-4 text-slate-500" />
             ) : (
               <ChevronDown className="w-4 h-4 text-slate-500" />
@@ -2625,7 +3018,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
           </div>
         </button>
 
-        {openSection === 6 && (
+        {openSection === 7 && (
           <div className="p-4 sm:p-5 pt-0 border-t border-[#E2E8F0] space-y-4 text-xs animate-in fade-in">
             <div className="flex items-center justify-between pt-4">
               <p className="text-slate-500 text-xs">
@@ -2653,10 +3046,17 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             {stories.map((st, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-3 relative"
+                className="pt-4 border-t border-[#E2E8F0] first:border-t-0 space-y-3 relative"
               >
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-                  <span className="font-semibold text-slate-900 text-xs">Momen #{idx + 1}</span>
+                <div className="flex items-center justify-between pb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                      Momen #{idx + 1}
+                    </span>
+                    <span className="font-semibold text-slate-800 text-xs truncate">
+                      {st.title || "Kisah Cinta"}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setStories(stories.filter((_, i) => i !== idx))}
@@ -2825,11 +3225,11 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
         )}
       </div>
 
-      {/* Accordion 8: Background & Hiasan Bunga Undangan */}
-      <div className="rounded-xl border border-[#E2E8F0] bg-white shadow-xs overflow-hidden">
+        {/* Accordion 9: Background & Hiasan Bunga Undangan */}
+        <div className="border-b border-[#E2E8F0] last:border-b-0 sm:border sm:border-[#E2E8F0] sm:rounded-xl bg-white sm:shadow-xs overflow-hidden">
         <button
           type="button"
-          onClick={() => toggleSection(7)}
+          onClick={() => toggleSection(8)}
           className="w-full flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left cursor-pointer"
         >
           <div className="flex items-center gap-3">
@@ -2837,7 +3237,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               <Palette className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-800">8. Background &amp; Hiasan Bunga Undangan</h3>
+              <h3 className="font-bold text-sm text-slate-800">{sections[8].title}</h3>
               <p className="text-xs text-slate-500">Pilih gambar latar belakang undangan &amp; dekorasi corak bunga di sudut</p>
             </div>
           </div>
@@ -2845,11 +3245,11 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-[#F97316]">
               {backgroundImage ? "Gambar Kustom" : "Default"}
             </span>
-            {openSection === 7 ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            {openSection === 8 ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
           </div>
         </button>
 
-        {openSection === 7 && (
+        {openSection === 8 && (
           <div className="p-4 sm:p-5 space-y-6 border-t border-[#E2E8F0] animate-in fade-in duration-200">
             {/* Bagian 1: Background Image */}
             <div className="space-y-3">
@@ -2943,7 +3343,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
               </div>
 
               {/* Upload Gambar Background Sendiri */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] space-y-3">
+              <div className="pt-4 border-t border-[#E2E8F0] space-y-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700 block mb-1.5">
                     Foto / Gambar Background Kustom (Maks. 2MB):
@@ -3094,6 +3494,7 @@ export const ContentEditorTab: React.FC<ContentEditorTabProps> = ({
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };

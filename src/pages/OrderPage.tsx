@@ -23,6 +23,7 @@ import {
   Upload,
   LogOut,
   Eye,
+  X,
 } from "lucide-react";
 import GoogleTranslateWidget from "@/components/shared/GoogleTranslateWidget";
 import NotificationBell from "@/components/shared/NotificationBell";
@@ -78,6 +79,21 @@ export default function OrderPage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Auto-dismiss popup notification setelah 7 detik
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   // Form State
   const [selectedTier, setSelectedTier] = useState<Tier>("ELEGANT");
@@ -743,29 +759,75 @@ export default function OrderPage() {
         </div>
       </div>
 
+      {/* Floating Top Popup Notification for High Visibility */}
+      {errorMsg && (
+        <aside
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] sm:w-auto sm:min-w-[420px] max-w-lg transition-all animate-in fade-in slide-in-from-top-4 duration-300"
+        >
+          <div className="rounded-2xl bg-white border border-rose-200 shadow-2xl p-4 flex items-start gap-3.5 ring-1 ring-rose-500/10">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0 mt-0.5">
+              <AlertCircle className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900">Terjadi Kesalahan</h4>
+                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                  Perhatian
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1 font-medium">
+                {errorMsg}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+              title="Tutup pemberitahuan"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {successMsg && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] sm:w-auto sm:min-w-[420px] max-w-lg transition-all animate-in fade-in slide-in-from-top-4 duration-300"
+        >
+          <div className="rounded-2xl bg-white border border-emerald-200 shadow-2xl p-4 flex items-start gap-3.5 ring-1 ring-emerald-500/10">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+              <CheckCircle2 className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900">Berhasil</h4>
+                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                  Sukses
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mt-1 font-medium">
+                {successMsg}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccessMsg(null)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
+              title="Tutup pemberitahuan"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </aside>
+      )}
+
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 pt-8">
-        {/* Messages */}
-        {errorMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 text-red-800 text-sm">
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold">Terjadi Kesalahan</p>
-              <p className="text-xs text-red-700 mt-0.5">{errorMsg}</p>
-            </div>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-emerald-800 text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-semibold">Berhasil</p>
-              <p className="text-xs text-emerald-700 mt-0.5">{successMsg}</p>
-            </div>
-          </div>
-        )}
-
         {/* STEP 1: SELECT PACKAGE */}
         {step === "package" && (
           <div className="space-y-8 max-w-5xl mx-auto">

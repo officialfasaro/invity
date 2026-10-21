@@ -2,9 +2,12 @@
 
 import React from "react";
 import {
+  Activity,
   CheckCircle2,
+  Eye,
   HelpCircle,
   MessageSquare,
+  Smartphone,
   UserCheck,
   Users,
   XCircle,
@@ -27,6 +30,12 @@ export interface WishItem {
   createdAt: string | Date;
 }
 
+export interface InvitationAnalyticsData {
+  totalViews: number;
+  todayViews: number;
+  mobilePercent: number;
+}
+
 export interface RsvpRecapData {
   totalResponses: number;
   attendingCount: number;
@@ -34,18 +43,21 @@ export interface RsvpRecapData {
   tentativeCount: number;
   totalPax: number;
   rsvps: RsvpItem[];
+  analytics?: InvitationAnalyticsData;
 }
 
 interface RsvpRecapTabProps {
   rsvpRecap: RsvpRecapData | null;
   wishes?: WishItem[];
   isLoading: boolean;
+  liveCount?: number;
 }
 
 export const RsvpRecapTab: React.FC<RsvpRecapTabProps> = ({
   rsvpRecap,
   wishes = [],
   isLoading,
+  liveCount = 0,
 }) => {
   const totalResponses = rsvpRecap?.totalResponses || 0;
   const attendingCount = rsvpRecap?.attendingCount || 0;
@@ -54,16 +66,102 @@ export const RsvpRecapTab: React.FC<RsvpRecapTabProps> = ({
   const totalPax = rsvpRecap?.totalPax || 0;
   const rsvps = rsvpRecap?.rsvps || [];
 
+  const totalViews = rsvpRecap?.analytics?.totalViews || 0;
+  const todayViews = rsvpRecap?.analytics?.todayViews || 0;
+  const mobilePercent = rsvpRecap?.analytics?.mobilePercent ?? 100;
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold tracking-tight text-slate-900">
-          Rekap Kehadiran Tamu (RSVP)
+          Statistik Pengunjung & Kehadiran (RSVP)
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Pantau konfirmasi kehadiran para tamu undangan secara realtime untuk akurasi porsi jamuan.
+          Pantau pengunjung undangan dan konfirmasi kehadiran para tamu secara realtime.
         </p>
+      </div>
+
+      {/* Visitor Analytics & Live Presence Grid */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Aktivitas Pengunjung Undangan
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{liveCount} Sedang Membuka Undangan</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Sedang Online */}
+          <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">Sedang Online</span>
+              <div className="p-1 rounded-md bg-emerald-50 text-emerald-600">
+                <Activity className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 pt-0.5">
+              <span className="text-2xl font-bold text-slate-900">{liveCount}</span>
+              <span className="text-xs text-slate-500">Orang</span>
+            </div>
+            <p className="text-[11px] text-emerald-600 font-medium">Real-time detik ini</p>
+          </div>
+
+          {/* 2. Total Kunjungan */}
+          <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">Total Kunjungan</span>
+              <div className="p-1 rounded-md bg-orange-50 text-[#F97316]">
+                <Eye className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 pt-0.5">
+              <span className="text-2xl font-bold text-slate-900">{totalViews}</span>
+              <span className="text-xs text-slate-500">Kali Dilihat</span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium">Akumulasi seluruh tamu</p>
+          </div>
+
+          {/* 3. Hari Ini */}
+          <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">Kunjungan Hari Ini</span>
+              <div className="p-1 rounded-md bg-sky-50 text-sky-600">
+                <Users className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 pt-0.5">
+              <span className="text-2xl font-bold text-slate-900">{todayViews}</span>
+              <span className="text-xs text-slate-500">Tamu</span>
+            </div>
+            <p className="text-[11px] text-sky-600 font-medium">Akses hari ini</p>
+          </div>
+
+          {/* 4. Perangkat Smartphone */}
+          <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">Perangkat Tamu</span>
+              <div className="p-1 rounded-md bg-slate-100 text-slate-600">
+                <Smartphone className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1 pt-0.5">
+              <span className="text-2xl font-bold text-slate-900">{mobilePercent}%</span>
+              <span className="text-xs text-slate-500">Mobile</span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium">Smartphone / HP</p>
+          </div>
+        </div>
+      </div>
+
+      {/* RSVP Section Divider */}
+      <div className="pt-2 border-t border-[#E2E8F0]">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          Konfirmasi Kehadiran Tamu (RSVP)
+        </span>
       </div>
 
       {/* Metric Cards Grid (Mobile 2 cols, Desktop 4 cols) */}

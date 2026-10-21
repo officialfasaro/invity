@@ -116,7 +116,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white border border-[#E2E8F0] shadow-xl z-50 overflow-hidden text-left animate-in fade-in-50 zoom-in-95 duration-150">
+        <>
+          {/* Backdrop on mobile for easy dismiss */}
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-2xs md:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+
+          <div className="fixed inset-x-3 top-[68px] max-w-sm mx-auto md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-2 md:w-96 md:max-w-none md:mx-0 rounded-2xl bg-white border border-[#E2E8F0] shadow-xl z-50 overflow-hidden text-left animate-in fade-in-50 zoom-in-95 duration-150">
           {/* Header */}
           <div className="p-3.5 border-b border-[#E2E8F0] flex items-center justify-between bg-slate-50/80">
             <div className="flex items-center gap-2">
@@ -231,7 +238,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ className = 
             )}
           </div>
         </div>
-      )}
+      </>
+    )}
     </div>
   );
 };

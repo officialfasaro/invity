@@ -5,6 +5,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ExternalLink,
+  MessageCircle,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -21,6 +22,9 @@ interface VerificationItem {
   paymentStatus: string;
   proofImageUrl?: string | null;
   createdAt: string;
+  clientPhone?: string | null;
+  groomName?: string;
+  brideName?: string;
   user: {
     id: string;
     name: string;
@@ -36,7 +40,7 @@ interface VerificationItem {
 export default function VerifikasiManualAdminPage() {
   const [items, setItems] = useState<VerificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeModalImg, setActiveModalImg] = useState<string | null>(null);
+  const [activeModalItem, setActiveModalItem] = useState<VerificationItem | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(
     null
@@ -46,6 +50,52 @@ export default function VerifikasiManualAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("WAITING_VERIFICATION");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState("ALL");
+
+  const createWhatsAppMessage = (item: VerificationItem) => {
+    const coupleName =
+      (item.groomName && item.brideName ? `${item.groomName} & ${item.brideName}` : "") ||
+      item.user?.name ||
+      "Mempelai";
+    const formattedAmount = `Rp ${Number(item.amount).toLocaleString("id-ID")}`;
+    const invTitle = item.invitation?.title ? ` ("${item.invitation.title}")` : "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const verificationUrl = `${origin}/payment-status?orderId=${encodeURIComponent(item.orderId)}`;
+
+    return (
+      `Halo Kak ${coupleName}, salam hangat dari Tim Fasaro Invity.\n\n` +
+      `Kami sedang memverifikasi pembayaran untuk pesanan undangan Anda:\n` +
+      `• No. Pesanan: ${item.orderId}\n` +
+      `• Paket: ${item.tier} (${formattedAmount})${invTitle}\n\n` +
+      `Mohon maaf, bukti transfer yang diunggah belum sesuai atau belum terbaca dengan jelas pada sistem kami.\n` +
+      `Bolehkah dibantu kirimkan ulang foto bukti transfer yang jelas (menampilkan nominal transfer, tanggal/jam, serta nomor rekening tujuan)?\n\n` +
+      `Kakak juga dapat mengecek status verifikasi pembayaran melalui tautan berikut:\n` +
+      `${verificationUrl}\n\n` +
+      `Terima kasih banyak atas kerja samanya ya Kak`
+    );
+  };
+
+  const handleChatWhatsApp = (item: VerificationItem) => {
+    let phone = item.clientPhone;
+    if (!phone || !phone.trim()) {
+      const input = window.prompt(
+        `Nomor WhatsApp mempelai belum terdata di profil.\nSilakan masukkan nomor WhatsApp untuk ${item.user?.name || "mempelai"}:`,
+        ""
+      );
+      if (!input || !input.trim()) return;
+      phone = input.trim();
+    }
+
+    let cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (cleanPhone.startsWith("0")) {
+      cleanPhone = "62" + cleanPhone.slice(1);
+    } else if (cleanPhone.startsWith("8")) {
+      cleanPhone = "62" + cleanPhone;
+    }
+
+    const message = createWhatsAppMessage(item);
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
 
   const fetchItems = async (status: string, type: string) => {
     setIsLoading(true);
@@ -129,6 +179,9 @@ export default function VerifikasiManualAdminPage() {
       const orderId = (item.orderId || "").toLowerCase();
       const userName = (item.user?.name || "").toLowerCase();
       const userEmail = (item.user?.email || "").toLowerCase();
+      const phone = (item.clientPhone || "").toLowerCase();
+      const groom = (item.groomName || "").toLowerCase();
+      const bride = (item.brideName || "").toLowerCase();
       const invTitle = (item.invitation?.title || "").toLowerCase();
       const invSlug = (item.invitation?.slug || "").toLowerCase();
       const tier = (item.tier || "").toLowerCase();
@@ -139,6 +192,9 @@ export default function VerifikasiManualAdminPage() {
         orderId.includes(q) ||
         userName.includes(q) ||
         userEmail.includes(q) ||
+        phone.includes(q) ||
+        groom.includes(q) ||
+        bride.includes(q) ||
         invTitle.includes(q) ||
         invSlug.includes(q) ||
         tier.includes(q) ||
@@ -210,7 +266,7 @@ export default function VerifikasiManualAdminPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari berdasarkan Order ID (FSR-...), nama, email, judul undangan, paket..."
+                placeholder="Cari berdasarkan Order ID (FSR-...), nama, email, no HP, judul undangan, paket..."
                 className="w-full pl-10 pr-9 py-2 text-xs rounded-lg border border-[#E2E8F0] bg-slate-50/50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#F97316] focus:bg-white focus:ring-1 focus:ring-[#F97316] transition-all"
               />
               {searchQuery && (
@@ -361,6 +417,17 @@ export default function VerifikasiManualAdminPage() {
                           {item.user?.name || "User"}
                         </p>
                         <p className="text-slate-500 text-[11px]">{item.user?.email}</p>
+                        {item.clientPhone && (
+                          <button
+                            type="button"
+                            onClick={() => handleChatWhatsApp(item)}
+                            className="inline-flex items-center gap-1 text-[11px] text-emerald-600 hover:text-emerald-700 hover:underline font-medium mt-0.5 cursor-pointer"
+                            title="Klik untuk chat WhatsApp mempelai"
+                          >
+                            <MessageCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>{item.clientPhone}</span>
+                          </button>
+                        )}
                         {item.invitation && (
                           <div className="mt-1 flex items-center gap-1 text-[11px] text-[#F97316]">
                             <span className="font-medium">{item.invitation.title}</span>
@@ -388,14 +455,16 @@ export default function VerifikasiManualAdminPage() {
                       <td className="py-3.5 px-5 align-top">
                         {item.proofImageUrl ? (
                           <button
-                            onClick={() => setActiveModalImg(item.proofImageUrl as string)}
-                            className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#E2E8F0] hover:border-[#F97316] transition-colors cursor-pointer"
+                            type="button"
+                            onClick={() => setActiveModalItem(item)}
+                            className="relative w-14 h-14 rounded-lg overflow-hidden border border-[#E2E8F0] hover:border-[#F97316] transition-colors cursor-pointer group"
+                            title="Klik untuk melihat bukti transfer & chat WhatsApp"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={item.proofImageUrl}
                               alt="Bukti Transfer"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                             />
                           </button>
                         ) : (
@@ -405,8 +474,19 @@ export default function VerifikasiManualAdminPage() {
 
                       <td className="py-3.5 px-5 align-top text-right">
                         {item.paymentStatus === "WAITING_VERIFICATION" ? (
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5">
                             <button
+                              type="button"
+                              onClick={() => handleChatWhatsApp(item)}
+                              className="inline-flex items-center gap-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-2xs transition-colors cursor-pointer"
+                              title="Chat WhatsApp mempelai untuk konfirmasi / verifikasi bukti transfer"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Chat WA</span>
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => handleAction(item.id, "APPROVE")}
                               disabled={processingId === item.id}
                               className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
@@ -416,6 +496,7 @@ export default function VerifikasiManualAdminPage() {
                             </button>
 
                             <button
+                              type="button"
                               onClick={() => handleAction(item.id, "REJECT")}
                               disabled={processingId === item.id}
                               className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 disabled:opacity-50 transition-colors cursor-pointer"
@@ -425,20 +506,53 @@ export default function VerifikasiManualAdminPage() {
                             </button>
                           </div>
                         ) : item.paymentStatus === "SETTLEMENT" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Disetujui</span>
-                          </span>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-semibold text-[11px] border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Disetujui</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleChatWhatsApp(item)}
+                              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-medium"
+                              title="Chat WhatsApp Mempelai"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Chat WA</span>
+                            </button>
+                          </div>
                         ) : item.paymentStatus === "CANCELLED" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-semibold text-[11px] border border-rose-200">
-                            <XCircle className="w-3.5 h-3.5" />
-                            <span>Ditolak</span>
-                          </span>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 font-semibold text-[11px] border border-rose-200">
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Ditolak</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleChatWhatsApp(item)}
+                              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-medium"
+                              title="Chat WhatsApp Mempelai"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Chat WA</span>
+                            </button>
+                          </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            <span>{item.paymentStatus}</span>
-                          </span>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              <span>{item.paymentStatus}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleChatWhatsApp(item)}
+                              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px] font-medium"
+                              title="Chat WhatsApp Mempelai"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Chat WA</span>
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -450,10 +564,10 @@ export default function VerifikasiManualAdminPage() {
         </div>
       </div>
 
-      {/* Proof Image Modal */}
-      {activeModalImg && (
+      {/* Proof Image & WhatsApp Verification Modal */}
+      {activeModalItem && activeModalItem.proofImageUrl && (
         <div
-          onClick={() => setActiveModalImg(null)}
+          onClick={() => setActiveModalItem(null)}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs"
         >
           <div
@@ -461,21 +575,44 @@ export default function VerifikasiManualAdminPage() {
             className="relative max-w-lg w-full bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-xl"
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-3">
-              <h4 className="font-semibold text-xs text-slate-800">Bukti Transfer</h4>
+              <div>
+                <h4 className="font-semibold text-xs text-slate-800">Detail Bukti Transfer</h4>
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                  {activeModalItem.orderId} • {activeModalItem.user?.name || "Mempelai"}
+                </p>
+              </div>
               <button
-                onClick={() => setActiveModalImg(null)}
+                type="button"
+                onClick={() => setActiveModalItem(null)}
                 className="text-slate-400 hover:text-slate-700 text-xs font-bold cursor-pointer"
               >
                 ✕ Tutup
               </button>
             </div>
-            <div className="w-full max-h-[70vh] overflow-y-auto rounded-xl flex items-center justify-center bg-[#F3F6FB] border border-[#E2E8F0] p-2">
+
+            <div className="w-full max-h-[60vh] overflow-y-auto rounded-xl flex items-center justify-center bg-[#F3F6FB] border border-[#E2E8F0] p-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={activeModalImg}
+                src={activeModalItem.proofImageUrl}
                 alt="Bukti Transfer Detail"
                 className="w-full h-auto object-contain rounded-lg"
               />
+            </div>
+
+            {/* Modal WhatsApp Follow-up Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 mt-3 border-t border-[#E2E8F0]">
+              <div className="text-[11px] text-slate-500">
+                <p className="font-semibold text-slate-700">Bukti tidak sesuai / nominal berbeda?</p>
+                <p className="text-[10px] text-slate-400">Hubungi mempelai via WhatsApp untuk klarifikasi bukti transfer.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleChatWhatsApp(activeModalItem)}
+                className="inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer shrink-0"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>Chat WA Mempelai</span>
+              </button>
             </div>
           </div>
         </div>

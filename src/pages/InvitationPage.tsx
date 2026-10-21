@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import ThemeRenderer from "@/components/templates/ThemeRenderer";
 import { WeddingInvitationData, ThemeId } from "@/types/wedding";
+import { useVisitorPresence } from "@/utils/useInvitationPresence";
 
 function getDemoWeddingData(slug: string): WeddingInvitationData | null {
   const isWedding3D =
@@ -502,6 +503,9 @@ export default function InvitationPage() {
   const [data, setData] = useState<WeddingInvitationData | null>(() => (slug ? getDemoWeddingData(slug) : null));
   const [loading, setLoading] = useState<boolean>(() => !slug || !getDemoWeddingData(slug));
   const [error, setError] = useState(false);
+
+  // Track live visitor presence via Supabase Realtime
+  useVisitorPresence({ slug, guestName });
 
   useEffect(() => {
     if (!slug) return;

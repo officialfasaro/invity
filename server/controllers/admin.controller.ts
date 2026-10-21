@@ -11,6 +11,12 @@ import {
   syncCmsSettingsToSanity,
   syncInvitationToSanity,
   testSanityConnection,
+  getSanityThemes,
+  createOrUpdateSanityTheme,
+  deleteSanityTheme,
+  uploadSanityAsset,
+  getSanityCmsSettings,
+  seedDefaultThemesToSanity,
 } from "../services/sanity.service";
 import { z } from "zod";
 
@@ -474,45 +480,67 @@ export async function getThemes(
   next: NextFunction
 ): Promise<void> {
   try {
-    let themes = await prisma.themeCatalog.findMany({
+    // 1. Ambil data tema dari Sanity CMS sebagai primary source of truth
+    let sanityThemes = await getSanityThemes();
+
+    // Jika Sanity masih kosong, seed 5 tema bawaan
+    if (!sanityThemes || sanityThemes.length === 0) {
+      sanityThemes = await seedDefaultThemesToSanity();
+    }
+
+    // 2. Ambil data Prisma untuk mapping id relasional di Supabase/Postgres
+    const dbThemes = await prisma.themeCatalog.findMany({
       orderBy: { createdAt: "asc" },
     });
+    const dbThemesMap = new Map(dbThemes.map((t) => [t.themeKey, t]));
 
-    // Ensure all 5 official themes are present in the catalog
-    const existingKeys = new Set(themes.map((t) => t.themeKey));
-    const missing = DEFAULT_THEMES_TO_SEED.filter((dt) => !existingKeys.has(dt.themeKey));
-    if (missing.length > 0) {
-      for (const m of missing) {
-        await prisma.themeCatalog.upsert({
-          where: { themeKey: m.themeKey },
-          update: m,
-          create: m,
+    // Sinkronkan tema Sanity ke database Prisma (agar database tetap konsisten dan memiliki data id)
+    for (const st of sanityThemes) {
+      if (!dbThemesMap.has(st.themeKey)) {
+        const created = await prisma.themeCatalog.create({
+          data: {
+            themeKey: st.themeKey,
+            name: st.name,
+            category: st.category,
+            thumbnail: st.thumbnail,
+            previewUrl: st.previewUrl,
+            isActive: st.isActive,
+            isPremium: st.isPremium,
+          },
         });
+        dbThemesMap.set(st.themeKey, created);
       }
-      themes = await prisma.themeCatalog.findMany({
-        orderBy: { createdAt: "asc" },
-      });
     }
 
     const settings = await prisma.systemSetting.findMany({
       where: { key: { startsWith: "template_features_" } },
     });
-
     const settingsMap = new Map(settings.map((s) => [s.key, s.value]));
 
-    const enriched = themes.map((t) => {
-      const settingVal = settingsMap.get(`template_features_${t.themeKey}`);
-      let parsedFeatures = ALL_DEFAULT_THEME_FEATURES;
+    // 3. Gabungkan data Sanity dengan fallback lokal
+    const enriched = sanityThemes.map((st) => {
+      const dbItem = dbThemesMap.get(st.themeKey);
+      const settingVal = settingsMap.get(`template_features_${st.themeKey}`);
+      let parsedFeatures = st.features && st.features.length > 0 ? st.features : ALL_DEFAULT_THEME_FEATURES;
       if (settingVal) {
         try {
           parsedFeatures = JSON.parse(settingVal);
         } catch {
-          // fallback to default
+          // fallback
         }
       }
       return {
-        ...t,
+        id: dbItem?.id || `sanity-${st.themeKey}`,
+        themeKey: st.themeKey,
+        name: st.name,
+        category: st.category,
+        thumbnail: st.thumbnail,
+        previewUrl: st.previewUrl || `/invitation/demo-${st.themeKey}`,
+        isActive: st.isActive,
+        isPremium: st.isPremium,
         features: parsedFeatures,
+        designConfig: st.designConfig,
+        source: "sanity",
       };
     });
 
@@ -528,7 +556,7 @@ export async function createTheme(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { themeKey, name, category, thumbnail, isPremium, isActive, features } = req.body;
+    const { themeKey, name, category, thumbnail, isPremium, isActive, features, designConfig } = req.body;
 
     if (!themeKey || !name || !thumbnail) {
       res.status(400).json({
@@ -539,9 +567,32 @@ export async function createTheme(
     }
 
     const cleanKey = themeKey.toLowerCase().trim();
+    const featureList = Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES;
 
-    const newTheme = await prisma.themeCatalog.create({
-      data: {
+    // 1. Simpan metadata & template design ke Sanity CMS
+    await createOrUpdateSanityTheme({
+      themeKey: cleanKey,
+      name,
+      category: category || "Modern Chic",
+      thumbnail,
+      previewUrl: `/invitation/demo-${cleanKey}`,
+      isPremium: Boolean(isPremium),
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      features: featureList,
+      designConfig: designConfig || {},
+    });
+
+    // 2. Simpan referensi ke database Prisma (Supabase)
+    const newTheme = await prisma.themeCatalog.upsert({
+      where: { themeKey: cleanKey },
+      update: {
+        name,
+        category: category || "Modern Chic",
+        thumbnail,
+        isPremium: Boolean(isPremium),
+        isActive: isActive !== undefined ? Boolean(isActive) : true,
+      },
+      create: {
         themeKey: cleanKey,
         name,
         category: category || "Modern Chic",
@@ -551,7 +602,6 @@ export async function createTheme(
       },
     });
 
-    const featureList = Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES;
     await prisma.systemSetting.upsert({
       where: { key: `template_features_${cleanKey}` },
       update: { value: JSON.stringify(featureList) },
@@ -564,10 +614,11 @@ export async function createTheme(
 
     res.json({
       success: true,
-      message: "Tema baru berhasil ditambahkan",
+      message: "Tema baru berhasil ditambahkan ke Sanity CMS & Database",
       data: {
         ...newTheme,
         features: featureList,
+        source: "sanity",
       },
     });
   } catch (error) {
@@ -581,13 +632,39 @@ export async function updateTheme(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { id, name, category, thumbnail, isPremium, isActive, features } = req.body;
+    const { id, name, category, thumbnail, isPremium, isActive, features, designConfig } = req.body;
 
     if (!id) {
       res.status(400).json({ success: false, error: "id tema wajib disertakan" });
       return;
     }
 
+    const existingTheme = await prisma.themeCatalog.findUnique({
+      where: { id },
+    });
+
+    if (!existingTheme) {
+      res.status(404).json({ success: false, error: "Tema tidak ditemukan" });
+      return;
+    }
+
+    const featureList = features !== undefined
+      ? (Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES)
+      : undefined;
+
+    // 1. Perbarui di Sanity CMS
+    await createOrUpdateSanityTheme({
+      themeKey: existingTheme.themeKey,
+      name: name || existingTheme.name,
+      category: category || existingTheme.category,
+      thumbnail: thumbnail || existingTheme.thumbnail,
+      isPremium: isPremium !== undefined ? Boolean(isPremium) : existingTheme.isPremium,
+      isActive: isActive !== undefined ? Boolean(isActive) : existingTheme.isActive,
+      ...(featureList && { features: featureList }),
+      ...(designConfig && { designConfig }),
+    });
+
+    // 2. Perbarui di Prisma (Supabase)
     const updated = await prisma.themeCatalog.update({
       where: { id },
       data: {
@@ -600,8 +677,8 @@ export async function updateTheme(
     });
 
     let currentFeatures = ALL_DEFAULT_THEME_FEATURES;
-    if (features !== undefined) {
-      currentFeatures = Array.isArray(features) ? features : ALL_DEFAULT_THEME_FEATURES;
+    if (featureList) {
+      currentFeatures = featureList;
       await prisma.systemSetting.upsert({
         where: { key: `template_features_${updated.themeKey}` },
         update: { value: JSON.stringify(currentFeatures) },
@@ -626,10 +703,11 @@ export async function updateTheme(
 
     res.json({
       success: true,
-      message: "Tema berhasil diperbarui",
+      message: "Tema berhasil diperbarui di Sanity CMS & Database",
       data: {
         ...updated,
         features: currentFeatures,
+        source: "sanity",
       },
     });
   } catch (error) {
@@ -667,7 +745,10 @@ export async function deleteTheme(
       return;
     }
 
-    // Ekosistem cleanup: Cari seluruh undangan yang masih memakai tema ini
+    // 1. Hapus dari Sanity CMS
+    await deleteSanityTheme(existingTheme.themeKey);
+
+    // 2. Ekosistem cleanup: Cari seluruh undangan yang masih memakai tema ini
     const affectedInvitations = await prisma.invitation.findMany({
       where: { themeId: existingTheme.themeKey },
       select: { id: true, slug: true },
@@ -696,15 +777,15 @@ export async function deleteTheme(
       }
     }
 
-    // Hapus dari database
+    // 3. Hapus dari database Prisma
     await prisma.themeCatalog.delete({ where: { id } });
 
     res.json({
       success: true,
       message:
         affectedInvitations.length > 0
-          ? `Tema "${existingTheme.name}" berhasil dihapus. ${affectedInvitations.length} undangan aktif telah dialihkan ke tema Minimalist.`
-          : `Tema "${existingTheme.name}" berhasil dihapus dari katalog.`,
+          ? `Tema "${existingTheme.name}" berhasil dihapus dari Sanity CMS & Database. ${affectedInvitations.length} undangan aktif telah dialihkan ke tema Minimalist.`
+          : `Tema "${existingTheme.name}" berhasil dihapus dari Sanity CMS & Database.`,
       affectedInvitationsCount: affectedInvitations.length,
     });
   } catch (error) {
@@ -788,15 +869,19 @@ export async function getAdminSettings(
   next: NextFunction
 ): Promise<void> {
   try {
-    const dbSettings = await prisma.systemSetting.findMany();
+    const [dbSettings, sanitySettings] = await Promise.all([
+      prisma.systemSetting.findMany(),
+      getSanityCmsSettings().catch(() => null),
+    ]);
     const dbMap = new Map(dbSettings.map((s) => [s.key, s]));
 
     const merged = SYSTEM_SETTING_DEFINITIONS.map((def) => {
       const fromDb = dbMap.get(def.key);
+      const fromSanity = sanitySettings ? sanitySettings[def.key] : undefined;
       return {
         id: fromDb?.id ?? `def-${def.key}`,
         key: def.key,
-        value: fromDb?.value ?? def.defaultValue,
+        value: fromSanity !== undefined ? fromSanity : (fromDb?.value ?? def.defaultValue),
         label: def.label,
         description: fromDb?.description || def.description,
         category: def.category,
@@ -900,10 +985,18 @@ export async function getAdminPayments(
         where,
         include: {
           user: {
-            select: { id: true, name: true, email: true },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              invitations: {
+                take: 1,
+                select: { coupleInfo: true },
+              },
+            },
           },
           invitation: {
-            select: { id: true, title: true, slug: true },
+            select: { id: true, title: true, slug: true, coupleInfo: true },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -971,26 +1064,42 @@ export async function getAdminPayments(
     res.json({
       success: true,
       data: {
-        transactions: transactions.map((tx) => ({
-          id: tx.id,
-          orderId: tx.orderId,
-          amount: Number(tx.amount),
-          paymentType: tx.paymentType,
-          paymentStatus: tx.paymentStatus,
-          tier: tx.tier,
-          proofImageUrl: tx.proofImageUrl,
-          verifiedAt: tx.verifiedAt,
-          verifiedBy: tx.verifiedBy,
-          createdAt: tx.createdAt,
-          user: tx.user,
-          invitation: tx.invitation
-            ? {
-                id: tx.invitation.id,
-                title: tx.invitation.title,
-                slug: tx.invitation.slug,
-              }
-            : null,
-        })),
+        transactions: transactions.map((tx) => {
+          const couple =
+            ((tx.invitation?.coupleInfo as Record<string, unknown>) ||
+            (tx.user?.invitations?.[0]?.coupleInfo as Record<string, unknown>) ||
+            {}) as Record<string, unknown>;
+          const phone =
+            (typeof couple.phoneNumber === "string" ? couple.phoneNumber : null) ||
+            (typeof couple.giftPhone === "string" ? couple.giftPhone : null) ||
+            null;
+          const groom = typeof couple.groomName === "string" ? couple.groomName : "";
+          const bride = typeof couple.brideName === "string" ? couple.brideName : "";
+
+          return {
+            id: tx.id,
+            orderId: tx.orderId,
+            amount: Number(tx.amount),
+            paymentType: tx.paymentType,
+            paymentStatus: tx.paymentStatus,
+            tier: tx.tier,
+            proofImageUrl: tx.proofImageUrl,
+            verifiedAt: tx.verifiedAt,
+            verifiedBy: tx.verifiedBy,
+            createdAt: tx.createdAt,
+            user: tx.user,
+            clientPhone: phone,
+            groomName: groom,
+            brideName: bride,
+            invitation: tx.invitation
+              ? {
+                  id: tx.invitation.id,
+                  title: tx.invitation.title,
+                  slug: tx.invitation.slug,
+                }
+              : null,
+          };
+        }),
         analytics: {
           totalAllTimeRevenue,
           monthlySettledRevenue,
@@ -1047,16 +1156,46 @@ export async function getVerifyPayments(
       where: whereClause,
       include: {
         user: {
-          select: { id: true, name: true, email: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            invitations: {
+              take: 1,
+              select: { coupleInfo: true },
+            },
+          },
         },
         invitation: {
-          select: { id: true, title: true, slug: true },
+          select: { id: true, title: true, slug: true, coupleInfo: true },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.json({ data: transactions });
+    const mapped = transactions.map((tx) => {
+      const couple =
+        ((tx.invitation?.coupleInfo as Record<string, unknown>) ||
+        (tx.user?.invitations?.[0]?.coupleInfo as Record<string, unknown>) ||
+        {}) as Record<string, unknown>;
+
+      const phone =
+        (typeof couple.phoneNumber === "string" ? couple.phoneNumber : null) ||
+        (typeof couple.giftPhone === "string" ? couple.giftPhone : null) ||
+        null;
+
+      const groom = typeof couple.groomName === "string" ? couple.groomName : "";
+      const bride = typeof couple.brideName === "string" ? couple.brideName : "";
+
+      return {
+        ...tx,
+        clientPhone: phone,
+        groomName: groom,
+        brideName: bride,
+      };
+    });
+
+    res.json({ data: mapped });
   } catch (error) {
     next(error);
   }
@@ -1597,6 +1736,26 @@ export async function adminUpload(
       return;
     }
 
+    // 1. Upload ke Sanity Asset Pipeline (CDN global Sanity, menghemat storage Supabase)
+    const sanityUpload = await uploadSanityAsset(
+      file.buffer,
+      file.originalname,
+      file.mimetype || "image/jpeg"
+    );
+
+    if (sanityUpload.success && sanityUpload.url) {
+      res.json({
+        success: true,
+        url: sanityUpload.url,
+        filename: file.originalname,
+        sizeBytes: file.size,
+        mimeType: file.mimetype,
+        storageProvider: "sanity_cdn",
+      });
+      return;
+    }
+
+    // Fallback lokal jika Sanity client tidak terjangkau
     const sanitizedFolder = folder.replace(/[^a-z0-9_-]/gi, "").toLowerCase() || "cms";
     const uploadDir = path.join(process.cwd(), "public", "uploads", sanitizedFolder);
     await fs.mkdir(uploadDir, { recursive: true });
@@ -1618,6 +1777,7 @@ export async function adminUpload(
       filename: uniqueFilename,
       sizeBytes: file.size,
       mimeType: file.mimetype,
+      storageProvider: "local",
     });
   } catch (error) {
     next(error);

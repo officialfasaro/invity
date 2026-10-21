@@ -14,6 +14,17 @@ import {
   invalidateInvitationCache,
 } from "../services/cache.service";
 import { getPublicSettingsMap } from "../services/settings.service";
+import {
+  getSanityThemes,
+  getSanityThemeByKey,
+  seedDefaultThemesToSanity,
+} from "../services/sanity.service";
+import {
+  recordInvitationVisit,
+  recordVisitorHeartbeat,
+  removeVisitorSession,
+  getLiveVisitorsCount,
+} from "../services/analytics.service";
 
 const INITIAL_DEMO_WISHES = [
   {
@@ -62,7 +73,142 @@ export async function getPublicInvitation(
       return;
     }
 
-    res.json({ data: { ...invitation, systemSettings: publicSettings } });
+    // Ambil konfigurasi visual dan asset tema dari Sanity CMS
+    let sanityTheme = null;
+    if (invitation.themeId) {
+      sanityTheme = await getSanityThemeByKey(invitation.themeId).catch(() => null);
+    }
+
+    // Non-blocking visit recording
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      req.ip;
+    recordInvitationVisit(invitation.id, {
+      guestName: typeof req.query.to === "string" ? req.query.to : null,
+      userAgent: req.headers["user-agent"],
+      ip: clientIp,
+    }).catch(() => {});
+
+    res.json({
+      data: {
+        ...invitation,
+        systemSettings: publicSettings,
+        themeConfig: sanityTheme?.designConfig || null,
+        themeAssets: {
+          thumbnail: sanityTheme?.thumbnail || null,
+          source: sanityTheme ? "sanity_cms" : "local",
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function recordPublicInvitationVisit(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const rawSlug = req.params.slug;
+    const slug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug) || "";
+    if (!slug) {
+      res.status(400).json({ error: "Slug wajib disertakan" });
+      return;
+    }
+
+    const invitation = await getCachedPublicInvitation(slug);
+    if (!invitation) {
+      res.status(404).json({ error: "Undangan tidak ditemukan" });
+      return;
+    }
+
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      req.ip;
+
+    const recorded = await recordInvitationVisit(invitation.id, {
+      guestName: typeof req.body?.guestName === "string" ? req.body.guestName : null,
+      userAgent: req.headers["user-agent"],
+      ip: clientIp,
+    });
+
+    res.json({ success: true, recorded });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleVisitorHeartbeat(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const rawSlug = req.params.slug;
+    const slug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug) || "";
+    const visitorId = (req.body?.visitorId as string) || "anon_" + req.ip;
+
+    if (!slug) {
+      res.status(400).json({ error: "Slug wajib disertakan" });
+      return;
+    }
+
+    const liveCount = recordVisitorHeartbeat(slug, visitorId);
+
+    // Also async log to DB analytics if invitation exists
+    getCachedPublicInvitation(slug)
+      .then((invitation) => {
+        if (invitation) {
+          const clientIp =
+            (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+            req.socket.remoteAddress ||
+            req.ip;
+          recordInvitationVisit(invitation.id, {
+            guestName: typeof req.body?.guestName === "string" ? req.body.guestName : null,
+            userAgent: req.headers["user-agent"],
+            ip: clientIp,
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+
+    res.json({ success: true, liveCount });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleVisitorLeave(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const rawSlug = req.params.slug;
+    const slug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug) || "";
+    const visitorId = (req.body?.visitorId as string) || "anon_" + req.ip;
+
+    const liveCount = removeVisitorSession(slug, visitorId);
+    res.json({ success: true, liveCount });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getLiveVisitors(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const rawSlug = req.params.slug;
+    const slug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug) || "";
+    const liveCount = getLiveVisitorsCount(slug);
+    res.json({ success: true, liveCount });
   } catch (error) {
     next(error);
   }
@@ -629,4 +775,61 @@ export async function getPublicThemeStats(
     next(error);
   }
 }
+
+/**
+ * Mengambil katalog tema aktif dari Sanity CMS untuk halaman publik dan dashboard mempelai
+ */
+export async function getPublicThemes(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    let sanityThemes = await getSanityThemes();
+    if (!sanityThemes || sanityThemes.length === 0) {
+      sanityThemes = await seedDefaultThemesToSanity();
+    }
+
+    if (sanityThemes && sanityThemes.length > 0) {
+      const activeThemes = sanityThemes.filter((t) => t.isActive);
+      res.json({
+        success: true,
+        data: activeThemes.map((t) => ({
+          id: t.themeKey,
+          themeKey: t.themeKey,
+          name: t.name,
+          category: t.category,
+          thumbnail: t.thumbnail,
+          previewUrl: t.previewUrl || `/invitation/demo-${t.themeKey}`,
+          isPremium: t.isPremium,
+          features: t.features,
+          designConfig: t.designConfig,
+          source: "sanity_cms",
+        })),
+      });
+      return;
+    }
+
+    const fallbackThemes = await prisma.themeCatalog.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({
+      success: true,
+      data: fallbackThemes.map((t) => ({
+        id: t.themeKey,
+        themeKey: t.themeKey,
+        name: t.name,
+        category: t.category,
+        thumbnail: t.thumbnail,
+        previewUrl: t.previewUrl,
+        isPremium: t.isPremium,
+        source: "local_db",
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 

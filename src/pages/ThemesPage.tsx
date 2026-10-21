@@ -7,17 +7,28 @@ import {
   SlidersHorizontal,
   X,
   ArrowRight,
-  Check,
   Rocket,
 } from "lucide-react";
 import MarketingNavbar from "@/components/marketing/MarketingNavbar";
 import ThemeCard from "@/components/marketing/ThemeCard";
 import {
   THEME_LIST,
+  ThemeId,
   ThemeMeta,
   validateNewestThemeIds,
   getPopularThemeIds,
 } from "@/types/wedding";
+
+interface SanityThemeApiItem {
+  id: string;
+  themeKey?: string;
+  name?: string;
+  category?: string;
+  thumbnail?: string;
+  previewUrl?: string | null;
+  isPremium?: boolean;
+  features?: string[];
+}
 
 type TierFilter = "ALL" | "PRO" | "GENERAL";
 type SortOption = "POPULAR" | "NEWEST";
@@ -37,9 +48,40 @@ export const ThemesPage: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState<TierFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortOption>("POPULAR");
   const [themeStats, setThemeStats] = useState<Record<string, number>>({});
+  const [sanityThemes, setSanityThemes] = useState<ThemeMeta[]>(THEME_LIST);
 
-  // Sinkronisasi data penggunaan tema resmi pada Hari H dari server backend
+  // Sinkronisasi data katalog tema dari Sanity CMS & statistik penggunaan Hari H
   useEffect(() => {
+    fetch("/api/public/themes")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.success && Array.isArray(json?.data) && json.data.length > 0) {
+          const merged: ThemeMeta[] = (json.data as SanityThemeApiItem[]).map((st) => {
+            const fallback = THEME_LIST.find((f) => f.id === st.themeKey || f.id === st.id);
+            const targetId = (st.themeKey || st.id) as ThemeId;
+            return {
+              id: targetId,
+              code: st.themeKey || st.id,
+              name: st.name || fallback?.name || st.themeKey || "Tema Baru",
+              category: st.category || fallback?.category || "Minimalist",
+              description: fallback?.description || `Tema elegan dengan desain eksklusif ${st.name || ""}`,
+              thumbnail: st.thumbnail || fallback?.thumbnail || "",
+              previewUrl: st.previewUrl || fallback?.previewUrl || `/invitation/demo-${st.themeKey || st.id}`,
+              tier: st.isPremium ? "PRO" : "GENERAL",
+              bgPreview: fallback?.bgPreview || "from-slate-800 to-slate-900",
+              features: st.features || fallback?.features || [],
+              usageCount: fallback?.usageCount || 0,
+              fontHeading: fallback?.fontHeading || "font-serif",
+              fontBody: fallback?.fontBody || "font-sans",
+              accentColor: fallback?.accentColor || "#F97316",
+              createdAt: fallback?.createdAt || "2026-10-01",
+            };
+          });
+          setSanityThemes(merged);
+        }
+      })
+      .catch(() => {});
+
     fetch("/api/public/theme-stats")
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
@@ -52,14 +94,14 @@ export const ThemesPage: React.FC = () => {
 
   // Gabungkan baseline data dengan data real Hari H
   const baseThemes: ThemeMeta[] = useMemo(() => {
-    return THEME_LIST.map((t) => {
+    return sanityThemes.map((t) => {
       const serverUsage = themeStats[t.id];
       return {
         ...t,
         usageCount: serverUsage !== undefined ? serverUsage : t.usageCount,
       };
     });
-  }, [themeStats]);
+  }, [sanityThemes, themeStats]);
 
   // Validasi 5 tema paling terakhir berdasarkan tanggal rilis (createdAt)
   const newestThemeIds = useMemo(() => validateNewestThemeIds(baseThemes, 5), [baseThemes]);
@@ -212,7 +254,7 @@ export const ThemesPage: React.FC = () => {
           </div>
 
           {/* Row 2: Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1 pb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto thin-scrollbar-x pt-1 pb-2.5">
             <span className="text-xs text-slate-400 font-medium shrink-0 flex items-center gap-1 mr-1">
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Kategori:</span>
