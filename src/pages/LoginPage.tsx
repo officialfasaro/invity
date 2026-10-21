@@ -105,7 +105,23 @@ function LoginForm() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      let data: Record<string, any> = {};
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+      } else {
+        const rawText = await res.text();
+        throw new Error(
+          res.status >= 500
+            ? "Server backend mengalami kendala (500). Pastikan konfigurasi DATABASE_URL di Vercel sudah sesuai."
+            : rawText.slice(0, 100) || "Terjadi kendala pada respon server."
+        );
+      }
+
       if (!res.ok) {
         throw new Error(data.error || "Gagal masuk");
       }

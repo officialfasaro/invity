@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
+// Fallback DIRECT_URL to DATABASE_URL if omitted in serverless environment
+if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
